@@ -1,25 +1,63 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { PackageCodeLensProvider } from './providers/codeLensProvider';
+import { PackageService } from './services/packageService';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+import { toggleCodeLens } from './commands/toggleCodeLens';
+import { showPackageDetails } from './commands/showPackageDetails';
+import { COMMANDS, PACKAGE_JSON_PATTERN } from './constants';
+import { PackageInfo } from './types';
+
 export function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "vscode-react-native-package-checker" is now active!');
+	const packageService = new PackageService();
+	const codeLensProvider = new PackageCodeLensProvider(packageService);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('vscode-react-native-package-checker.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from vscode-react-native-package-checker!');
+	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
+		{ language: 'json', pattern: PACKAGE_JSON_PATTERN },
+		codeLensProvider
+	);
+
+	const refreshCommand = vscode.commands.registerCommand(
+		COMMANDS.REFRESH_CODE_LENS,
+		() => {
+			codeLensProvider.refresh();
+			vscode.window.showInformationMessage('Package status refreshed');
+		}
+	);
+
+	const toggleCommand = vscode.commands.registerCommand(
+		COMMANDS.TOGGLE_CODE_LENS,
+		() => toggleCodeLens(codeLensProvider)
+	);
+
+	const enableCommand = vscode.commands.registerCommand(
+		COMMANDS.ENABLE_CODE_LENS,
+		() => toggleCodeLens(codeLensProvider)
+	);
+
+	const detailsCommand = vscode.commands.registerCommand(
+		COMMANDS.SHOW_PACKAGE_DETAILS,
+		(packageName: string, packageInfo: PackageInfo) => showPackageDetails(packageName, packageInfo, context)
+	);
+
+	const activeEditorListener = vscode.window.onDidChangeActiveTextEditor(() => {
+		codeLensProvider.refresh();
 	});
 
-	context.subscriptions.push(disposable);
+	const documentChangeListener = vscode.workspace.onDidChangeTextDocument(() => {
+		codeLensProvider.refresh();
+	});
+
+	context.subscriptions.push(
+		codeLensDisposable,
+		refreshCommand,
+		toggleCommand,
+		enableCommand,
+		detailsCommand,
+		codeLensProvider,
+		activeEditorListener,
+		documentChangeListener
+	);
 }
 
 // This method is called when your extension is deactivated
