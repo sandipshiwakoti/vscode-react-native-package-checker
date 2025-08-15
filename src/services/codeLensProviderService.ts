@@ -1,20 +1,19 @@
 import * as vscode from 'vscode';
-import { PackageService } from '../services/packageService';
+import { PackageService } from './packageService';
 import { NewArchSupportStatus, StatusInfo, PackageInfoMap } from '../types';
-import { COMMANDS, STATUS_LABELS, STATUS_DESCRIPTIONS } from '../constants';
+import { COMMANDS, STATUS_LABELS, STATUS_DESCRIPTIONS, EXTENSION_CONFIG, ICONS } from '../constants';
 
-export class PackageCodeLensProvider implements vscode.CodeLensProvider {
+export class CodeLensProviderService implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
-    constructor(private packageService: PackageService) {
+    constructor(private packageService: PackageService, private context: vscode.ExtensionContext) {
     }
 
     async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
-        const config = vscode.workspace.getConfiguration('reactNativePackageChecker');
-        const isEnabled = config.get('enableCodeLens', true);
+        const isEnabled = this.context.globalState.get(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED);
 
-        if (!isEnabled || !document.fileName.endsWith('package.json')) {
+        if (!isEnabled || !document.fileName.endsWith(EXTENSION_CONFIG.PACKAGE_JSON_FILENAME)) {
             return [];
         }
 
@@ -35,10 +34,10 @@ export class PackageCodeLensProvider implements vscode.CodeLensProvider {
     private extractPackageNames(content: string): string[] {
         try {
             const packageJson = JSON.parse(content);
-            const dependencies = packageJson.dependencies || {};
+            const dependencies = packageJson[EXTENSION_CONFIG.DEPENDENCIES_KEY] || {};
 
             return Object.entries(dependencies).map(([name, version]) => {
-                const cleanVersion = (version as string).replace(/[\^~]/, '');
+                const cleanVersion = (version as string).replace(EXTENSION_CONFIG.VERSION_CLEAN_REGEX, '');
                 return `${name}@${cleanVersion}`;
             });
         } catch (error) {
@@ -48,11 +47,11 @@ export class PackageCodeLensProvider implements vscode.CodeLensProvider {
 
     private createCodeLenses(document: vscode.TextDocument, packageInfos: PackageInfoMap): vscode.CodeLens[] {
         const codeLenses: vscode.CodeLens[] = [];
-        const lines = document.getText().split('\n');
+        const lines = document.getText().split(EXTENSION_CONFIG.LINE_SEPARATOR);
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const packageMatch = line.match(/"([^"]+)"\s*:\s*"[^"]+"/);
+            const packageMatch = line.match(EXTENSION_CONFIG.PACKAGE_LINE_REGEX);
 
             if (packageMatch) {
                 const packageName = packageMatch[1];
@@ -93,14 +92,14 @@ export class PackageCodeLensProvider implements vscode.CodeLensProvider {
     private getStatusIcon(status?: NewArchSupportStatus): string {
         switch (status) {
             case NewArchSupportStatus.Supported:
-                return 'check';
+                return ICONS.SUPPORTED;
             case NewArchSupportStatus.Unsupported:
-                return 'x';
+                return ICONS.UNSUPPORTED;
             case NewArchSupportStatus.Untested:
-                return 'warning';
+                return ICONS.UNTESTED;
             case NewArchSupportStatus.Unlisted:
             default:
-                return 'question';
+                return ICONS.UNKNOWN;
         }
     }
 
@@ -116,7 +115,7 @@ export class PackageCodeLensProvider implements vscode.CodeLensProvider {
         }
 
         parts.push('Click for more details');
-        return parts.join('\n\n');
+        return parts.join(EXTENSION_CONFIG.TOOLTIP_SEPARATOR);
     }
 
     refresh(): void {

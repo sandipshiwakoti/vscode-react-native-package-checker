@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { PackageInfo, NewArchSupportStatus } from '../types';
-import { getStatusClass } from '../utils/statusUtils';
+import { getStatusClass } from '../utils/urlUtils';
+import { UI_CONFIG } from '../constants';
 import { STATUS_LABELS } from '../constants';
 import {
     getNewArchIssueSearchUrl,
@@ -16,6 +17,7 @@ import {
 } from '../utils/urlUtils';
 
 const openPanels = new Map<string, vscode.WebviewPanel>();
+const panelPackageInfo = new Map<string, { packageName: string; packageInfo: PackageInfo }>();
 
 export function createPackageDetailsPanel(packageName: string, packageInfo: PackageInfo, context?: vscode.ExtensionContext): vscode.WebviewPanel {
     const existingPanel = openPanels.get(packageName);
@@ -25,7 +27,7 @@ export function createPackageDetailsPanel(packageName: string, packageInfo: Pack
     }
 
     const panel = vscode.window.createWebviewPanel(
-        'packageDetails',
+        UI_CONFIG.PACKAGE_DETAILS_PANEL_ID,
         `${packageName} - Package Details`,
         vscode.ViewColumn.Beside,
         {
@@ -40,9 +42,23 @@ export function createPackageDetailsPanel(packageName: string, packageInfo: Pack
     panel.webview.html = generateWebviewContent(packageName, packageInfo);
 
     openPanels.set(packageName, panel);
+    panelPackageInfo.set(packageName, { packageName, packageInfo });
+
     panel.onDidDispose(() => {
         openPanels.delete(packageName);
+        panelPackageInfo.delete(packageName);
     });
+
+    if (context) {
+        const themeChangeDisposable = vscode.window.onDidChangeActiveColorTheme(() => {
+            const storedInfo = panelPackageInfo.get(packageName);
+            if (panel && storedInfo) {
+                panel.webview.html = generateWebviewContent(storedInfo.packageName, storedInfo.packageInfo);
+            }
+        });
+
+        context.subscriptions.push(themeChangeDisposable);
+    }
 
     return panel;
 }
@@ -356,7 +372,7 @@ function getCodeLensStatusText(status?: NewArchSupportStatus): string {
 function createStatusBadge(status?: NewArchSupportStatus, text?: string): string {
     let iconSvg = '';
     let variant = 'slate';
-    
+
     switch (status) {
         case NewArchSupportStatus.Supported:
             iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg>';
@@ -376,7 +392,7 @@ function createStatusBadge(status?: NewArchSupportStatus, text?: string): string
             variant = 'slate';
             break;
     }
-    
+
     return `<span class="tag tag-${variant}">${iconSvg}${text || 'Unknown'}</span>`;
 }
 
@@ -393,7 +409,7 @@ function createMaintenanceBadge(unmaintained?: boolean): string {
 function createPlatformBadge(platform: string): string {
     let iconSvg = '';
     let variant = 'slate';
-    
+
     switch (platform.toLowerCase()) {
         case 'ios':
             iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
@@ -436,13 +452,13 @@ function createPlatformBadge(platform: string): string {
             variant = 'slate';
             break;
     }
-    
+
     return `<span class="tag tag-${variant}">${iconSvg}${platform}</span>`;
 }
 
 function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | null {
     const badges = [];
-    
+
     if (packageInfo.platforms) {
         if (packageInfo.platforms.ios) { badges.push(createPlatformBadge('iOS')); }
         if (packageInfo.platforms.android) { badges.push(createPlatformBadge('Android')); }
@@ -451,18 +467,18 @@ function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | nul
         if (packageInfo.platforms.macos) { badges.push(createPlatformBadge('macOS')); }
         if (packageInfo.platforms.fireos) { badges.push(createPlatformBadge('Fire OS')); }
     }
-    
+
     if (packageInfo.support) {
         if (packageInfo.support.hasTypes) { badges.push(createPlatformBadge('TypeScript')); }
         if (packageInfo.support.expoGo) { badges.push(createPlatformBadge('Expo Go')); }
         if (packageInfo.support.dev) { badges.push(createPlatformBadge('Development Only')); }
         if (packageInfo.support.license) { badges.push(createPlatformBadge(packageInfo.support.license)); }
     }
-    
+
     if (badges.length === 0) {
         return null;
     }
-    
+
     return `
         <div class="card">
             <div class="card-title">Platforms & Support</div>
@@ -485,17 +501,17 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
 
     const statusClass = getStatusClass(packageInfo.newArchitecture);
     const codeLensStatusText = getCodeLensStatusText(packageInfo.newArchitecture);
-    
+
     const statusBadge = createStatusBadge(packageInfo.newArchitecture, codeLensStatusText);
     let statusContent = `<div class="status-row">${statusBadge}`;
-    
+
     if (packageInfo.newArchitecture && packageInfo.newArchitecture !== NewArchSupportStatus.Unlisted) {
         const maintenanceBadge = createMaintenanceBadge(packageInfo.unmaintained);
         statusContent += maintenanceBadge;
     }
-    
+
     statusContent += `</div>`;
-    
+
     content += `
         <div class="card ${statusClass}">
             <div class="card-title">Status</div>
@@ -530,7 +546,7 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
         const licenseIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>';
         basicLinks.push(`<span class="tag tag-slate"><a href="${packageInfo.support.licenseUrl}" target="_blank" class="tag-link">${licenseIcon}License</a></span>`);
     }
-    
+
     if (basicLinks.length > 0) {
         content += `
             <div class="card">

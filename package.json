@@ -3,6 +3,16 @@
   "displayName": "React Native Package Checker",
   "description": "Simplify Your New Architecture Migration",
   "version": "0.0.1",
+  "publisher": "sandipshiwakoti",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandipshiwakoti/vscode-react-native-package-checker"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sandipshiwakoti/vscode-react-native-package-checker/issues"
+  },
+  "homepage": "https://github.com/sandipshiwakoti/vscode-react-native-package-checker#readme",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -16,57 +26,47 @@
   "contributes": {
     "commands": [
       {
-        "command": "reactNativePackageChecker.refreshCodeLens",
-        "title": "Refresh Package Status",
-        "category": "React Native Package Checker"
-      },
-      {
-        "command": "reactNativePackageChecker.toggleCodeLens",
-        "title": "Disable React Native Package Checker",
-        "category": "React Native Package Checker",
-        "icon": {
-          "light": "./assets/toggle-enabled-light.svg",
-          "dark": "./assets/toggle-enabled-dark.svg"
-        }
-      },
-      {
         "command": "reactNativePackageChecker.enableCodeLens",
-        "title": "Enable React Native Package Checker",
-        "category": "React Native Package Checker",
+        "title": "Show package checker details",
         "icon": {
           "light": "./assets/toggle-disabled-light.svg",
           "dark": "./assets/toggle-disabled-dark.svg"
         }
       },
       {
+        "command": "reactNativePackageChecker.disableCodeLens",
+        "title": "Hide package checker details",
+        "icon": {
+          "light": "./assets/toggle-enabled-light.svg",
+          "dark": "./assets/toggle-enabled-dark.svg"
+        }
+      },
+      {
         "command": "reactNativePackageChecker.showPackageDetails",
-        "title": "Show Package Details"
+        "title": "Package Checker: Show Details"
+      },
+      {
+        "command": "reactNativePackageChecker.showChecker",
+        "title": "Package Checker: Check All"
+      },
+      {
+        "command": "reactNativePackageChecker.openInBrowser",
+        "title": "Package Checker: Open in Browser"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "reactNativePackageChecker.toggleCodeLens",
-          "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && config.reactNativePackageChecker.enableCodeLens",
+          "command": "reactNativePackageChecker.disableCodeLens",
+          "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && reactNativePackageChecker.enabled",
           "group": "navigation"
         },
         {
           "command": "reactNativePackageChecker.enableCodeLens",
-          "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && !config.reactNativePackageChecker.enableCodeLens",
+          "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && !reactNativePackageChecker.enabled",
           "group": "navigation"
         }
       ]
-    },
-    "configuration": {
-      "title": "React Native Package Checker",
-      "properties": {
-        "reactNativePackageChecker.enableCodeLens": {
-          "type": "boolean",
-          "default": true,
-          "scope": "window",
-          "description": "Show New Architecture compatibility status for React Native packages"
-        }
-      }
     }
   },
   "scripts": {

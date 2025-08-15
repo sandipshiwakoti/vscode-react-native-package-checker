@@ -1,4 +1,4 @@
-import { CACHE_TIMEOUT, API_BASE_URL } from '../constants';
+import { API_BASE_URL, EXTENSION_CONFIG, API_CONFIG } from '../constants';
 import { PackageResponse, PackageInfo, PackageInfoMap } from '../types';
 
 export class PackageService {
@@ -30,9 +30,9 @@ export class PackageService {
     }
 
     private async fetchPackageData(packages: string[]): Promise<PackageResponse> {
-        const response = await fetch(`${API_BASE_URL}/package-info`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const response = await fetch(`${API_BASE_URL}${API_CONFIG.ENDPOINT_PACKAGE_INFO}`, {
+            method: API_CONFIG.METHOD_POST,
+            headers: { [API_CONFIG.HEADER_CONTENT_TYPE]: API_CONFIG.CONTENT_TYPE_JSON },
             body: JSON.stringify({ packages })
         });
 
@@ -70,7 +70,7 @@ export class PackageService {
         const now = Date.now();
         Object.entries(packages).forEach(([name, info]) => {
             this.cache.set(name, info);
-            this.cacheExpiry.set(name, now + CACHE_TIMEOUT);
+            this.cacheExpiry.set(name, now + EXTENSION_CONFIG.CACHE_TIMEOUT);
         });
     }
 
