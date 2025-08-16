@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { getCheckUrl, extractPackagesFromPackageJson } from '../utils/checkerUtils';
+
 import { EXTENSION_CONFIG } from '../constants';
+import { extractPackagesFromPackageJson, getCheckUrl } from '../utils/checkerUtils';
 
 export class BrowserService {
     openPackageChecker(): void {

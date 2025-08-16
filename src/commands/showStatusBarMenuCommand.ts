@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { CheckerService } from '../services/checkerService';
+
 import { BrowserService } from '../services/browserService';
+import { CheckerService } from '../services/checkerService';
 
 export async function showStatusBarMenu(
     checkerService: CheckerService,
@@ -11,18 +12,18 @@ export async function showStatusBarMenu(
         {
             label: '$(window) Open in Editor Panel',
             description: 'Open Package Checker in VS Code panel',
-            action: 'editor'
+            action: 'editor',
         },
         {
             label: '$(globe) Open in Browser',
             description: 'Open Package Checker in external browser',
-            action: 'browser'
-        }
+            action: 'browser',
+        },
     ];
 
     const selected = await vscode.window.showQuickPick(options, {
         placeHolder: 'Choose how to open Package Checker',
-        matchOnDescription: true
+        matchOnDescription: true,
     });
 
     if (selected) {

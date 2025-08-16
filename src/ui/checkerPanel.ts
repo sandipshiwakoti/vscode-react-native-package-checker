@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { getCheckUrl, extractPackagesFromPackageJson } from '../utils/checkerUtils';
+
 import { EXTENSION_CONFIG, UI_CONFIG } from '../constants';
+import { extractPackagesFromPackageJson, getCheckUrl } from '../utils/checkerUtils';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 let currentPackages: Array<{ name: string; version: string }> = [];
@@ -32,19 +33,19 @@ export function createCheckerPanel(context: vscode.ExtensionContext): void {
             {
                 enableScripts: true,
                 retainContextWhenHidden: true,
-                enableCommandUris: true
+                enableCommandUris: true,
             }
         );
 
         currentPanel.iconPath = {
             light: vscode.Uri.joinPath(context.extensionUri, UI_CONFIG.LOGO_PATH),
-            dark: vscode.Uri.joinPath(context.extensionUri, UI_CONFIG.LOGO_PATH)
+            dark: vscode.Uri.joinPath(context.extensionUri, UI_CONFIG.LOGO_PATH),
         };
 
         currentPanel.webview.html = getCheckerContent(checkUrl);
 
         currentPanel.webview.onDidReceiveMessage(
-            message => {
+            (message) => {
                 switch (message.command) {
                     case UI_CONFIG.WEBVIEW_COMMAND_OPEN_EXTERNAL:
                         vscode.env.openExternal(vscode.Uri.parse(message.url));
@@ -55,10 +56,14 @@ export function createCheckerPanel(context: vscode.ExtensionContext): void {
             context.subscriptions
         );
 
-        currentPanel.onDidDispose(() => {
-            currentPanel = undefined;
-            currentPackages = [];
-        }, null, context.subscriptions);
+        currentPanel.onDidDispose(
+            () => {
+                currentPanel = undefined;
+                currentPackages = [];
+            },
+            null,
+            context.subscriptions
+        );
 
         const themeChangeDisposable = vscode.window.onDidChangeActiveColorTheme(() => {
             if (currentPanel && currentPackages.length > 0) {

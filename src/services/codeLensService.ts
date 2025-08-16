@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import { CodeLensProviderService } from './codeLensProviderService';
+
 import { EXTENSION_CONFIG } from '../constants';
+
+import { CodeLensProviderService } from './codeLensProviderService';
 
 export class CodeLensService {
     constructor(
@@ -20,7 +22,7 @@ export class CodeLensService {
 
     initialize(): void {
         const isEnabled = this.context.globalState.get(
-            EXTENSION_CONFIG.CODE_LENS_STATE_KEY, 
+            EXTENSION_CONFIG.CODE_LENS_STATE_KEY,
             EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED
         );
         vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, isEnabled);

@@ -1,12 +1,12 @@
-import { API_BASE_URL, EXTENSION_CONFIG, API_CONFIG } from '../constants';
-import { PackageResponse, PackageInfo, PackageInfoMap } from '../types';
+import { API_BASE_URL, API_CONFIG, EXTENSION_CONFIG } from '../constants';
+import { PackageInfo, PackageInfoMap, PackageResponse } from '../types';
 
 export class PackageService {
     private cache = new Map<string, PackageInfo>();
     private cacheExpiry = new Map<string, number>();
 
     async checkPackages(packageWithVersions: string[]): Promise<PackageInfoMap> {
-        const uncachedPackages = packageWithVersions.filter(pkg => {
+        const uncachedPackages = packageWithVersions.filter((pkg) => {
             const packageName = this.extractPackageName(pkg);
             return !this.isCached(packageName);
         });
@@ -33,7 +33,7 @@ export class PackageService {
         const response = await fetch(`${API_BASE_URL}${API_CONFIG.ENDPOINT_PACKAGE_INFO}`, {
             method: API_CONFIG.METHOD_POST,
             headers: { [API_CONFIG.HEADER_CONTENT_TYPE]: API_CONFIG.CONTENT_TYPE_JSON },
-            body: JSON.stringify({ packages })
+            body: JSON.stringify({ packages }),
         });
 
         if (!response.ok) {

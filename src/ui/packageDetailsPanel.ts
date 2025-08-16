@@ -1,25 +1,30 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { PackageInfo, NewArchSupportStatus } from '../types';
-import { getStatusClass } from '../utils/urlUtils';
+
 import { UI_CONFIG } from '../constants';
 import { STATUS_LABELS } from '../constants';
+import { NewArchSupportStatus, PackageInfo } from '../types';
+import { getStatusClass } from '../utils/urlUtils';
 import {
-    getNewArchIssueSearchUrl,
-    getNewArchPRSearchUrl,
-    getNewArchMergedPRSearchUrl,
+    getActiveForksUrl,
+    getBundlePhobiaUrl,
+    getContributorsActivityUrl,
     getMaintenanceIssuesUrl,
     getMaintenancePRSearchUrl,
-    getContributorsActivityUrl,
-    getActiveForksUrl,
+    getNewArchIssueSearchUrl,
+    getNewArchMergedPRSearchUrl,
+    getNewArchPRSearchUrl,
     getReadmeUrl,
-    getBundlePhobiaUrl
 } from '../utils/urlUtils';
 
 const openPanels = new Map<string, vscode.WebviewPanel>();
 const panelPackageInfo = new Map<string, { packageName: string; packageInfo: PackageInfo }>();
 
-export function createPackageDetailsPanel(packageName: string, packageInfo: PackageInfo, context?: vscode.ExtensionContext): vscode.WebviewPanel {
+export function createPackageDetailsPanel(
+    packageName: string,
+    packageInfo: PackageInfo,
+    context?: vscode.ExtensionContext
+): vscode.WebviewPanel {
     const existingPanel = openPanels.get(packageName);
     if (existingPanel) {
         existingPanel.reveal(vscode.ViewColumn.Beside);
@@ -32,7 +37,7 @@ export function createPackageDetailsPanel(packageName: string, packageInfo: Pack
         vscode.ViewColumn.Beside,
         {
             enableScripts: false,
-            retainContextWhenHidden: true
+            retainContextWhenHidden: true,
         }
     );
     if (context) {
@@ -375,20 +380,24 @@ function createStatusBadge(status?: NewArchSupportStatus, text?: string): string
 
     switch (status) {
         case NewArchSupportStatus.Supported:
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg>';
             variant = 'green';
             break;
         case NewArchSupportStatus.Unsupported:
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>';
             variant = 'red';
             break;
         case NewArchSupportStatus.Untested:
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
             variant = 'yellow';
             break;
         case NewArchSupportStatus.Unlisted:
         default:
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
             variant = 'slate';
             break;
     }
@@ -398,10 +407,12 @@ function createStatusBadge(status?: NewArchSupportStatus, text?: string): string
 
 function createMaintenanceBadge(unmaintained?: boolean): string {
     if (unmaintained) {
-        const iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>';
+        const iconSvg =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>';
         return `<span class="tag tag-amber">${iconSvg}Unmaintained</span>`;
     } else {
-        const iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg>';
+        const iconSvg =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg>';
         return `<span class="tag tag-green">${iconSvg}Actively maintained</span>`;
     }
 }
@@ -412,43 +423,53 @@ function createPlatformBadge(platform: string): string {
 
     switch (platform.toLowerCase()) {
         case 'ios':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
             variant = 'blue';
             break;
         case 'android':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
             variant = 'green';
             break;
         case 'web':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
             variant = 'purple';
             break;
         case 'windows':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path><path d="M10 19v-3.96 3.15"></path><path d="M7 19h5"></path><rect width="6" height="10" x="16" y="12" rx="2"></rect></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path><path d="M10 19v-3.96 3.15"></path><path d="M7 19h5"></path><rect width="6" height="10" x="16" y="12" rx="2"></rect></svg>';
             variant = 'slate';
             break;
         case 'macos':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"></path></svg>';
             variant = 'slate';
             break;
         case 'fire os':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"></path></svg>';
             variant = 'amber';
             break;
         case 'typescript':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path></svg>';
             variant = 'blue';
             break;
         case 'expo go':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
             variant = 'slate';
             break;
         case 'development only':
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>';
             variant = 'slate';
             break;
         default:
-            iconSvg = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11c0 2.5-2.5 5-5 5s-5-2.5-5-5 2.5-5 5-5 5 2.5 5 5Z"></path><path d="m15.2 13.9 3 3 3-3"></path><path d="m2.8 10.1-3-3 3-3"></path><path d="m20.7 7-3 3 3 3"></path><path d="m6.3 17 3-3-3-3"></path></svg>';
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11c0 2.5-2.5 5-5 5s-5-2.5-5-5 2.5-5 5-5 5 2.5 5 5Z"></path><path d="m15.2 13.9 3 3 3-3"></path><path d="m2.8 10.1-3-3 3-3"></path><path d="m20.7 7-3 3 3 3"></path><path d="m6.3 17 3-3-3-3"></path></svg>';
             variant = 'slate';
             break;
     }
@@ -460,19 +481,39 @@ function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | nul
     const badges = [];
 
     if (packageInfo.platforms) {
-        if (packageInfo.platforms.ios) { badges.push(createPlatformBadge('iOS')); }
-        if (packageInfo.platforms.android) { badges.push(createPlatformBadge('Android')); }
-        if (packageInfo.platforms.web) { badges.push(createPlatformBadge('Web')); }
-        if (packageInfo.platforms.windows) { badges.push(createPlatformBadge('Windows')); }
-        if (packageInfo.platforms.macos) { badges.push(createPlatformBadge('macOS')); }
-        if (packageInfo.platforms.fireos) { badges.push(createPlatformBadge('Fire OS')); }
+        if (packageInfo.platforms.ios) {
+            badges.push(createPlatformBadge('iOS'));
+        }
+        if (packageInfo.platforms.android) {
+            badges.push(createPlatformBadge('Android'));
+        }
+        if (packageInfo.platforms.web) {
+            badges.push(createPlatformBadge('Web'));
+        }
+        if (packageInfo.platforms.windows) {
+            badges.push(createPlatformBadge('Windows'));
+        }
+        if (packageInfo.platforms.macos) {
+            badges.push(createPlatformBadge('macOS'));
+        }
+        if (packageInfo.platforms.fireos) {
+            badges.push(createPlatformBadge('Fire OS'));
+        }
     }
 
     if (packageInfo.support) {
-        if (packageInfo.support.hasTypes) { badges.push(createPlatformBadge('TypeScript')); }
-        if (packageInfo.support.expoGo) { badges.push(createPlatformBadge('Expo Go')); }
-        if (packageInfo.support.dev) { badges.push(createPlatformBadge('Development Only')); }
-        if (packageInfo.support.license) { badges.push(createPlatformBadge(packageInfo.support.license)); }
+        if (packageInfo.support.hasTypes) {
+            badges.push(createPlatformBadge('TypeScript'));
+        }
+        if (packageInfo.support.expoGo) {
+            badges.push(createPlatformBadge('Expo Go'));
+        }
+        if (packageInfo.support.dev) {
+            badges.push(createPlatformBadge('Development Only'));
+        }
+        if (packageInfo.support.license) {
+            badges.push(createPlatformBadge(packageInfo.support.license));
+        }
     }
 
     if (badges.length === 0) {
@@ -535,16 +576,25 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
 
     const basicLinks = [];
     if (packageInfo.npmUrl) {
-        const npmIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 5" fill="currentColor"><path d="M0,0v5h5V1h1v4h1V0H0z M10,0v5h2V1h1v4h1V1h1v4h1V0H10z"/></svg>';
-        basicLinks.push(`<span class="tag tag-slate"><a href="${packageInfo.npmUrl}" target="_blank" class="tag-link">${npmIcon}NPM</a></span>`);
+        const npmIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 5" fill="currentColor"><path d="M0,0v5h5V1h1v4h1V0H0z M10,0v5h2V1h1v4h1V1h1v4h1V0H10z"/></svg>';
+        basicLinks.push(
+            `<span class="tag tag-slate"><a href="${packageInfo.npmUrl}" target="_blank" class="tag-link">${npmIcon}NPM</a></span>`
+        );
     }
     if (packageInfo.githubUrl) {
-        const githubIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
-        basicLinks.push(`<span class="tag tag-slate"><a href="${packageInfo.githubUrl}" target="_blank" class="tag-link">${githubIcon}GitHub</a></span>`);
+        const githubIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
+        basicLinks.push(
+            `<span class="tag tag-slate"><a href="${packageInfo.githubUrl}" target="_blank" class="tag-link">${githubIcon}GitHub</a></span>`
+        );
     }
     if (packageInfo.support?.licenseUrl) {
-        const licenseIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>';
-        basicLinks.push(`<span class="tag tag-slate"><a href="${packageInfo.support.licenseUrl}" target="_blank" class="tag-link">${licenseIcon}License</a></span>`);
+        const licenseIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>';
+        basicLinks.push(
+            `<span class="tag tag-slate"><a href="${packageInfo.support.licenseUrl}" target="_blank" class="tag-link">${licenseIcon}License</a></span>`
+        );
     }
 
     if (basicLinks.length > 0) {
@@ -576,30 +626,56 @@ function generateExploreLinks(packageName: string, packageInfo: PackageInfo): st
         return links;
     }
 
-    const circleDotIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="1"></circle></svg>';
-    const gitPullRequestIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line></svg>';
-    const usersIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
-    const gitForkIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"></path><path d="M12 12v3"></path></svg>';
-    const packageIcon = '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"></path><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29,7 12,12 20.71,7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>';
+    const circleDotIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="1"></circle></svg>';
+    const gitPullRequestIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line></svg>';
+    const usersIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+    const gitForkIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"></path><path d="M12 12v3"></path></svg>';
+    const packageIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"></path><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29,7 12,12 20.71,7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>';
 
     if (packageInfo.unmaintained) {
-        links.push(`<span class="tag tag-slate"><a href="${getMaintenanceIssuesUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}Maintenance Open Issues</a></span>`);
-        links.push(`<span class="tag tag-slate"><a href="${getMaintenancePRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}Stale PRs</a></span>`);
-        links.push(`<span class="tag tag-slate"><a href="${getContributorsActivityUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${usersIcon}Contributors Activity</a></span>`);
-        links.push(`<span class="tag tag-slate"><a href="${getActiveForksUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitForkIcon}Most Active Forks</a></span>`);
+        links.push(
+            `<span class="tag tag-slate"><a href="${getMaintenanceIssuesUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}Maintenance Open Issues</a></span>`
+        );
+        links.push(
+            `<span class="tag tag-slate"><a href="${getMaintenancePRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}Stale PRs</a></span>`
+        );
+        links.push(
+            `<span class="tag tag-slate"><a href="${getContributorsActivityUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${usersIcon}Contributors Activity</a></span>`
+        );
+        links.push(
+            `<span class="tag tag-slate"><a href="${getActiveForksUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitForkIcon}Most Active Forks</a></span>`
+        );
     }
 
     if (packageInfo.newArchitecture === NewArchSupportStatus.Supported) {
-        links.push(`<span class="tag tag-slate"><a href="${getNewArchMergedPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}New Arch Merged PRs</a></span>`);
+        links.push(
+            `<span class="tag tag-slate"><a href="${getNewArchMergedPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}New Arch Merged PRs</a></span>`
+        );
     }
 
-    if (packageInfo.newArchitecture === NewArchSupportStatus.Untested || packageInfo.newArchitecture === NewArchSupportStatus.Unsupported) {
-        links.push(`<span class="tag tag-slate"><a href="${getNewArchIssueSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}New Arch Open Issues</a></span>`);
-        links.push(`<span class="tag tag-slate"><a href="${getNewArchPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}New Arch Open PRs</a></span>`);
+    if (
+        packageInfo.newArchitecture === NewArchSupportStatus.Untested ||
+        packageInfo.newArchitecture === NewArchSupportStatus.Unsupported
+    ) {
+        links.push(
+            `<span class="tag tag-slate"><a href="${getNewArchIssueSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}New Arch Open Issues</a></span>`
+        );
+        links.push(
+            `<span class="tag tag-slate"><a href="${getNewArchPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}New Arch Open PRs</a></span>`
+        );
     }
 
-    links.push(`<span class="tag tag-slate"><a href="${getBundlePhobiaUrl(packageName, packageInfo.version)}" target="_blank" class="tag-link">${packageIcon}Bundle Size Analysis</a></span>`);
-    links.push(`<span class="tag tag-slate"><a href="${getReadmeUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}Documentation</a></span>`);
+    links.push(
+        `<span class="tag tag-slate"><a href="${getBundlePhobiaUrl(packageName, packageInfo.version)}" target="_blank" class="tag-link">${packageIcon}Bundle Size Analysis</a></span>`
+    );
+    links.push(
+        `<span class="tag tag-slate"><a href="${getReadmeUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}Documentation</a></span>`
+    );
 
     return links;
 }

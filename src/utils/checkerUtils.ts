@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
-import { formatDependency } from './urlUtils';
+
 import { BASE_URL, EXTENSION_CONFIG } from '../constants';
 
+import { formatDependency } from './urlUtils';
+
 export function getCheckUrl(packages: Array<{ name: string; version: string }>, isBrowser: boolean = false): string {
-    const formattedPackages = packages.map(pkg => formatDependency(pkg.name, pkg.version));
+    const formattedPackages = packages.map((pkg) => formatDependency(pkg.name, pkg.version));
     const packagesParam = formattedPackages.join(',');
 
     if (isBrowser) {
@@ -23,9 +25,9 @@ export function extractPackagesFromPackageJson(content: string): Array<{ name: s
 
         return Object.entries(dependencies).map(([name, version]) => ({
             name,
-            version: (version as string).replace(EXTENSION_CONFIG.VERSION_CLEAN_REGEX, '')
+            version: (version as string).replace(EXTENSION_CONFIG.VERSION_CLEAN_REGEX, ''),
         }));
-    } catch (error) {
+    } catch {
         return [];
     }
 }

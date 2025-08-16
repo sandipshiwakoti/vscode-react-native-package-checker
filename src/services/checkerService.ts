@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+
 import { createCheckerPanel } from '../ui/checkerPanel';
 
 export class CheckerService {

@@ -37,7 +37,6 @@
 
 - 📝 **Detailed View** - Click any package to see comprehensive status and compatibility details
 
-
 ## 🚀 Installation
 
 **Install from:**
@@ -64,7 +63,7 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 1. **Install** from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker) or [Open VSX](https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker)
 2. **Open** your React Native project in VS Code
 3. **Open** package.json to see status indicators automatically
-5. **Click** on any indicator for detailed package information
+4. **Click** on any indicator for detailed package information
 
 ### 📊 Status Color Indicators at a Glance
 
@@ -72,7 +71,6 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 - 🔴 **Red**: Package doesn't support New Architecture
 - 🟡 **Yellow**: Package hasn't been tested with New Architecture
 - ⚫ **Black**: Status couldn't be determined
-
 
 ## 🛠️ Development Setup
 

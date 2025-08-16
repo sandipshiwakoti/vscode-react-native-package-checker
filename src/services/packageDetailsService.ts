@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+
 import { PackageInfo } from '../types';
 import { createPackageDetailsPanel } from '../ui/packageDetailsPanel';
 

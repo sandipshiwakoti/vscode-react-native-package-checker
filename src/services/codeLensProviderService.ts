@@ -1,17 +1,31 @@
 import * as vscode from 'vscode';
+
+import {
+    COMMANDS,
+    EXTENSION_CONFIG,
+    STATUS_COLORS,
+    STATUS_DESCRIPTIONS,
+    STATUS_LABELS,
+    STATUS_SYMBOLS,
+} from '../constants';
+import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
+
 import { PackageService } from './packageService';
-import { NewArchSupportStatus, StatusInfo, PackageInfoMap, PackageInfo } from '../types';
-import { COMMANDS, STATUS_LABELS, STATUS_DESCRIPTIONS, EXTENSION_CONFIG, STATUS_COLORS, STATUS_SYMBOLS } from '../constants';
 
 export class CodeLensProviderService implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
-    constructor(private packageService: PackageService, private context: vscode.ExtensionContext) {
-    }
+    constructor(
+        private packageService: PackageService,
+        private context: vscode.ExtensionContext
+    ) {}
 
     async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
-        const isEnabled = this.context.globalState.get(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED);
+        const isEnabled = this.context.globalState.get(
+            EXTENSION_CONFIG.CODE_LENS_STATE_KEY,
+            EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED
+        );
 
         if (!isEnabled || !document.fileName.endsWith(EXTENSION_CONFIG.PACKAGE_JSON_FILENAME)) {
             return [];
@@ -40,7 +54,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 const cleanVersion = (version as string).replace(EXTENSION_CONFIG.VERSION_CLEAN_REGEX, '');
                 return `${name}@${cleanVersion}`;
             });
-        } catch (error) {
+        } catch {
             return [];
         }
     }
@@ -63,7 +77,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                     codeLenses.push(newArchCodeLens);
 
                     if (packageInfo.unmaintained) {
-                        const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range, packageInfo);
+                        const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range);
                         codeLenses.push(unmaintainedCodeLens);
                     }
                 }
@@ -77,22 +91,22 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         const color = this.getStatusColor(packageInfo.newArchitecture);
         const symbol = this.getStatusSymbol(packageInfo.newArchitecture);
         const status = this.getArchitectureStatus(packageInfo.newArchitecture);
-        
+
         const displayText = `${color} ${symbol} ${status.text}`;
-        
+
         return new vscode.CodeLens(range, {
             title: displayText,
             tooltip: this.getNewArchTooltip(packageInfo),
             command: COMMANDS.SHOW_PACKAGE_DETAILS,
-            arguments: [packageName, packageInfo]
+            arguments: [packageName, packageInfo],
         });
     }
 
-    private createUnmaintainedCodeLens(range: vscode.Range, packageInfo: PackageInfo): vscode.CodeLens {
+    private createUnmaintainedCodeLens(range: vscode.Range): vscode.CodeLens {
         return new vscode.CodeLens(range, {
             title: `${STATUS_COLORS.UNMAINTAINED} Unmaintained`,
             tooltip: 'This package appears to be unmaintained',
-            command: ''
+            command: '',
         });
     }
 
@@ -158,6 +172,5 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         this._onDidChangeCodeLenses.fire();
     }
 
-    dispose() {
-    }
+    dispose() {}
 }
