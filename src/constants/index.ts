@@ -62,6 +62,7 @@ export enum COMMANDS {
   SHOW_PACKAGE_DETAILS = 'reactNativePackageChecker.showPackageDetails',
   SHOW_CHECKER = 'reactNativePackageChecker.showChecker',
   OPEN_IN_BROWSER = 'reactNativePackageChecker.openInBrowser',
+  SHOW_STATUS_BAR_MENU = 'reactNativePackageChecker.showStatusBarMenu',
 }
 
 export const NEW_ARCH_ISSUE_QUERY =

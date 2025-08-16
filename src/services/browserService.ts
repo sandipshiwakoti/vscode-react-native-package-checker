@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { generateCheckUrl, extractPackagesFromPackageJson } from '../utils/checkerUtils';
+import { getCheckUrl, extractPackagesFromPackageJson } from '../utils/checkerUtils';
 import { EXTENSION_CONFIG } from '../constants';
 
 export class BrowserService {
@@ -16,7 +16,7 @@ export class BrowserService {
             return;
         }
 
-        const checkUrl = generateCheckUrl(packages);
-        vscode.env.openExternal(vscode.Uri.parse(checkUrl));
+        const browserUrl = getCheckUrl(packages, true);
+        vscode.env.openExternal(vscode.Uri.parse(browserUrl));
     }
 }

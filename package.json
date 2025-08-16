@@ -26,8 +26,19 @@
   "contributes": {
     "commands": [
       {
+        "command": "reactNativePackageChecker.showChecker",
+        "title": "Open in Editor Panel",
+        "category": "Package Checker"
+      },
+      {
+        "command": "reactNativePackageChecker.openInBrowser",
+        "title": "Open in Browser",
+        "category": "Package Checker"
+      },
+      {
         "command": "reactNativePackageChecker.enableCodeLens",
-        "title": "Show package checker details",
+        "title": "Enable CodeLens",
+        "category": "Package Checker",
         "icon": {
           "light": "./assets/toggle-disabled-light.svg",
           "dark": "./assets/toggle-disabled-dark.svg"
@@ -35,7 +46,8 @@
       },
       {
         "command": "reactNativePackageChecker.disableCodeLens",
-        "title": "Hide package checker details",
+        "title": "Disable CodeLens",
+        "category": "Package Checker",
         "icon": {
           "light": "./assets/toggle-enabled-light.svg",
           "dark": "./assets/toggle-enabled-dark.svg"
@@ -43,28 +55,35 @@
       },
       {
         "command": "reactNativePackageChecker.showPackageDetails",
-        "title": "Package Checker: Show Details"
-      },
-      {
-        "command": "reactNativePackageChecker.showChecker",
-        "title": "Package Checker: Check All"
-      },
-      {
-        "command": "reactNativePackageChecker.openInBrowser",
-        "title": "Package Checker: Open in Browser"
+        "title": "Show Details",
+        "category": "Package Checker"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "reactNativePackageChecker.disableCodeLens",
-          "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && reactNativePackageChecker.enabled",
-          "group": "navigation"
-        },
-        {
           "command": "reactNativePackageChecker.enableCodeLens",
           "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && !reactNativePackageChecker.enabled",
           "group": "navigation"
+        },
+        {
+          "command": "reactNativePackageChecker.disableCodeLens",
+          "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && reactNativePackageChecker.enabled",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "reactNativePackageChecker.enableCodeLens",
+          "when": "false"
+        },
+        {
+          "command": "reactNativePackageChecker.disableCodeLens",
+          "when": "false"
+        },
+        {
+          "command": "reactNativePackageChecker.showPackageDetails",
+          "when": "false"
         }
       ]
     }

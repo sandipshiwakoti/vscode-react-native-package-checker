@@ -10,6 +10,8 @@ import { PackageDetailsService } from './services/packageDetailsService';
 import { showPackageDetails } from './commands/showPackageDetailsCommand';
 import { showChecker } from './commands/showCheckerCommand';
 import { openInBrowser } from './commands/openInBrowserCommand';
+import { showStatusBarMenu } from './commands/showStatusBarMenuCommand';
+import { StatusBarService } from './services/statusBarService';
 
 import { COMMANDS, EXTENSION_CONFIG } from './constants/index';
 import { PackageInfo } from './types';
@@ -21,6 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const browserService = new BrowserService();
 	const checkerService = new CheckerService();
 	const packageDetailsService = new PackageDetailsService();
+	const statusBarService = new StatusBarService();
 
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
 		{ language: EXTENSION_CONFIG.LANGUAGE_JSON, pattern: EXTENSION_CONFIG.PACKAGE_JSON_PATTERN },
@@ -52,11 +55,19 @@ export function activate(context: vscode.ExtensionContext) {
 		() => openInBrowser(browserService)
 	);
 
+	const statusBarMenuCommand = vscode.commands.registerCommand(
+		COMMANDS.SHOW_STATUS_BAR_MENU,
+		() => showStatusBarMenu(checkerService, browserService, context)
+	);
+
 	initializeCodeLens(codeLensService);
 
 	const activeEditorListener = vscode.window.onDidChangeActiveTextEditor(() => {
 		codeLensProviderService.refresh();
+		statusBarService.updateVisibility();
 	});
+
+	statusBarService.updateVisibility();
 
 	const documentChangeListener = vscode.workspace.onDidChangeTextDocument(() => {
 		codeLensProviderService.refresh();
@@ -69,6 +80,8 @@ export function activate(context: vscode.ExtensionContext) {
 		detailsCommand,
 		checkerCommand,
 		browserCommand,
+		statusBarMenuCommand,
+		statusBarService,
 		codeLensProviderService,
 		activeEditorListener,
 		documentChangeListener

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { generateCheckUrl, extractPackagesFromPackageJson } from '../utils/checkerUtils';
+import { getCheckUrl, extractPackagesFromPackageJson } from '../utils/checkerUtils';
 import { EXTENSION_CONFIG, UI_CONFIG } from '../constants';
 
 let currentPanel: vscode.WebviewPanel | undefined;
@@ -19,7 +19,7 @@ export function createCheckerPanel(context: vscode.ExtensionContext): void {
     }
 
     currentPackages = packages;
-    const checkUrl = generateCheckUrl(packages);
+    const checkUrl = getCheckUrl(packages);
 
     if (currentPanel) {
         currentPanel.reveal(vscode.ViewColumn.Active);
@@ -62,7 +62,7 @@ export function createCheckerPanel(context: vscode.ExtensionContext): void {
 
         const themeChangeDisposable = vscode.window.onDidChangeActiveColorTheme(() => {
             if (currentPanel && currentPackages.length > 0) {
-                const newCheckUrl = generateCheckUrl(currentPackages);
+                const newCheckUrl = getCheckUrl(currentPackages);
                 currentPanel.webview.html = getCheckerContent(newCheckUrl);
             }
         });

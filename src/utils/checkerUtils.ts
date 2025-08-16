@@ -2,9 +2,13 @@ import * as vscode from 'vscode';
 import { formatDependency } from './urlUtils';
 import { BASE_URL, EXTENSION_CONFIG } from '../constants';
 
-export function generateCheckUrl(packages: Array<{ name: string; version: string }>): string {
+export function getCheckUrl(packages: Array<{ name: string; version: string }>, isBrowser: boolean = false): string {
     const formattedPackages = packages.map(pkg => formatDependency(pkg.name, pkg.version));
     const packagesParam = formattedPackages.join(',');
+
+    if (isBrowser) {
+        return `${BASE_URL}/check?packages=${encodeURIComponent(packagesParam)}`;
+    }
 
     const isDark = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
     const theme = isDark ? 'dark' : 'light';
