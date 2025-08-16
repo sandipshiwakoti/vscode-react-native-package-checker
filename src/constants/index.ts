@@ -56,6 +56,23 @@ export const ICONS = {
   UNKNOWN: 'question',
 } as const;
 
+export const STATUS_COLORS = {
+  SUPPORTED: '🟢',
+  UNSUPPORTED: '🔴',
+  UNTESTED: '🟡',
+  UNKNOWN: '⚫',
+  UNMAINTAINED: '🚫',
+} as const;
+
+export const STATUS_SYMBOLS = {
+  SUPPORTED: '✓',
+  UNSUPPORTED: '✗',
+  UNTESTED: '⚠',
+  UNKNOWN: '?',
+  UNMAINTAINED: '🚫',
+  UPDATE: '↑',
+} as const;
+
 export enum COMMANDS {
   ENABLE_CODE_LENS = 'reactNativePackageChecker.enableCodeLens',
   DISABLE_CODE_LENS = 'reactNativePackageChecker.disableCodeLens',

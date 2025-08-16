@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { PackageService } from './packageService';
-import { NewArchSupportStatus, StatusInfo, PackageInfoMap } from '../types';
-import { COMMANDS, STATUS_LABELS, STATUS_DESCRIPTIONS, EXTENSION_CONFIG, ICONS } from '../constants';
+import { NewArchSupportStatus, StatusInfo, PackageInfoMap, PackageInfo } from '../types';
+import { COMMANDS, STATUS_LABELS, STATUS_DESCRIPTIONS, EXTENSION_CONFIG, STATUS_COLORS, STATUS_SYMBOLS } from '../constants';
 
 export class CodeLensProviderService implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
@@ -59,20 +59,74 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
                 if (packageInfo) {
                     const range = new vscode.Range(i, 0, i, line.length);
-                    const status = this.getArchitectureStatus(packageInfo.newArchitecture);
-                    const icon = this.getStatusIcon(packageInfo.newArchitecture);
+                    const newArchCodeLens = this.createNewArchCodeLens(range, packageName, packageInfo);
+                    codeLenses.push(newArchCodeLens);
 
-                    codeLenses.push(new vscode.CodeLens(range, {
-                        title: `$(${icon}) ${status.text}`,
-                        tooltip: this.getTooltip(packageInfo, status),
-                        command: COMMANDS.SHOW_PACKAGE_DETAILS,
-                        arguments: [packageName, packageInfo]
-                    }));
+                    if (packageInfo.unmaintained) {
+                        const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range, packageInfo);
+                        codeLenses.push(unmaintainedCodeLens);
+                    }
                 }
             }
         }
 
         return codeLenses;
+    }
+
+    private createNewArchCodeLens(range: vscode.Range, packageName: string, packageInfo: PackageInfo): vscode.CodeLens {
+        const color = this.getStatusColor(packageInfo.newArchitecture);
+        const symbol = this.getStatusSymbol(packageInfo.newArchitecture);
+        const status = this.getArchitectureStatus(packageInfo.newArchitecture);
+        
+        const displayText = `${color} ${symbol} ${status.text}`;
+        
+        return new vscode.CodeLens(range, {
+            title: displayText,
+            tooltip: this.getNewArchTooltip(packageInfo),
+            command: COMMANDS.SHOW_PACKAGE_DETAILS,
+            arguments: [packageName, packageInfo]
+        });
+    }
+
+    private createUnmaintainedCodeLens(range: vscode.Range, packageInfo: PackageInfo): vscode.CodeLens {
+        return new vscode.CodeLens(range, {
+            title: `${STATUS_COLORS.UNMAINTAINED} Unmaintained`,
+            tooltip: 'This package appears to be unmaintained',
+            command: ''
+        });
+    }
+
+    private getStatusColor(status?: NewArchSupportStatus): string {
+        switch (status) {
+            case NewArchSupportStatus.Supported:
+                return STATUS_COLORS.SUPPORTED;
+            case NewArchSupportStatus.Unsupported:
+                return STATUS_COLORS.UNSUPPORTED;
+            case NewArchSupportStatus.Untested:
+                return STATUS_COLORS.UNTESTED;
+            case NewArchSupportStatus.Unlisted:
+            default:
+                return STATUS_COLORS.UNKNOWN;
+        }
+    }
+
+    private getStatusSymbol(status?: NewArchSupportStatus): string {
+        switch (status) {
+            case NewArchSupportStatus.Supported:
+                return STATUS_SYMBOLS.SUPPORTED;
+            case NewArchSupportStatus.Unsupported:
+                return STATUS_SYMBOLS.UNSUPPORTED;
+            case NewArchSupportStatus.Untested:
+                return STATUS_SYMBOLS.UNTESTED;
+            case NewArchSupportStatus.Unlisted:
+            default:
+                return STATUS_SYMBOLS.UNKNOWN;
+        }
+    }
+
+    private getNewArchTooltip(packageInfo: PackageInfo): string {
+        const status = this.getArchitectureStatus(packageInfo.newArchitecture);
+        return this.getTooltip(packageInfo, status);
     }
 
     private getArchitectureStatus(status?: NewArchSupportStatus): StatusInfo {
@@ -89,26 +143,8 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }
     }
 
-    private getStatusIcon(status?: NewArchSupportStatus): string {
-        switch (status) {
-            case NewArchSupportStatus.Supported:
-                return ICONS.SUPPORTED;
-            case NewArchSupportStatus.Unsupported:
-                return ICONS.UNSUPPORTED;
-            case NewArchSupportStatus.Untested:
-                return ICONS.UNTESTED;
-            case NewArchSupportStatus.Unlisted:
-            default:
-                return ICONS.UNKNOWN;
-        }
-    }
-
-    private getTooltip(packageInfo: any, status: StatusInfo): string {
-        const parts = [status.text, status.description];
-
-        if (packageInfo.unmaintained) {
-            parts.push('This package appears to be unmaintained');
-        }
+    private getTooltip(packageInfo: PackageInfo, status: StatusInfo): string {
+        const parts = [status.description];
 
         if (packageInfo.newArchitectureNote) {
             parts.push(packageInfo.newArchitectureNote);
