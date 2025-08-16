@@ -1,0 +1,124 @@
+name: Build & Release
+
+on:
+    push:
+        branches: [main]
+        tags: ['v*']
+    pull_request:
+        branches: [main]
+    workflow_dispatch:
+        inputs:
+            tag_version:
+                description: 'Create tag and deploy (e.g., 1.0.2)'
+                required: false
+                default: '1.0.2'
+                type: string
+
+jobs:
+    build:
+        name: Build & Package
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: latest
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Lint
+              run: bun run lint
+
+            - name: Compile
+              run: bun run compile
+
+            - name: Package
+              run: bun run package
+
+            - name: Upload VSIX
+              uses: actions/upload-artifact@v4
+              with:
+                  name: vsix-package
+                  path: '*.vsix'
+
+    deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+        needs: build
+        permissions:
+            contents: write
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag_version
+        environment: production
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: latest
+
+            - name: Download VSIX
+              uses: actions/download-artifact@v4
+              with:
+                  name: vsix-package
+
+            - name: Create tag if provided
+              if: github.event.inputs.tag_version
+              run: |
+                  git config --local user.email "action@github.com"
+                  git config --local user.name "GitHub Action"
+                  git tag "v${{ github.event.inputs.tag_version }}"
+                  git push origin "v${{ github.event.inputs.tag_version }}"
+
+            - name: Deploy to VS Code Marketplace
+              run: |
+                  bun install -g @vscode/vsce
+                  vsce publish --packagePath *.vsix
+              env:
+                  VSCE_PAT: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+
+            - name: Deploy to Open VSX
+              run: |
+                  bun install -g ovsx
+                  ovsx publish --packagePath *.vsix
+              env:
+                  OVSX_PAT: ${{ secrets.OPEN_VSX_TOKEN }}
+
+            - name: Extract release notes
+              if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag_version
+              run: |
+                  if [ "${{ github.event.inputs.tag_version }}" != "" ]; then
+                      VERSION="${{ github.event.inputs.tag_version }}"
+                  else
+                      VERSION=${GITHUB_REF#refs/tags/v}
+                  fi
+
+                  if grep -q "## \[$VERSION\]" CHANGELOG.md 2>/dev/null; then
+                      sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' > release_notes.md
+                  else
+                      echo "## Version $VERSION" > release_notes.md
+                      echo "" >> release_notes.md
+                      echo "Automated release via GitHub Actions." >> release_notes.md
+                  fi
+
+            - name: Create GitHub Release
+              if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag_version
+              uses: softprops/action-gh-release@v1
+              with:
+                  tag_name: ${{ github.event.inputs.tag_version && format('v{0}', github.event.inputs.tag_version) || github.ref_name }}
+                  files: '*.vsix'
+                  body_path: release_notes.md
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
