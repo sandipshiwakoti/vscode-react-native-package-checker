@@ -1,71 +1,102 @@
-# vscode-react-native-package-checker README
+<p align="center">
+  <img src="assets/logo.png" alt="React Native Package Checker Logo" width="150" height="150">
+</p>
 
-This is the README for your extension "vscode-react-native-package-checker". After writing up a brief description, we recommend including the following sections.
+<h1 align="center">React Native Package Checker</h1>
 
-## Features
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker">
+    <img src="https://img.shields.io/visual-studio-marketplace/v/sandipshiwakoti.vscode-react-native-package-checker?style=flat-square&label=version" alt="Version">
+  </a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker">
+    <img src="https://img.shields.io/visual-studio-marketplace/d/sandipshiwakoti.vscode-react-native-package-checker?style=flat-square&color=success&label=vscode%20downloads" alt="VS Code Downloads">
+  </a>
+  <a href="https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker">
+    <img src="https://img.shields.io/open-vsx/dt/sandipshiwakoti/vscode-react-native-package-checker?style=flat-square&color=success&label=openvsx%20downloads" alt="Open VSX Downloads">
+  </a>
+  <a href="https://github.com/sandipshiwakoti/vscode-react-native-package-checker/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/sandipshiwakoti/vscode-react-native-package-checker?style=flat-square&color=blue&label=license" alt="MIT License">
+  </a>
+</p>
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+<p align="center">
+  <strong>Check ALL React Native packages for New Architecture compatibility in seconds ⚡️</strong><br>
+</p>
 
 ---
 
-## Following extension guidelines
+## ✨ Features
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+- 🎯 **New Architecture Status Check** - See instantly if a package supports the New Architecture with clear color indicators
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+- 🖥️ **In-Editor Panel**: Check compatibility status right in VS Code
 
-## Working with Markdown
+- 🌐 **Browser View**: Full analysis on the React Native Package Checker website
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+- 🔎 **CodeLens Integration** - Status indicators right in your package.json
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+- 📝 **Detailed View** - Click any package to see comprehensive status and compatibility details
 
-## For more information
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+## 🚀 Installation
 
-**Enjoy!**
+**Install from:**
+
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker)
+- [Open VSX Registry](https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker)
+
+**Or install manually:**
+
+```bash
+code --install-extension sandipshiwakoti.vscode-react-native-package-checker
+```
+
+**Requirements**:
+
+- VS Code 1.74.0 or higher
+- A React Native project with `android/` and/or `ios/` folders, or an Expo project with `app.json`, `app.config.js`, or `app.config.ts`
+- Package.json is optional
+
+---
+
+## ⚡ Quick Start
+
+1. **Install** from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker) or [Open VSX](https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker)
+2. **Open** your React Native project in VS Code
+3. **Open** package.json to see status indicators automatically
+5. **Click** on any indicator for detailed package information
+
+### 📊 Status Color Indicators at a Glance
+
+- 🟢 **Green**: Package fully supports New Architecture
+- 🔴 **Red**: Package doesn't support New Architecture
+- 🟡 **Yellow**: Package hasn't been tested with New Architecture
+- ⚫ **Black**: Status couldn't be determined
+
+
+## 🛠️ Development Setup
+
+- **Tools**: Bun, VS Code, TypeScript.
+- **Build**: `bun run compile`
+- **Test**: `bun run test`
+- **Package**: `bun run package` (creates `.vsix`)
+- **Publish**: `bun run publish` (for maintainers)
+
+---
+
+## 🙌 Contributing
+
+Contributions are welcome! Please see [Contributing Guidelines](.github/CONTRIBUTING.md) for details.
+
+---
+
+## 📜 License
+
+This project is licensed under the [MIT License](https://github.com/sandipshiwakoti/vscode-react-native-package-checker/blob/main/LICENSE).
+
+---
+
+<p align="center">
+  <strong>Made with ❤️ for the React Native & Expo community</strong><br>
+  <a href="https://github.com/sandipshiwakoti">@sandipshiwakoti</a>
+</p>
