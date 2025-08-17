@@ -76,6 +76,7 @@ export enum COMMANDS {
     DISABLE_CODE_LENS = 'reactNativePackageChecker.disableCodeLens',
     SHOW_PACKAGE_DETAILS = 'reactNativePackageChecker.showPackageDetails',
     SHOW_CHECKER_OPTIONS = 'reactNativePackageChecker.showCheckerOptions',
+    REFRESH_PACKAGES = 'reactNativePackageChecker.refreshPackages',
 }
 
 export const NEW_ARCH_ISSUE_QUERY =

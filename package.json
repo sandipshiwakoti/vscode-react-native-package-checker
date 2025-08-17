@@ -33,6 +33,11 @@
                 "category": "Package Checker"
             },
             {
+                "command": "reactNativePackageChecker.refreshPackages",
+                "title": "Refresh Package Data",
+                "category": "Package Checker"
+            },
+            {
                 "command": "reactNativePackageChecker.enableCodeLens",
                 "title": "Enable CodeLens",
                 "category": "Package Checker",

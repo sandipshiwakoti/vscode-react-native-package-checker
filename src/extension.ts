@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 import { disableCodeLens, enableCodeLens, initializeCodeLens } from './commands/codeLensCommand';
+import { refreshPackages } from './commands/refreshPackagesCommand';
 import { showCheckerOptions } from './commands/showCheckerOptionsCommand';
 import { showPackageDetails } from './commands/showPackageDetailsCommand';
 import { COMMANDS, EXTENSION_CONFIG } from './constants/index';
@@ -45,10 +46,13 @@ export function activate(context: vscode.ExtensionContext) {
         showCheckerOptions(checkerService, browserService, context)
     );
 
+    const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH_PACKAGES, () =>
+        refreshPackages(codeLensProviderService, packageService)
+    );
+
     initializeCodeLens(codeLensService);
 
     const activeEditorListener = vscode.window.onDidChangeActiveTextEditor(() => {
-        codeLensProviderService.refresh();
         statusBarService.updateVisibility();
     });
 
@@ -64,6 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
         disableCommand,
         detailsCommand,
         checkerCommand,
+        refreshCommand,
         statusBarService,
         codeLensProviderService,
         activeEditorListener,
