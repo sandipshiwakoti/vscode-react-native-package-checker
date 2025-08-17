@@ -30,7 +30,11 @@
             {
                 "command": "reactNativePackageChecker.showCheckerOptions",
                 "title": "Check All Packages",
-                "category": "Package Checker"
+                "category": "Package Checker",
+                "icon": {
+                    "light": "./assets/light/package-search.svg",
+                    "dark": "./assets/dark/package-search.svg"
+                }
             },
             {
                 "command": "reactNativePackageChecker.refreshPackages",
@@ -42,8 +46,8 @@
                 "title": "Enable CodeLens",
                 "category": "Package Checker",
                 "icon": {
-                    "light": "./assets/toggle-disabled-light.svg",
-                    "dark": "./assets/toggle-disabled-dark.svg"
+                    "light": "./assets/light/toggle-disabled.svg",
+                    "dark": "./assets/dark/toggle-disabled.svg"
                 }
             },
             {
@@ -51,8 +55,8 @@
                 "title": "Disable CodeLens",
                 "category": "Package Checker",
                 "icon": {
-                    "light": "./assets/toggle-enabled-light.svg",
-                    "dark": "./assets/toggle-enabled-dark.svg"
+                    "light": "./assets/light/toggle-enabled.svg",
+                    "dark": "./assets/dark/toggle-enabled.svg"
                 }
             },
             {
@@ -63,6 +67,11 @@
         ],
         "menus": {
             "editor/title": [
+                {
+                    "command": "reactNativePackageChecker.showCheckerOptions",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/",
+                    "group": "navigation"
+                },
                 {
                     "command": "reactNativePackageChecker.enableCodeLens",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && !reactNativePackageChecker.enabled",
