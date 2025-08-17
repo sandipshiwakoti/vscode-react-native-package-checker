@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { EXTENSION_CONFIG } from '../constants';
+import { COMMANDS, EXTENSION_CONFIG } from '../constants';
 
 export class StatusBarService {
     private statusBarItem: vscode.StatusBarItem;
@@ -9,7 +9,7 @@ export class StatusBarService {
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         this.statusBarItem.text = '$(package) Package Checker';
         this.statusBarItem.tooltip = 'React Native Package Checker - Click to choose how to open';
-        this.statusBarItem.command = 'reactNativePackageChecker.showStatusBarMenu';
+        this.statusBarItem.command = COMMANDS.SHOW_CHECKER_OPTIONS;
     }
 
     public show(): void {

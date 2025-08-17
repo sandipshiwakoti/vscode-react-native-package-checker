@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { BrowserService } from '../services/browserService';
 import { CheckerService } from '../services/checkerService';
 
-export async function showStatusBarMenu(
+export async function showCheckerOptions(
     checkerService: CheckerService,
     browserService: BrowserService,
     context: vscode.ExtensionContext

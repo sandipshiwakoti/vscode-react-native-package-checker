@@ -28,13 +28,8 @@
     "contributes": {
         "commands": [
             {
-                "command": "reactNativePackageChecker.showChecker",
-                "title": "Open in Editor Panel",
-                "category": "Package Checker"
-            },
-            {
-                "command": "reactNativePackageChecker.openInBrowser",
-                "title": "Open in Browser",
+                "command": "reactNativePackageChecker.showCheckerOptions",
+                "title": "Check All Packages",
                 "category": "Package Checker"
             },
             {

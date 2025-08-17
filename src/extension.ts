@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
 
 import { disableCodeLens, enableCodeLens, initializeCodeLens } from './commands/codeLensCommand';
-import { openInBrowser } from './commands/openInBrowserCommand';
-import { showChecker } from './commands/showCheckerCommand';
+import { showCheckerOptions } from './commands/showCheckerOptionsCommand';
 import { showPackageDetails } from './commands/showPackageDetailsCommand';
-import { showStatusBarMenu } from './commands/showStatusBarMenuCommand';
 import { COMMANDS, EXTENSION_CONFIG } from './constants/index';
 import { BrowserService } from './services/browserService';
 import { CheckerService } from './services/checkerService';
@@ -43,16 +41,8 @@ export function activate(context: vscode.ExtensionContext) {
             showPackageDetails(packageDetailsService, packageName, packageInfo, context)
     );
 
-    const checkerCommand = vscode.commands.registerCommand(COMMANDS.SHOW_CHECKER, () =>
-        showChecker(checkerService, context)
-    );
-
-    const browserCommand = vscode.commands.registerCommand(COMMANDS.OPEN_IN_BROWSER, () =>
-        openInBrowser(browserService)
-    );
-
-    const statusBarMenuCommand = vscode.commands.registerCommand(COMMANDS.SHOW_STATUS_BAR_MENU, () =>
-        showStatusBarMenu(checkerService, browserService, context)
+    const checkerCommand = vscode.commands.registerCommand(COMMANDS.SHOW_CHECKER_OPTIONS, () =>
+        showCheckerOptions(checkerService, browserService, context)
     );
 
     initializeCodeLens(codeLensService);
@@ -74,8 +64,6 @@ export function activate(context: vscode.ExtensionContext) {
         disableCommand,
         detailsCommand,
         checkerCommand,
-        browserCommand,
-        statusBarMenuCommand,
         statusBarService,
         codeLensProviderService,
         activeEditorListener,
