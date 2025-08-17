@@ -21,11 +21,18 @@ export class PackageService {
             return this.getCachedResultsByVersions(packageWithVersions);
         } catch (error) {
             console.error('Failed to check packages:', error);
-            return this.getCachedResultsByVersions(packageWithVersions);
+
+            const cachedResults = this.getCachedResultsByVersions(packageWithVersions);
+
+            if (Object.keys(cachedResults).length === 0) {
+                throw error;
+            }
+
+            return cachedResults;
         }
     }
 
-    private extractPackageName(packageWithVersion: string): string {
+    public extractPackageName(packageWithVersion: string): string {
         return packageWithVersion.split('@').slice(0, -1).join('@') || packageWithVersion;
     }
 
@@ -45,7 +52,7 @@ export class PackageService {
         return response.json() as Promise<PackageResponse>;
     }
 
-    private getCachedResultsByVersions(packageWithVersions: string[]): PackageInfoMap {
+    public getCachedResultsByVersions(packageWithVersions: string[]): PackageInfoMap {
         return packageWithVersions.reduce((result, pkg) => {
             const packageName = this.extractPackageName(pkg);
             const cached = this.cache.get(packageName);

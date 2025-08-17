@@ -41,7 +41,35 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             return this.createCodeLenses(document, packageInfos);
         } catch (error) {
             console.error('Error providing code lenses:', error);
-            return [];
+
+            try {
+                const packageWithVersions = this.extractPackageNames(document.getText());
+                if (packageWithVersions.length === 0) {
+                    return [];
+                }
+
+                const cachedResults = this.packageService.getCachedResultsByVersions(packageWithVersions);
+
+                if (Object.keys(cachedResults).length > 0) {
+                    vscode.window.showWarningMessage('Failed to fetch package data. Using cached data instead.');
+                    return this.createCodeLenses(document, cachedResults);
+                } else {
+                    vscode.window.showErrorMessage(
+                        'Failed to fetch package data and no cache available. CodeLens has been disabled.'
+                    );
+                    await this.context.globalState.update(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, false);
+                    await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+                    return [];
+                }
+            } catch (cacheError) {
+                console.error('Error getting cached results:', cacheError);
+                vscode.window.showErrorMessage(
+                    'Failed to fetch package data and retrieve cache. CodeLens has been disabled.'
+                );
+                await this.context.globalState.update(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, false);
+                await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+                return [];
+            }
         }
     }
 
