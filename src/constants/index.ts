@@ -1,5 +1,3 @@
-export const IS_DEVELOPMENT = process.env.VSCODE_DEBUG_MODE === 'true';
-
 // export const BASE_URL = 'https://react-native-package-checker.vercel.app';
 export const BASE_URL = 'http://localhost:3000';
 
@@ -7,6 +5,7 @@ export const API_BASE_URL = `${BASE_URL}/api`;
 
 export const EXTERNAL_URLS = {
     BUNDLEPHOBIA_BASE: 'https://bundlephobia.com/package',
+    UPGRADE_HELPER_BASE: 'https://react-native-community.github.io/upgrade-helper',
 } as const;
 
 export const EXTENSION_CONFIG = {
@@ -68,6 +67,7 @@ export const STATUS_SYMBOLS = {
     UNMAINTAINED: '$(archive)',
     UPDATE: '$(arrow-up)',
     LATEST: '$(check)',
+    UPGRADE_HELPER: '$(globe)',
 } as const;
 
 export enum COMMANDS {
@@ -77,6 +77,7 @@ export enum COMMANDS {
     SHOW_CHECKER_OPTIONS = 'reactNativePackageChecker.showCheckerOptions',
     REFRESH_PACKAGES = 'reactNativePackageChecker.refreshPackages',
     UPDATE_PACKAGE_VERSION = 'reactNativePackageChecker.updatePackageVersion',
+    OPEN_UPGRADE_HELPER = 'reactNativePackageChecker.openUpgradeHelper',
 }
 
 export const NEW_ARCH_ISSUE_QUERY =

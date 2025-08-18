@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { EXTENSION_CONFIG } from '../constants';
+import { EXTENSION_CONFIG, EXTERNAL_URLS } from '../constants';
 import { extractPackagesFromPackageJson, getCheckUrl } from '../utils/checkerUtils';
 
 export class BrowserService {
@@ -19,5 +19,13 @@ export class BrowserService {
 
         const browserUrl = getCheckUrl(packages, true);
         vscode.env.openExternal(vscode.Uri.parse(browserUrl));
+    }
+
+    openUpgradeHelper(fromRNVersion: string, toRnVersion?: string): void {
+        vscode.env.openExternal(
+            vscode.Uri.parse(
+                `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${fromRNVersion}${toRnVersion ? `&to=${toRnVersion}` : ''}`
+            )
+        );
     }
 }

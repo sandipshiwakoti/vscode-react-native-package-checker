@@ -108,6 +108,17 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                         const versionCodeLens = this.createVersionCodeLens(range, packageName, packageInfo);
                         codeLenses.push(versionCodeLens);
                     }
+
+                    if (packageName === 'react-native' && packageInfo.currentVersion) {
+                        const fromRnVersion = packageInfo.currentVersion;
+                        const toRnVersion = packageInfo.latestVersion;
+                        const upgradeHelperCodeLens = this.createUpgradeHelperCodeLens(
+                            range,
+                            fromRnVersion,
+                            toRnVersion
+                        );
+                        codeLenses.push(upgradeHelperCodeLens);
+                    }
                 }
             }
         }
@@ -151,6 +162,19 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             tooltip: this.getVersionTooltip(packageInfo),
             command: hasUpdate ? COMMANDS.UPDATE_PACKAGE_VERSION : '',
             arguments: hasUpdate ? [packageName, packageInfo.currentVersion, latestVersion] : [],
+        });
+    }
+
+    private createUpgradeHelperCodeLens(
+        range: vscode.Range,
+        fromRnVersion: string,
+        toRnVersion?: string
+    ): vscode.CodeLens {
+        return new vscode.CodeLens(range, {
+            title: `${STATUS_SYMBOLS.UPGRADE_HELPER}\u2009Upgrade Helper`,
+            tooltip: `Visit Upgrade Helper for migration from React Native ${fromRnVersion} to ${toRnVersion || 'latest'}`,
+            command: COMMANDS.OPEN_UPGRADE_HELPER,
+            arguments: [fromRnVersion, toRnVersion],
         });
     }
 

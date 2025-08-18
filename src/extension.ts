@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 import { disableCodeLens, enableCodeLens, initializeCodeLens } from './commands/codeLensCommand';
+import { openUpgradeHelper } from './commands/openUpgradeHelper';
 import { refreshPackages } from './commands/refreshPackagesCommand';
 import { showCheckerOptions } from './commands/showCheckerOptionsCommand';
 import { showPackageDetails } from './commands/showPackageDetailsCommand';
@@ -65,6 +66,11 @@ export function activate(context: vscode.ExtensionContext) {
         refreshPackages(codeLensProviderService, packageService)
     );
 
+    const openUpgradeHelperCommand = vscode.commands.registerCommand(
+        COMMANDS.OPEN_UPGRADE_HELPER,
+        (fromRNVersion: string, toRnVersion?: string) => openUpgradeHelper(browserService, fromRNVersion, toRnVersion)
+    );
+
     versionUpdateCommandHandler.register(context);
 
     initializeCodeLens(codeLensService);
@@ -91,6 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
         statusBarService,
         codeLensProviderService,
         loadingNotificationService,
+        openUpgradeHelperCommand,
         activeEditorListener,
         documentChangeListener
     );
