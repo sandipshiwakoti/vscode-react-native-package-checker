@@ -13,7 +13,11 @@ export class PackageService {
         private loadingNotificationService: LoadingNotificationService
     ) {}
 
-    async checkPackages(packageWithVersions: string[], onVersionsReady?: () => void): Promise<PackageInfoMap> {
+    async checkPackages(
+        packageWithVersions: string[],
+        onVersionsReady?: () => void,
+        showLatestVersion: boolean = true
+    ): Promise<PackageInfoMap> {
         const uncachedPackages = packageWithVersions.filter((pkg) => {
             const packageName = this.extractPackageName(pkg);
             return !this.isCached(packageName);
@@ -21,12 +25,19 @@ export class PackageService {
 
         if (uncachedPackages.length === 0) {
             const cachedResults = this.getCachedResultsByVersions(packageWithVersions);
+            this.populateCurrentVersions(cachedResults, packageWithVersions);
 
-            this.enrichWithVersionInfo(cachedResults, packageWithVersions).then(() => {
+            if (showLatestVersion) {
+                this.enrichWithVersionInfo(cachedResults, packageWithVersions).then(() => {
+                    if (onVersionsReady) {
+                        onVersionsReady();
+                    }
+                });
+            } else {
                 if (onVersionsReady) {
                     onVersionsReady();
                 }
-            });
+            }
 
             return cachedResults;
         }
@@ -45,12 +56,19 @@ export class PackageService {
             }
 
             const results = this.getCachedResultsByVersions(packageWithVersions);
+            this.populateCurrentVersions(results, packageWithVersions);
 
-            this.enrichWithVersionInfo(results, packageWithVersions).then(() => {
+            if (showLatestVersion) {
+                this.enrichWithVersionInfo(results, packageWithVersions).then(() => {
+                    if (onVersionsReady) {
+                        onVersionsReady();
+                    }
+                });
+            } else {
                 if (onVersionsReady) {
                     onVersionsReady();
                 }
-            });
+            }
 
             return results;
         } catch (error) {
@@ -61,20 +79,27 @@ export class PackageService {
             }
 
             const cachedResults = this.getCachedResultsByVersions(packageWithVersions);
+            this.populateCurrentVersions(cachedResults, packageWithVersions);
 
             if (Object.keys(cachedResults).length === 0) {
                 throw error;
             }
 
-            this.enrichWithVersionInfo(cachedResults, packageWithVersions)
-                .then(() => {
-                    if (onVersionsReady) {
-                        onVersionsReady();
-                    }
-                })
-                .catch((versionError) => {
-                    console.error('Failed to fetch version information:', versionError);
-                });
+            if (showLatestVersion) {
+                this.enrichWithVersionInfo(cachedResults, packageWithVersions)
+                    .then(() => {
+                        if (onVersionsReady) {
+                            onVersionsReady();
+                        }
+                    })
+                    .catch((versionError) => {
+                        console.error('Failed to fetch version information:', versionError);
+                    });
+            } else {
+                if (onVersionsReady) {
+                    onVersionsReady();
+                }
+            }
 
             return cachedResults;
         }
@@ -126,6 +151,18 @@ export class PackageService {
         Object.entries(packages).forEach(([name, info]) => {
             this.cache.set(name, info);
             this.cacheExpiry.set(name, now + EXTENSION_CONFIG.CACHE_TIMEOUT);
+        });
+    }
+
+    private populateCurrentVersions(packageInfos: PackageInfoMap, packageWithVersions: string[]): void {
+        packageWithVersions.forEach((pkgWithVersion) => {
+            const packageName = this.extractPackageName(pkgWithVersion);
+            const currentVersion = this.extractVersion(pkgWithVersion);
+            const packageInfo = packageInfos[packageName];
+
+            if (packageInfo) {
+                packageInfo.currentVersion = currentVersion;
+            }
         });
     }
 

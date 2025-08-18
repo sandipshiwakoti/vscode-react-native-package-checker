@@ -26,6 +26,16 @@
     ],
     "main": "./out/extension.js",
     "contributes": {
+        "configuration": {
+            "title": "React Native Package Checker",
+            "properties": {
+                "reactNativePackageChecker.showLatestVersion": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show CodeLens for latest version information and fetch from npm registry"
+                }
+            }
+        },
         "commands": [
             {
                 "command": "reactNativePackageChecker.showCheckerOptions",

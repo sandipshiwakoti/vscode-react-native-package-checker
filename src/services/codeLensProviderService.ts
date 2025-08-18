@@ -24,16 +24,22 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             return [];
         }
 
+        const showLatestVersion = vscode.workspace
+            .getConfiguration(EXTENSION_CONFIG.CONFIGURATION_SECTION)
+            .get(EXTENSION_CONFIG.SHOW_LATEST_VERSION_KEY, EXTENSION_CONFIG.DEFAULT_SHOW_LATEST_VERSION);
+
         try {
             const packageWithVersions = this.extractPackageNames(document.getText());
             if (packageWithVersions.length === 0) {
                 return [];
             }
 
-            const packageInfos = await this.packageService.checkPackages(packageWithVersions, () => {
-                this.refresh();
-            });
-            return this.createCodeLenses(document, packageInfos);
+            const packageInfos = await this.packageService.checkPackages(
+                packageWithVersions,
+                () => this.refresh(),
+                showLatestVersion
+            );
+            return this.createCodeLenses(document, packageInfos, showLatestVersion);
         } catch (error) {
             console.error('Error providing code lenses:', error);
 
@@ -47,7 +53,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
                 if (Object.keys(cachedResults).length > 0) {
                     vscode.window.showWarningMessage('Failed to fetch package data. Using cached data instead.');
-                    return this.createCodeLenses(document, cachedResults);
+                    return this.createCodeLenses(document, cachedResults, showLatestVersion);
                 } else {
                     vscode.window.showErrorMessage(
                         'Failed to fetch package data and no cache available. CodeLens has been disabled.'
@@ -82,7 +88,11 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }
     }
 
-    private createCodeLenses(document: vscode.TextDocument, packageInfos: PackageInfoMap): vscode.CodeLens[] {
+    private createCodeLenses(
+        document: vscode.TextDocument,
+        packageInfos: PackageInfoMap,
+        showLatestVersion: boolean
+    ): vscode.CodeLens[] {
         const codeLenses: vscode.CodeLens[] = [];
         const lines = document.getText().split(EXTENSION_CONFIG.LINE_SEPARATOR);
 
@@ -104,7 +114,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                         codeLenses.push(unmaintainedCodeLens);
                     }
 
-                    if (packageInfo.latestVersion && !packageInfo.versionFetchError) {
+                    if (showLatestVersion && packageInfo.latestVersion && !packageInfo.versionFetchError) {
                         const versionCodeLens = this.createVersionCodeLens(range, packageName, packageInfo);
                         codeLenses.push(versionCodeLens);
                     }

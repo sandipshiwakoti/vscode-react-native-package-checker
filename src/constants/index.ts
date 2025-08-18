@@ -21,6 +21,9 @@ export const EXTENSION_CONFIG = {
     DEPENDENCIES_KEY: 'dependencies',
     LINE_SEPARATOR: '\n',
     TOOLTIP_SEPARATOR: '\n\n',
+    CONFIGURATION_SECTION: 'reactNativePackageChecker',
+    SHOW_LATEST_VERSION_KEY: 'showLatestVersion',
+    DEFAULT_SHOW_LATEST_VERSION: true,
 } as const;
 
 export const REGEX_PATTERNS = {
