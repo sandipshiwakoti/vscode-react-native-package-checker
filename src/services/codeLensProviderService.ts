@@ -1,13 +1,6 @@
 import * as vscode from 'vscode';
 
-import {
-    COMMANDS,
-    EXTENSION_CONFIG,
-    STATUS_COLORS,
-    STATUS_DESCRIPTIONS,
-    STATUS_LABELS,
-    STATUS_SYMBOLS,
-} from '../constants';
+import { COMMANDS, EXTENSION_CONFIG, STATUS_DESCRIPTIONS, STATUS_LABELS, STATUS_SYMBOLS } from '../constants';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
 
 import { PackageService } from './packageService';
@@ -37,7 +30,9 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 return [];
             }
 
-            const packageInfos = await this.packageService.checkPackages(packageWithVersions);
+            const packageInfos = await this.packageService.checkPackages(packageWithVersions, () => {
+                this.refresh();
+            });
             return this.createCodeLenses(document, packageInfos);
         } catch (error) {
             console.error('Error providing code lenses:', error);
@@ -108,6 +103,11 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                         const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range);
                         codeLenses.push(unmaintainedCodeLens);
                     }
+
+                    if (packageInfo.latestVersion && !packageInfo.versionFetchError) {
+                        const versionCodeLens = this.createVersionCodeLens(range, packageName, packageInfo);
+                        codeLenses.push(versionCodeLens);
+                    }
                 }
             }
         }
@@ -116,11 +116,10 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     }
 
     private createNewArchCodeLens(range: vscode.Range, packageName: string, packageInfo: PackageInfo): vscode.CodeLens {
-        const color = this.getStatusColor(packageInfo.newArchitecture);
         const symbol = this.getStatusSymbol(packageInfo.newArchitecture);
         const status = this.getArchitectureStatus(packageInfo.newArchitecture);
 
-        const displayText = `${color} ${symbol} ${status.text}`;
+        const displayText = `${symbol}\u2009${status.text}`;
 
         return new vscode.CodeLens(range, {
             title: displayText,
@@ -132,24 +131,27 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
     private createUnmaintainedCodeLens(range: vscode.Range): vscode.CodeLens {
         return new vscode.CodeLens(range, {
-            title: `${STATUS_COLORS.UNMAINTAINED} Unmaintained`,
+            title: `${STATUS_SYMBOLS.UNMAINTAINED}\u2009Unmaintained`,
             tooltip: 'This package appears to be unmaintained',
             command: '',
         });
     }
 
-    private getStatusColor(status?: NewArchSupportStatus): string {
-        switch (status) {
-            case NewArchSupportStatus.Supported:
-                return STATUS_COLORS.SUPPORTED;
-            case NewArchSupportStatus.Unsupported:
-                return STATUS_COLORS.UNSUPPORTED;
-            case NewArchSupportStatus.Untested:
-                return STATUS_COLORS.UNTESTED;
-            case NewArchSupportStatus.Unlisted:
-            default:
-                return STATUS_COLORS.UNKNOWN;
-        }
+    private createVersionCodeLens(range: vscode.Range, packageName: string, packageInfo: PackageInfo): vscode.CodeLens {
+        const hasUpdate = packageInfo.hasUpdate;
+        const latestVersion = packageInfo.latestVersion!;
+
+        const symbol = hasUpdate ? STATUS_SYMBOLS.UPDATE : STATUS_SYMBOLS.LATEST;
+        const text = hasUpdate ? `Latest ${latestVersion}` : `Latest ${latestVersion}`;
+
+        const displayText = `${symbol}\u2009${text}`;
+
+        return new vscode.CodeLens(range, {
+            title: displayText,
+            tooltip: this.getVersionTooltip(packageInfo),
+            command: hasUpdate ? COMMANDS.UPDATE_PACKAGE_VERSION : '',
+            arguments: hasUpdate ? [packageName, packageInfo.currentVersion, latestVersion] : [],
+        });
     }
 
     private getStatusSymbol(status?: NewArchSupportStatus): string {
@@ -193,6 +195,19 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }
 
         parts.push('Click for more details');
+        return parts.join(EXTENSION_CONFIG.TOOLTIP_SEPARATOR);
+    }
+
+    private getVersionTooltip(packageInfo: PackageInfo): string {
+        const parts = [];
+
+        if (packageInfo.hasUpdate) {
+            parts.push(`Update available: ${packageInfo.currentVersion} → ${packageInfo.latestVersion}`);
+            parts.push('Click to update package version');
+        } else {
+            parts.push(`Package is up to date (${packageInfo.latestVersion})`);
+        }
+
         return parts.join(EXTENSION_CONFIG.TOOLTIP_SEPARATOR);
     }
 

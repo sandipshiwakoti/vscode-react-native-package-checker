@@ -9,15 +9,30 @@ import { BrowserService } from './services/browserService';
 import { CheckerService } from './services/checkerService';
 import { CodeLensProviderService } from './services/codeLensProviderService';
 import { CodeLensService } from './services/codeLensService';
+import { LoadingNotificationService } from './services/loadingNotificationService';
+import { NpmRegistryService } from './services/npmRegistryService';
 import { PackageDetailsService } from './services/packageDetailsService';
 import { PackageService } from './services/packageService';
 import { StatusBarService } from './services/statusBarService';
+import { VersionUpdateCommandHandler } from './services/versionUpdateCommandHandler';
+import { VersionUpdateService } from './services/versionUpdateService';
 import { PackageInfo } from './types';
 
 export function activate(context: vscode.ExtensionContext) {
-    const packageService = new PackageService();
+    const npmRegistryService = new NpmRegistryService();
+    const loadingNotificationService = new LoadingNotificationService();
+    const versionUpdateService = new VersionUpdateService();
+
+    const packageService = new PackageService(npmRegistryService, loadingNotificationService);
     const codeLensProviderService = new CodeLensProviderService(packageService, context);
     const codeLensService = new CodeLensService(codeLensProviderService, context);
+
+    const versionUpdateCommandHandler = new VersionUpdateCommandHandler(
+        versionUpdateService,
+        codeLensProviderService,
+        packageService
+    );
+
     const browserService = new BrowserService();
     const checkerService = new CheckerService();
     const packageDetailsService = new PackageDetailsService();
@@ -50,6 +65,8 @@ export function activate(context: vscode.ExtensionContext) {
         refreshPackages(codeLensProviderService, packageService)
     );
 
+    versionUpdateCommandHandler.register(context);
+
     initializeCodeLens(codeLensService);
 
     const activeEditorListener = vscode.window.onDidChangeActiveTextEditor(() => {
@@ -58,8 +75,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     statusBarService.updateVisibility();
 
-    const documentChangeListener = vscode.workspace.onDidChangeTextDocument(() => {
-        codeLensProviderService.refresh();
+    const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+        if (event.document.fileName.endsWith('package.json')) {
+            codeLensProviderService.refresh();
+        }
     });
 
     context.subscriptions.push(
@@ -71,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
         refreshCommand,
         statusBarService,
         codeLensProviderService,
+        loadingNotificationService,
         activeEditorListener,
         documentChangeListener
     );

@@ -39,6 +39,12 @@ export const API_CONFIG = {
     CONTENT_TYPE_JSON: 'application/json',
 } as const;
 
+export const NPM_REGISTRY_CONFIG = {
+    BASE_URL: 'https://registry.npmjs.org',
+    CACHE_TIMEOUT: 15 * 60 * 1000, // 15 minutes
+    REQUEST_TIMEOUT: 5000, // 5 seconds
+} as const;
+
 export const UI_CONFIG = {
     EXTENSION_NAME: 'React Native Package Checker',
     CHECKER_PANEL_ID: 'reactNativePackageChecker',
@@ -54,21 +60,14 @@ export const ICONS = {
     UNKNOWN: 'question',
 } as const;
 
-export const STATUS_COLORS = {
-    SUPPORTED: '🟢',
-    UNSUPPORTED: '🔴',
-    UNTESTED: '🟡',
-    UNKNOWN: '⚫',
-    UNMAINTAINED: '🚫',
-} as const;
-
 export const STATUS_SYMBOLS = {
-    SUPPORTED: '✓',
-    UNSUPPORTED: '✗',
-    UNTESTED: '⚠',
-    UNKNOWN: '?',
-    UNMAINTAINED: '🚫',
-    UPDATE: '↑',
+    SUPPORTED: '$(check)',
+    UNSUPPORTED: '$(close)',
+    UNTESTED: '$(warning)',
+    UNKNOWN: '$(question)',
+    UNMAINTAINED: '$(archive)',
+    UPDATE: '$(arrow-up)',
+    LATEST: '$(check)',
 } as const;
 
 export enum COMMANDS {
@@ -77,6 +76,7 @@ export enum COMMANDS {
     SHOW_PACKAGE_DETAILS = 'reactNativePackageChecker.showPackageDetails',
     SHOW_CHECKER_OPTIONS = 'reactNativePackageChecker.showCheckerOptions',
     REFRESH_PACKAGES = 'reactNativePackageChecker.refreshPackages',
+    UPDATE_PACKAGE_VERSION = 'reactNativePackageChecker.updatePackageVersion',
 }
 
 export const NEW_ARCH_ISSUE_QUERY =

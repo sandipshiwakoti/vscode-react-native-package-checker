@@ -48,6 +48,10 @@ export interface PackageInfo {
     unmaintained?: boolean;
     error?: string;
     github?: GitHubInfo;
+    latestVersion?: string;
+    currentVersion?: string;
+    hasUpdate?: boolean;
+    versionFetchError?: string;
 }
 
 export interface StatusInfo {
