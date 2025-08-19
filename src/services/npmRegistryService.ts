@@ -11,20 +11,41 @@ export class NpmRegistryService {
     private versionCache = new Map<string, string>();
     private cacheExpiry = new Map<string, number>();
 
+    private async fetchWithTimeout(url: string, timeoutMs: number = 5000): Promise<Response> {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: {
+                    Accept: 'application/json',
+                },
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+        }
+    }
+
     async fetchLatestVersion(packageName: string): Promise<string> {
         if (this.isCached(packageName)) {
             return this.versionCache.get(packageName)!;
         }
 
         try {
-            const response = await fetch(`${NPM_REGISTRY_CONFIG.BASE_URL}/${encodeURIComponent(packageName)}`);
+            const response = await this.fetchWithTimeout(
+                `${NPM_REGISTRY_CONFIG.BASE_URL}/${encodeURIComponent(packageName)}/latest`
+            );
 
             if (!response.ok) {
                 throw new Error(`NPM registry request failed: ${response.status}`);
             }
 
-            const data = (await response.json()) as NpmPackageResponse;
-            const latestVersion = data['dist-tags'].latest;
+            const data: any = await response.json();
+            const latestVersion = data.version;
 
             this.updateCache(packageName, latestVersion);
             return latestVersion;

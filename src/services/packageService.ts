@@ -18,6 +18,10 @@ export class PackageService {
         onVersionsReady?: () => void,
         showLatestVersion: boolean = true
     ): Promise<PackageInfoMap> {
+        if (!packageWithVersions?.length) {
+            return {};
+        }
+
         const uncachedPackages = packageWithVersions.filter((pkg) => {
             const packageName = this.extractPackageName(pkg);
             return !this.isCached(packageName);
@@ -26,19 +30,12 @@ export class PackageService {
         if (uncachedPackages.length === 0) {
             const cachedResults = this.getCachedResultsByVersions(packageWithVersions);
             this.populateCurrentVersions(cachedResults, packageWithVersions);
-
-            if (showLatestVersion) {
-                this.enrichWithVersionInfo(cachedResults, packageWithVersions).then(() => {
-                    if (onVersionsReady) {
-                        onVersionsReady();
-                    }
-                });
-            } else {
-                if (onVersionsReady) {
-                    onVersionsReady();
-                }
-            }
-
+            await this.handleVersionsAndCallback(
+                cachedResults,
+                packageWithVersions,
+                showLatestVersion,
+                onVersionsReady
+            );
             return cachedResults;
         }
 
@@ -46,38 +43,15 @@ export class PackageService {
 
         try {
             loadingDisposable = this.loadingNotificationService.showLoading(`Fetching package information...`);
-
             const data = await this.fetchPackageData(uncachedPackages);
             this.updateCache(data.packages);
 
-            if (loadingDisposable) {
-                this.loadingNotificationService.hideLoading(loadingDisposable);
-                loadingDisposable = null;
-            }
-
             const results = this.getCachedResultsByVersions(packageWithVersions);
             this.populateCurrentVersions(results, packageWithVersions);
-
-            if (showLatestVersion) {
-                this.enrichWithVersionInfo(results, packageWithVersions).then(() => {
-                    if (onVersionsReady) {
-                        onVersionsReady();
-                    }
-                });
-            } else {
-                if (onVersionsReady) {
-                    onVersionsReady();
-                }
-            }
-
+            await this.handleVersionsAndCallback(results, packageWithVersions, showLatestVersion, onVersionsReady);
             return results;
         } catch (error) {
             console.error('Failed to check packages:', error);
-
-            if (loadingDisposable) {
-                this.loadingNotificationService.hideLoading(loadingDisposable);
-            }
-
             const cachedResults = this.getCachedResultsByVersions(packageWithVersions);
             this.populateCurrentVersions(cachedResults, packageWithVersions);
 
@@ -85,44 +59,73 @@ export class PackageService {
                 throw error;
             }
 
-            if (showLatestVersion) {
-                this.enrichWithVersionInfo(cachedResults, packageWithVersions)
-                    .then(() => {
-                        if (onVersionsReady) {
-                            onVersionsReady();
-                        }
-                    })
-                    .catch((versionError) => {
-                        console.error('Failed to fetch version information:', versionError);
-                    });
-            } else {
-                if (onVersionsReady) {
-                    onVersionsReady();
-                }
+            try {
+                await this.handleVersionsAndCallback(
+                    cachedResults,
+                    packageWithVersions,
+                    showLatestVersion,
+                    onVersionsReady
+                );
+            } catch (versionError) {
+                console.error('Failed to fetch version information:', versionError);
             }
 
             return cachedResults;
+        } finally {
+            if (loadingDisposable) {
+                this.loadingNotificationService.hideLoading(loadingDisposable);
+            }
+        }
+    }
+
+    private async handleVersionsAndCallback(
+        results: PackageInfoMap,
+        packageWithVersions: string[],
+        showLatestVersion: boolean,
+        onVersionsReady?: () => void
+    ): Promise<void> {
+        try {
+            if (showLatestVersion) {
+                await this.enrichWithVersionInfo(results, packageWithVersions);
+            }
+        } finally {
+            onVersionsReady?.();
         }
     }
 
     public extractPackageName(packageWithVersion: string): string {
-        return packageWithVersion.split('@').slice(0, -1).join('@') || packageWithVersion;
+        const lastAtIndex = packageWithVersion.lastIndexOf('@');
+        if (lastAtIndex === -1 || lastAtIndex === 0) {
+            return packageWithVersion;
+        }
+        return packageWithVersion.substring(0, lastAtIndex);
     }
 
     private async fetchPackageData(packages: string[]): Promise<PackageResponse> {
-        const response = await fetch(`${API_BASE_URL}${API_CONFIG.ENDPOINT_PACKAGE_INFO}`, {
-            method: API_CONFIG.METHOD_POST,
-            headers: { [API_CONFIG.HEADER_CONTENT_TYPE]: API_CONFIG.CONTENT_TYPE_JSON },
-            body: JSON.stringify({ packages }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error response:', errorText);
-            throw new Error(`API request failed: ${response.status}`);
+        try {
+            const response = await fetch(`${API_BASE_URL}${API_CONFIG.ENDPOINT_PACKAGE_INFO}`, {
+                method: API_CONFIG.METHOD_POST,
+                headers: { [API_CONFIG.HEADER_CONTENT_TYPE]: API_CONFIG.CONTENT_TYPE_JSON },
+                body: JSON.stringify({ packages }),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error response:', errorText);
+                throw new Error(`API request failed: ${response.status}`);
+            }
+
+            return response.json() as Promise<PackageResponse>;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
         }
-
-        return response.json() as Promise<PackageResponse>;
     }
 
     public getCachedResultsByVersions(packageWithVersions: string[]): PackageInfoMap {
@@ -191,26 +194,19 @@ export class PackageService {
 
             try {
                 versionLoadingDisposable = this.loadingNotificationService.showLoadingForPackages(packageNames);
-
                 latestVersions = await this.npmRegistryService.fetchLatestVersions(packageNames);
-
-                if (versionLoadingDisposable) {
-                    this.loadingNotificationService.hideLoading(versionLoadingDisposable);
-                    versionLoadingDisposable = null;
-                }
             } catch (error) {
                 console.error('Failed to fetch version information:', error);
-
-                if (versionLoadingDisposable) {
-                    this.loadingNotificationService.hideLoading(versionLoadingDisposable);
-                }
-
                 packageNames.forEach((packageName) => {
                     if (packageInfos[packageName]) {
                         packageInfos[packageName].versionFetchError = 'Failed to fetch version information';
                     }
                 });
                 return;
+            } finally {
+                if (versionLoadingDisposable) {
+                    this.loadingNotificationService.hideLoading(versionLoadingDisposable);
+                }
             }
         }
 
@@ -221,7 +217,6 @@ export class PackageService {
 
             if (packageInfo) {
                 const latestVersion = latestVersions[packageName] || packageInfo.latestVersion;
-
                 if (latestVersion) {
                     packageInfo.latestVersion = latestVersion;
                     packageInfo.currentVersion = currentVersion;
@@ -240,23 +235,19 @@ export class PackageService {
         if (!currentVersion || !latestVersion) {
             return false;
         }
-
         const cleanCurrent = currentVersion.replace(/^[\^~]/, '');
         const cleanLatest = latestVersion.replace(/^[\^~]/, '');
-
         return this.compareVersions(cleanLatest, cleanCurrent) > 0;
     }
 
     private compareVersions(version1: string, version2: string): number {
         const v1Parts = version1.split('.').map(Number);
         const v2Parts = version2.split('.').map(Number);
-
         const maxLength = Math.max(v1Parts.length, v2Parts.length);
 
         for (let i = 0; i < maxLength; i++) {
             const v1Part = v1Parts[i] || 0;
             const v2Part = v2Parts[i] || 0;
-
             if (v1Part > v2Part) {
                 return 1;
             }
@@ -264,7 +255,6 @@ export class PackageService {
                 return -1;
             }
         }
-
         return 0;
     }
 
@@ -273,7 +263,6 @@ export class PackageService {
         if (cachedPackage) {
             cachedPackage.currentVersion = newVersion;
             cachedPackage.hasUpdate = false;
-
             this.cache.set(packageName, cachedPackage);
         }
     }
