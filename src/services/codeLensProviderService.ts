@@ -78,13 +78,28 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         try {
             const packageJson = JSON.parse(content);
             const dependencies = packageJson[EXTENSION_CONFIG.DEPENDENCIES_KEY] || {};
+            const devDependencies = packageJson['devDependencies'] || {};
 
-            return Object.entries(dependencies).map(([name, version]) => {
+            const allDependencies = { ...dependencies, ...devDependencies };
+
+            return Object.entries(allDependencies).map(([name, version]) => {
                 const cleanVersion = (version as string).replace(EXTENSION_CONFIG.VERSION_CLEAN_REGEX, '');
                 return `${name}@${cleanVersion}`;
             });
         } catch {
             return [];
+        }
+    }
+
+    private isDevDependency(content: string, packageName: string): boolean {
+        try {
+            const packageJson = JSON.parse(content);
+            const dependencies = packageJson[EXTENSION_CONFIG.DEPENDENCIES_KEY] || {};
+            const devDependencies = packageJson['devDependencies'] || {};
+
+            return devDependencies[packageName] !== undefined && dependencies[packageName] === undefined;
+        } catch {
+            return false;
         }
     }
 
@@ -95,6 +110,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     ): vscode.CodeLens[] {
         const codeLenses: vscode.CodeLens[] = [];
         const lines = document.getText().split(EXTENSION_CONFIG.LINE_SEPARATOR);
+        const documentContent = document.getText();
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -106,28 +122,32 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
                 if (packageInfo) {
                     const range = new vscode.Range(i, 0, i, line.length);
-                    const newArchCodeLens = this.createNewArchCodeLens(range, packageName, packageInfo);
-                    codeLenses.push(newArchCodeLens);
+                    const isDevDep = this.isDevDependency(documentContent, packageName);
 
-                    if (packageInfo.unmaintained) {
-                        const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range);
-                        codeLenses.push(unmaintainedCodeLens);
+                    if (!isDevDep) {
+                        const newArchCodeLens = this.createNewArchCodeLens(range, packageName, packageInfo);
+                        codeLenses.push(newArchCodeLens);
+
+                        if (packageInfo.unmaintained) {
+                            const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range);
+                            codeLenses.push(unmaintainedCodeLens);
+                        }
+
+                        if (packageName === 'react-native' && packageInfo.currentVersion) {
+                            const fromRnVersion = packageInfo.currentVersion;
+                            const toRnVersion = packageInfo.latestVersion;
+                            const upgradeHelperCodeLens = this.createUpgradeHelperCodeLens(
+                                range,
+                                fromRnVersion,
+                                toRnVersion
+                            );
+                            codeLenses.push(upgradeHelperCodeLens);
+                        }
                     }
 
                     if (showLatestVersion && packageInfo.latestVersion && !packageInfo.versionFetchError) {
                         const versionCodeLens = this.createVersionCodeLens(range, packageName, packageInfo);
                         codeLenses.push(versionCodeLens);
-                    }
-
-                    if (packageName === 'react-native' && packageInfo.currentVersion) {
-                        const fromRnVersion = packageInfo.currentVersion;
-                        const toRnVersion = packageInfo.latestVersion;
-                        const upgradeHelperCodeLens = this.createUpgradeHelperCodeLens(
-                            range,
-                            fromRnVersion,
-                            toRnVersion
-                        );
-                        codeLenses.push(upgradeHelperCodeLens);
                     }
                 }
             }
