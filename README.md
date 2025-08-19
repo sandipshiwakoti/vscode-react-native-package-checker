@@ -2,7 +2,7 @@
   <img src="assets/logo.png" alt="React Native Package Checker Logo" width="150" height="150">
 </p>
 
-<h1 align="center">React Native Package Checker</h1>
+<h1 align="center">React Native Package Checker <br><small>VS Code Extension</small></h1>
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker">
@@ -20,71 +20,191 @@
 </p>
 
 <p align="center">
-  <strong>Check ALL React Native packages for New Architecture compatibility in seconds ⚡️</strong><br>
+  <strong>Check React Native packages for New Architecture compatibility directly in VS Code ⚡️</strong><br>
 </p>
 
 ---
 
 ## ✨ Features
 
-- 🎯 **New Architecture Status Check** - See instantly if a package supports the New Architecture with clear color indicators
-
-- 🖥️ **In-Editor Panel**: Check compatibility status right in VS Code
-
-- 🌐 **Browser View**: Full analysis on the React Native Package Checker website
-
-- 🔎 **CodeLens Integration** - Status indicators right in your package.json
-
-- 📝 **Detailed View** - Click any package to see comprehensive status and compatibility details
+- 🎯 **New Architecture Compatibility** - See which packages support React Native's New Architecture directly in your package.json
+- 🔎 **CodeLens Integration** - Interactive overlays show package status, maintenance info, and available updates
+- 📊 **Comprehensive Analysis** - Get detailed compatibility reports for all project dependencies
+- 🔧 **Maintenance Tracking** - Monitor package maintenance status and identify unmaintained dependencies
+- 🔗 **Package Details** - Access NPM, GitHub, documentation, and New Architecture migration resources
+- 🌐 Web Integration - Direct access to React Native Package Checker website for detailed analysis
+- 🌐 **Migration Support** - Direct links to upgrade helpers, merged PRs, issues etc.
+- 🔄 **Data Caching** - Always get the latest package information with intelligent data refresh
 
 ## 🚀 Installation
 
-**Install from:**
+**Install from VS Code Marketplace:**
 
-- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker)
-- [Open VSX Registry](https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker)
+1. Open VS Code
+2. Go to Extensions (`Ctrl+Shift+X`)
+3. Search for "React Native Package Checker"
+4. Click Install
 
-**Or install manually:**
+**Or install via command line:**
 
 ```bash
 code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 ```
 
-**Requirements**:
+**Alternative sources:**
+
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker)
+- [Open VSX Registry](https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker)
+
+**Requirements:**
 
 - VS Code 1.74.0 or higher
-- A React Native project with `android/` and/or `ios/` folders, or an Expo project with `app.json`, `app.config.js`, or `app.config.ts`
-- Package.json is optional
+- A package.json file in your workspace
 
 ---
 
-## ⚡ Quick Start
+## 🚀 Quick Start
 
-1. **Install** from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker) or [Open VSX](https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker)
-2. **Open** your React Native project in VS Code
-3. **Open** package.json to see status indicators automatically
-4. **Click** on any indicator for detailed package information
+1. **Open** your React Native project in VS Code
+2. **Open** your `package.json` file
+3. **View** CodeLens overlays showing compatibility info above each package
+4. **Analyze** all packages with `Ctrl+Shift+P` → "Package Checker: Check All Packages"
 
-### 📊 Status Color Indicators at a Glance
+> **💡 Tip:** Click the package icon (📦) in the status bar for quick access to all features!
 
-- 🟢 **Green**: Package fully supports New Architecture
-- 🔴 **Red**: Package doesn't support New Architecture
-- 🟡 **Yellow**: Package hasn't been tested with New Architecture
-- ⚫ **Black**: Status couldn't be determined
+## 📋 Usage
 
-## 🛠️ Development Setup
+### CodeLens Integration
 
-- **Tools**: Bun, VS Code, TypeScript.
-- **Build**: `bun run compile`
-- **Test**: `bun run test`
-- **Package**: `bun run package` (creates `.vsix`)
-- **Publish**: `bun run publish` (for maintainers)
+Open your `package.json` to see interactive overlays above each dependency:
 
----
+| CodeLens Display           | Meaning                                  | Action                                      |
+| -------------------------- | ---------------------------------------- | ------------------------------------------- |
+| ✓ **New Arch Supported**   | Package supports New Architecture        | Click for detailed package info             |
+| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture | Click to see alternatives or migration info |
+| ? **Unknown Status**       | New Architecture status unknown          | Click to check latest information           |
+| 📂 **Unmaintained**        | Package is unmaintained                  | See maintenance status                      |
+| ✓ **Latest X.X.X**         | Package is up to date                    | View package details                        |
+| ↑ **Latest X.X.X**         | Update available                         | Click to see upgrade options                |
+| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance     | Open upgrade helper for migration steps     |
+
+**Toggle CodeLens:**
+
+- Use the package icon in the editor title bar
+
+### Command Palette
+
+Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
+
+**Package Checker: Check All Packages**
+
+- Analyze all project dependencies
+- Choose **Editor Panel** for in-VS Code results
+- Choose **Browser** to open the React Native Package Checker website
+
+**Package Checker: Refresh Package Data**
+
+- Clear cache and fetch the latest package information
+- Useful when package data seems outdated
+
+### Status Bar & Title Bar
+
+**Status Bar Package Icon (📦):**
+
+- Click for quick package analysis
+- Choose between Editor Panel or Browser view
+
+**Title Bar Package Icon:**
+
+- Toggle CodeLens display on/off
+- Quick access to package checking features
+
+## 📊 Data Sources
+
+This extension leverages data from trusted sources:
+
+- **[React Native Directory](https://reactnative.directory)** - Official React Native package directory with comprehensive compatibility data
+- **[NPM Registry](https://www.npmjs.com)** - Package version and metadata information
+- **[React Native Upgrade Helper](https://react-native-community.github.io/upgrade-helper)** - Official upgrade guidance for React Native versions
+
+_Special thanks to the React Native Directory team for maintaining the comprehensive package database that powers this extension._
+
+## ⚙️ Configuration
+
+Customize the extension in your VS Code settings (`settings.json`):
+
+```json
+{
+    "reactNativePackageChecker.showLatestVersion": true
+}
+```
+
+| Setting             | Description                                                              | Default | Type      |
+| ------------------- | ------------------------------------------------------------------------ | ------- | --------- |
+| `showLatestVersion` | Show CodeLens for latest version information and fetch from NPM registry | `true`  | `boolean` |
+
+**To access settings:**
+
+1. Open Command Palette (`Ctrl+Shift+P`)
+2. Type "Preferences: Open Settings (JSON)"
+3. Add the configuration above
+
+## 🔧 Troubleshooting
+
+### CodeLens not showing?
+
+- Ensure you have a valid `package.json` in your workspace root
+- Verify CodeLens is enabled: `"reactNativePackageChecker.showLatestVersion": true`
+- Try reloading VS Code window (`Ctrl+Shift+P` → "Developer: Reload Window")
+
+### Package data seems outdated?
+
+- Use "Package Checker: Refresh Package Data" command to clear cache
+- This fetches the latest information from all data sources
+
+## 🛠️ Development
+
+**Tech Stack:**
+
+<p>
+  <a href="https://bun.sh">
+    <img src="https://img.shields.io/badge/Bun-FF6B35?style=flat-square&logo=bun&logoColor=white" alt="Bun" />
+  </a>
+  <a href="https://www.typescriptlang.org">
+    <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  </a>
+  <a href="https://code.visualstudio.com/api">
+    <img src="https://img.shields.io/badge/VS_Code_API-007ACC?style=flat-square&logo=visual-studio-code&logoColor=white" alt="VS Code API" />
+  </a>
+</p>
+
+**Commands:**
+
+```bash
+bun install          # Install dependencies
+bun run compile      # Build the extension
+bun run test         # Run tests
+bun run package      # Create .vsix file
+bun run publish      # Publish to marketplace
+```
 
 ## 🙌 Contributing
 
-Contributions are welcome! Please see [Contributing Guidelines](.github/CONTRIBUTING.md) for details.
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+For detailed guidelines, see [Contributing Guidelines](.github/CONTRIBUTING.md).
+
+**Found a bug?** Please [open an issue](https://github.com/sandipshiwakoti/vscode-react-native-package-checker/issues) with:
+
+- VS Code version
+- Extension version
+- Steps to reproduce
+- Expected vs actual behavior
 
 ---
 
@@ -95,6 +215,6 @@ This project is licensed under the [MIT License](https://github.com/sandipshiwak
 ---
 
 <p align="center">
-  <strong>Made with ❤️ for the React Native & Expo community</strong><br>
+  <strong>Made with ❤️ for the React Native community</strong><br>
   <a href="https://github.com/sandipshiwakoti">@sandipshiwakoti</a>
 </p>
