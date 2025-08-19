@@ -15,6 +15,7 @@ import { PackageService } from './packageService';
 export class CodeLensProviderService implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
+    private isProcessingLenses = false;
 
     constructor(
         private packageService: PackageService,
@@ -35,15 +36,31 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             .getConfiguration(EXTENSION_CONFIG.CONFIGURATION_SECTION)
             .get(EXTENSION_CONFIG.SHOW_LATEST_VERSION_KEY, EXTENSION_CONFIG.DEFAULT_SHOW_LATEST_VERSION);
 
-        try {
-            const packageWithVersions = this.extractPackageNames(document.getText());
-            if (packageWithVersions.length === 0) {
-                return [];
-            }
+        const packageWithVersions = this.extractPackageNames(document.getText());
+        if (packageWithVersions.length === 0) {
+            return [];
+        }
 
+        // Check if we have cached data first
+        const cachedResults = this.packageService.getCachedResultsByVersions(packageWithVersions);
+        if (Object.keys(cachedResults).length > 0) {
+            return this.createCodeLenses(document, cachedResults, showLatestVersion);
+        }
+
+        // Prevent recursive calls during async refresh
+        if (this.isProcessingLenses) {
+            return [];
+        }
+
+        this.isProcessingLenses = true;
+
+        try {
             const packageInfos = await this.packageService.checkPackages(
                 packageWithVersions,
-                () => this.refresh(),
+                () => {
+                    // Use setTimeout to break the async chain and prevent recursion
+                    setTimeout(() => this.refresh(), 0);
+                },
                 showLatestVersion
             );
             return this.createCodeLenses(document, packageInfos, showLatestVersion);
@@ -51,11 +68,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             console.error('Error providing code lenses:', error);
 
             try {
-                const packageWithVersions = this.extractPackageNames(document.getText());
-                if (packageWithVersions.length === 0) {
-                    return [];
-                }
-
                 const cachedResults = this.packageService.getCachedResultsByVersions(packageWithVersions);
 
                 if (Object.keys(cachedResults).length > 0) {
@@ -78,6 +90,8 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
                 return [];
             }
+        } finally {
+            this.isProcessingLenses = false;
         }
     }
 
@@ -278,7 +292,13 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     }
 
     refresh(): void {
-        this._onDidChangeCodeLenses.fire();
+        // Force refresh by clearing the processing flag first
+        this.isProcessingLenses = false;
+
+        // Use setTimeout to ensure this runs in the next event loop cycle
+        setTimeout(() => {
+            this._onDidChangeCodeLenses.fire();
+        }, 0);
     }
 
     dispose() {}

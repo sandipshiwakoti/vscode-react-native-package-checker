@@ -101,6 +101,11 @@ export class PackageService {
         return packageWithVersion.substring(0, lastAtIndex);
     }
 
+    public clearCache(): void {
+        this.cache.clear();
+        this.cacheExpiry.clear();
+    }
+
     private async fetchPackageData(packages: string[]): Promise<PackageResponse> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -277,10 +282,5 @@ export class PackageService {
             cachedPackage.hasUpdate = false;
             this.cache.set(packageName, cachedPackage);
         }
-    }
-
-    clearCache(): void {
-        this.cache.clear();
-        this.cacheExpiry.clear();
     }
 }
