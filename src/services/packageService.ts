@@ -1,5 +1,5 @@
 import { API_BASE_URL, API_CONFIG, EXTENSION_CONFIG } from '../constants';
-import { PackageInfo, PackageInfoMap, PackageResponse } from '../types';
+import { NewArchSupportStatus, PackageInfo, PackageInfoMap, PackageResponse } from '../types';
 
 import { LoadingNotificationService } from './loadingNotificationService';
 import { NpmRegistryService } from './npmRegistryService';
@@ -121,7 +121,15 @@ export class PackageService {
                 throw new Error(`API request failed: ${response.status}`);
             }
 
-            return response.json() as Promise<PackageResponse>;
+            const packageResponse = (await response.json()) as PackageResponse;
+
+            Object.entries(packageResponse.packages).forEach(([, packageInfo]) => {
+                if (!packageInfo.newArchitecture && packageInfo.error) {
+                    packageInfo.newArchitecture = NewArchSupportStatus.Unlisted;
+                }
+            });
+
+            return packageResponse;
         } catch (error) {
             clearTimeout(timeoutId);
             throw error;
@@ -165,6 +173,10 @@ export class PackageService {
 
             if (packageInfo) {
                 packageInfo.currentVersion = currentVersion;
+
+                if (!packageInfo.newArchitecture && packageInfo.error) {
+                    packageInfo.newArchitecture = NewArchSupportStatus.Unlisted;
+                }
             }
         });
     }

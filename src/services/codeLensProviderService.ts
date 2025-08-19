@@ -1,6 +1,13 @@
 import * as vscode from 'vscode';
 
-import { COMMANDS, EXTENSION_CONFIG, STATUS_DESCRIPTIONS, STATUS_LABELS, STATUS_SYMBOLS } from '../constants';
+import {
+    COMMANDS,
+    EXTENSION_CONFIG,
+    INTERNAL_PACKAGES,
+    STATUS_DESCRIPTIONS,
+    STATUS_LABELS,
+    STATUS_SYMBOLS,
+} from '../constants';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
 
 import { PackageService } from './packageService';
@@ -164,7 +171,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
         return new vscode.CodeLens(range, {
             title: displayText,
-            tooltip: this.getNewArchTooltip(packageInfo),
+            tooltip: this.getNewArchTooltip(packageInfo, packageName),
             command: COMMANDS.SHOW_PACKAGE_DETAILS,
             arguments: [packageName, packageInfo],
         });
@@ -222,8 +229,13 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }
     }
 
-    private getNewArchTooltip(packageInfo: PackageInfo): string {
+    private getNewArchTooltip(packageInfo: PackageInfo, packageName: string): string {
         const status = this.getArchitectureStatus(packageInfo.newArchitecture);
+
+        if (packageInfo.newArchitecture === NewArchSupportStatus.Unlisted && INTERNAL_PACKAGES.includes(packageName)) {
+            return 'Core dependency required by React Native. Not listed in the directory but fully compatible with the New Architecture.';
+        }
+
         return this.getTooltip(packageInfo, status);
     }
 

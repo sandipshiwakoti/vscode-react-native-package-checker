@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-import { UI_CONFIG } from '../constants';
-import { STATUS_LABELS } from '../constants';
+import { INTERNAL_PACKAGES, STATUS_LABELS, UI_CONFIG } from '../constants';
 import { NewArchSupportStatus, PackageInfo } from '../types';
 import { getStatusClass } from '../utils/urlUtils';
 import {
@@ -531,11 +530,27 @@ function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | nul
 function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo): string {
     let content = '';
 
+    const isInternalPackage = INTERNAL_PACKAGES.includes(packageName);
+    const isUnknownStatus = packageInfo.newArchitecture === NewArchSupportStatus.Unlisted;
+
+    let descriptionContent = '';
     if (packageInfo.github?.description) {
+        descriptionContent = packageInfo.github.description;
+    }
+
+    if (isInternalPackage && isUnknownStatus) {
+        if (descriptionContent) {
+            descriptionContent += '<br><br>';
+        }
+        descriptionContent +=
+            'Core dependency required by React Native. Not listed in the directory but fully compatible with the New Architecture.';
+    }
+
+    if (descriptionContent) {
         content += `
             <div class="card">
                 <div class="card-title">Description</div>
-                <div class="card-content description">${packageInfo.github.description}</div>
+                <div class="card-content description">${descriptionContent}</div>
             </div>
         `;
     }

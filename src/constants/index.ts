@@ -108,6 +108,50 @@ export enum GITHUB_PATHS {
     README = 'blob/master/README.md',
 }
 
+export const INTERNAL_PACKAGES = [
+    // Core React packages (maintained by Meta)
+    'react',
+    'react-dom',
+    'react-native',
+
+    // Metro and bundling (official React Native bundler)
+    'metro',
+    'metro-config',
+    'metro-react-native-babel-preset',
+    'metro-resolver',
+    'metro-runtime',
+    'metro-source-map',
+    'metro-transform-plugins',
+    'metro-transform-worker',
+
+    // Official React Native CLI and tools
+    '@react-native-community/cli',
+    '@react-native-community/cli-platform-android',
+    '@react-native-community/cli-platform-ios',
+    '@react-native-community/cli-server-api',
+    '@react-native-community/cli-tools',
+    '@react-native-community/cli-types',
+    '@react-native-community/cli-debugger-ui',
+    '@react-native-community/cli-hermes',
+
+    // Babel (build-time transformation tools)
+    '@babel/core',
+    '@babel/preset-env',
+    '@babel/runtime',
+    '@babel/preset-typescript',
+    '@babel/preset-react',
+    'babel-plugin-module-resolver',
+
+    // Official React Native codegen and tools
+    '@react-native/codegen',
+    'react-native-codegen',
+    '@react-native/gradle-plugin',
+    '@react-native/js-polyfills',
+    '@react-native/metro-config',
+    '@react-native/normalize-colors',
+    '@react-native/polyfills',
+];
+
 export enum STATUS_LABELS {
     SUPPORTED = 'New Arch Supported',
     UNSUPPORTED = 'New Arch Unsupported',
