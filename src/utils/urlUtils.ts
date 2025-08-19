@@ -85,6 +85,6 @@ export function getStatusClass(status?: NewArchSupportStatus | string): string {
             return STATUS_CLASSES.UNTESTED;
         case NewArchSupportStatus.Unlisted:
         default:
-            return STATUS_CLASSES.UNKNOWN;
+            return STATUS_CLASSES.UNLISTED;
     }
 }

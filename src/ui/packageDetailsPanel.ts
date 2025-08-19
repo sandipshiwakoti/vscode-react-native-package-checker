@@ -148,7 +148,7 @@ function generateWebviewContent(packageName: string, packageInfo: PackageInfo): 
                 .status-supported { border-left-color: #10b981; }
                 .status-unsupported { border-left-color: #ef4444; }
                 .status-untested { border-left-color: #f59e0b; }
-                .status-unknown { border-left-color: #6b7280; }
+                .status-unlisted { border-left-color: #6b7280; }
                 .links-container {
                     display: flex;
                     flex-wrap: wrap;
@@ -369,7 +369,7 @@ function getCodeLensStatusText(status?: NewArchSupportStatus): string {
             return STATUS_LABELS.UNTESTED;
         case NewArchSupportStatus.Unlisted:
         default:
-            return STATUS_LABELS.UNKNOWN;
+            return STATUS_LABELS.UNLISTED;
     }
 }
 
@@ -401,7 +401,7 @@ function createStatusBadge(status?: NewArchSupportStatus, text?: string): string
             break;
     }
 
-    return `<span class="tag tag-${variant}">${iconSvg}${text || 'Unknown'}</span>`;
+    return `<span class="tag tag-${variant}">${iconSvg}${text || 'Unlisted'}</span>`;
 }
 
 function createMaintenanceBadge(unmaintained?: boolean): string {
@@ -531,14 +531,14 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
     let content = '';
 
     const isInternalPackage = INTERNAL_PACKAGES.includes(packageName);
-    const isUnknownStatus = packageInfo.newArchitecture === NewArchSupportStatus.Unlisted;
+    const isUnlistedStatus = packageInfo.newArchitecture === NewArchSupportStatus.Unlisted;
 
     let descriptionContent = '';
     if (packageInfo.github?.description) {
         descriptionContent = packageInfo.github.description;
     }
 
-    if (isInternalPackage && isUnknownStatus) {
+    if (isInternalPackage && isUnlistedStatus) {
         if (descriptionContent) {
             descriptionContent += '<br><br>';
         }

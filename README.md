@@ -78,15 +78,15 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 
 Open your `package.json` to see interactive overlays above each dependency:
 
-| CodeLens Display           | Meaning                                  | Action                                      |
-| -------------------------- | ---------------------------------------- | ------------------------------------------- |
-| ✓ **New Arch Supported**   | Package supports New Architecture        | Click for detailed package info             |
-| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture | Click to see alternatives or migration info |
-| ? **Unknown Status**       | New Architecture status unknown          | Click to check latest information           |
-| 📂 **Unmaintained**        | Package is unmaintained                  | See maintenance status                      |
-| ✓ **Latest X.X.X**         | Package is up to date                    | View package details                        |
-| ↑ **Latest X.X.X**         | Update available                         | Click to see upgrade options                |
-| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance     | Open upgrade helper for migration steps     |
+| CodeLens Display           | Meaning                                                  | Action                                      |
+| -------------------------- | -------------------------------------------------------- | ------------------------------------------- |
+| ✓ **New Arch Supported**   | Package supports New Architecture                        | Click for detailed package info             |
+| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture                 | Click to see alternatives or migration info |
+| ? **Unlisted**             | Package not found in the official React Native directory | Click to check latest information           |
+| 📂 **Unmaintained**        | Package is unmaintained                                  | See maintenance status                      |
+| ✓ **Latest X.X.X**         | Package is up to date                                    | View package details                        |
+| ↑ **Latest X.X.X**         | Update available                                         | Click to see upgrade options                |
+| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                     | Open upgrade helper for migration steps     |
 
 **Toggle CodeLens:**
 

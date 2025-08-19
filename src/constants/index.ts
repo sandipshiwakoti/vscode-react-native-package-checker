@@ -59,14 +59,14 @@ export const ICONS = {
     SUPPORTED: 'check',
     UNSUPPORTED: 'x',
     UNTESTED: 'warning',
-    UNKNOWN: 'question',
+    UNLISTED: 'question',
 } as const;
 
 export const STATUS_SYMBOLS = {
     SUPPORTED: '$(check)',
     UNSUPPORTED: '$(close)',
     UNTESTED: '$(warning)',
-    UNKNOWN: '$(question)',
+    UNLISTED: '$(question)',
     UNMAINTAINED: '$(archive)',
     UPDATE: '$(arrow-up)',
     LATEST: '$(check)',
@@ -156,19 +156,19 @@ export enum STATUS_LABELS {
     SUPPORTED = 'New Arch Supported',
     UNSUPPORTED = 'New Arch Unsupported',
     UNTESTED = 'New Arch Untested',
-    UNKNOWN = 'Unknown Status',
+    UNLISTED = 'Unlisted',
 }
 
 export enum STATUS_DESCRIPTIONS {
     SUPPORTED = 'This package fully supports the New Architecture',
     UNSUPPORTED = 'This package does not support the New Architecture',
     UNTESTED = 'This package has not been tested with the New Architecture',
-    UNKNOWN = 'New Architecture compatibility status is unknown',
+    UNLISTED = 'This package is not found in the official React Native directory',
 }
 
 export enum STATUS_CLASSES {
     SUPPORTED = 'status-supported',
     UNSUPPORTED = 'status-unsupported',
     UNTESTED = 'status-untested',
-    UNKNOWN = 'status-unknown',
+    UNLISTED = 'status-unlisted',
 }

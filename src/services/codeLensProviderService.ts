@@ -225,7 +225,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 return STATUS_SYMBOLS.UNTESTED;
             case NewArchSupportStatus.Unlisted:
             default:
-                return STATUS_SYMBOLS.UNKNOWN;
+                return STATUS_SYMBOLS.UNLISTED;
         }
     }
 
@@ -249,7 +249,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 return { text: STATUS_LABELS.UNTESTED, description: STATUS_DESCRIPTIONS.UNTESTED };
             case NewArchSupportStatus.Unlisted:
             default:
-                return { text: STATUS_LABELS.UNKNOWN, description: STATUS_DESCRIPTIONS.UNKNOWN };
+                return { text: STATUS_LABELS.UNLISTED, description: STATUS_DESCRIPTIONS.UNLISTED };
         }
     }
 
