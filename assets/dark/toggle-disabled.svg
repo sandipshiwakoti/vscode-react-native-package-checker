@@ -1,13 +1,10 @@
 
 <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
   <!-- Package icon -->
-  <g transform="scale(1.0) translate(0.2, 0.2)">
-    <path
-      d="M7.33 14.49a1.33 1.33 0 0 0 1.33 0l4.67-2.67A1.33 1.33 0 0 0 14 10.67V5.33a1.33 1.33 0 0 0-.67-1.15L8.67 1.51a1.33 1.33 0 0 0-1.33 0L2.67 4.18A1.33 1.33 0 0 0 2 5.33v5.33a1.33 1.33 0 0 0 .67 1.15z"
-      stroke="#CCCCCC" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-    <path d="M8 14.67V8" stroke="#CCCCCC" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
-    <polyline points="2.19 4.67 8 8 13.81 4.67" stroke="#CCCCCC" stroke-width="1.25" stroke-linecap="round"
-      stroke-linejoin="round" fill="none" />
-    <path d="m5 2.85 6 3.43" stroke="#CCCCCC" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+  <g transform="scale(0.9) translate(0.8, 0.8)">
+    <path d="M7.33 14.49a1.33 1.33 0 0 0 1.33 0l4.67-2.67A1.33 1.33 0 0 0 14 10.67V5.33a1.33 1.33 0 0 0-.67-1.15L8.67 1.51a1.33 1.33 0 0 0-1.33 0L2.67 4.18A1.33 1.33 0 0 0 2 5.33v5.33a1.33 1.33 0 0 0 .67 1.15z" stroke="#CCCCCC" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M8 14.67V8" stroke="#CCCCCC" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="2.19 4.67 8 8 13.81 4.67" stroke="#CCCCCC" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="m5 2.85 6 3.43" stroke="#CCCCCC" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>
