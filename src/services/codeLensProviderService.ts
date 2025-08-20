@@ -154,7 +154,11 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                             codeLenses.push(unmaintainedCodeLens);
                         }
 
-                        if (packageName === 'react-native' && packageInfo.currentVersion) {
+                        if (
+                            packageName === 'react-native' &&
+                            packageInfo.currentVersion &&
+                            packageInfo.currentVersion !== packageInfo.latestVersion
+                        ) {
                             const fromRnVersion = packageInfo.currentVersion;
                             const toRnVersion = packageInfo.latestVersion;
                             const upgradeHelperCodeLens = this.createUpgradeHelperCodeLens(
