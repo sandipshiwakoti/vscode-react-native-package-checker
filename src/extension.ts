@@ -14,7 +14,6 @@ import { LoadingNotificationService } from './services/loadingNotificationServic
 import { NpmRegistryService } from './services/npmRegistryService';
 import { PackageDetailsService } from './services/packageDetailsService';
 import { PackageService } from './services/packageService';
-import { StatusBarService } from './services/statusBarService';
 import { VersionUpdateCommandHandler } from './services/versionUpdateCommandHandler';
 import { VersionUpdateService } from './services/versionUpdateService';
 import { PackageInfo } from './types';
@@ -37,7 +36,6 @@ export function activate(context: vscode.ExtensionContext) {
     const browserService = new BrowserService();
     const checkerService = new CheckerService();
     const packageDetailsService = new PackageDetailsService();
-    const statusBarService = new StatusBarService();
 
     const codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { language: EXTENSION_CONFIG.LANGUAGE_JSON, pattern: EXTENSION_CONFIG.PACKAGE_JSON_PATTERN },
@@ -75,12 +73,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     initializeCodeLens(codeLensService);
 
-    const activeEditorListener = vscode.window.onDidChangeActiveTextEditor(() => {
-        statusBarService.updateVisibility();
-    });
-
-    statusBarService.updateVisibility();
-
     const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
         if (event.document.fileName.endsWith('package.json')) {
             packageService.clearCache();
@@ -110,11 +102,9 @@ export function activate(context: vscode.ExtensionContext) {
         detailsCommand,
         checkerCommand,
         refreshCommand,
-        statusBarService,
         codeLensProviderService,
         loadingNotificationService,
         openUpgradeHelperCommand,
-        activeEditorListener,
         documentChangeListener,
         fileSystemWatcher,
         fileChangeListener,

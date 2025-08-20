@@ -70,8 +70,6 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 3. **View** CodeLens overlays showing compatibility info above each package
 4. **Analyze** all packages with `Ctrl+Shift+P` → "Package Checker: Check All Packages"
 
-> **💡 Tip:** Click the package icon (📦) in the status bar for quick access to all features!
-
 ## 📋 Usage
 
 ### CodeLens Integration
@@ -107,17 +105,16 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 - Clear cache and fetch the latest package information
 - Useful when package data seems outdated
 
-### Status Bar & Title Bar
+### Title Bar
 
-**Status Bar Package Icon (📦):**
+**Package Search Icon:**
 
 - Click for quick package analysis
 - Choose between Editor Panel or Browser view
 
-**Title Bar Package Icon:**
+**Package Icon:**
 
 - Toggle CodeLens display on/off
-- Quick access to package checking features
 
 ## 📊 Data Sources
 
