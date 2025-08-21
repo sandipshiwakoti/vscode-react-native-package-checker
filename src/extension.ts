@@ -73,7 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     initializeCodeLens(codeLensService);
 
-    const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+    const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
         if (event.document.fileName.endsWith('package.json')) {
             packageService.clearCache();
             codeLensProviderService.refresh();
@@ -81,14 +81,14 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const fileSystemWatcher = vscode.workspace.createFileSystemWatcher('**/package.json');
-    const fileChangeListener = fileSystemWatcher.onDidChange((uri) => {
+    const fileChangeListener = fileSystemWatcher.onDidChange((uri: vscode.Uri) => {
         if (uri.fsPath.endsWith('package.json')) {
             packageService.clearCache();
             codeLensProviderService.refresh();
         }
     });
 
-    const fileCreateListener = fileSystemWatcher.onDidCreate((uri) => {
+    const fileCreateListener = fileSystemWatcher.onDidCreate((uri: vscode.Uri) => {
         if (uri.fsPath.endsWith('package.json')) {
             packageService.clearCache();
             codeLensProviderService.refresh();

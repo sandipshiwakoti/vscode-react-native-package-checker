@@ -11,18 +11,18 @@ export async function showCheckerOptions(
     const options = [
         {
             label: '$(window) Open in Editor Panel',
-            description: 'Open Package Checker in VS Code panel',
+            description: 'Open Package Checker Website in VS Code panel',
             action: 'editor',
         },
         {
             label: '$(globe) Open in Browser',
-            description: 'Open Package Checker in external browser',
+            description: 'Open Package Checker Website in your browser',
             action: 'browser',
         },
     ];
 
     const selected = await vscode.window.showQuickPick(options, {
-        placeHolder: 'Choose how to open Package Checker',
+        placeHolder: 'Choose how to open Package Checker Website',
         matchOnDescription: true,
     });
 

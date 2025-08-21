@@ -45,10 +45,12 @@ export function createCheckerPanel(context: vscode.ExtensionContext): void {
         currentPanel.webview.html = getCheckerContent(checkUrl);
 
         currentPanel.webview.onDidReceiveMessage(
-            (message) => {
+            (message: { command: string; url?: string }) => {
                 switch (message.command) {
                     case UI_CONFIG.WEBVIEW_COMMAND_OPEN_EXTERNAL:
-                        vscode.env.openExternal(vscode.Uri.parse(message.url));
+                        if (message.url) {
+                            vscode.env.openExternal(vscode.Uri.parse(message.url));
+                        }
                         return;
                 }
             },
