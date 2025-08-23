@@ -32,7 +32,7 @@
 - 📊 **Comprehensive Analysis** - Get detailed compatibility reports for all project dependencies
 - 🔧 **Maintenance Tracking** - Monitor package maintenance status and identify unmaintained dependencies
 - 🔗 **Package Details** - Access NPM, GitHub, documentation, and New Architecture migration resources
-- 🌐 Web Integration - Direct access to React Native Package Checker website for detailed analysis
+- 🌐 **Web Integration** - Direct access to React Native Package Checker and Upgrade Helper websites
 - 🌐 **Migration Support** - Direct links to upgrade helpers, merged PRs, issues etc.
 - 🔄 **Data Caching** - Always get the latest package information with intelligent data refresh
 
@@ -80,11 +80,12 @@ Open your `package.json` to see interactive overlays above each dependency:
 | -------------------------- | -------------------------------------------------------- | ------------------------------------------- |
 | ✓ **New Arch Supported**   | Package supports New Architecture                        | Click for detailed package info             |
 | ⅹ **New Arch Unsupported** | Package doesn't support New Architecture                 | Click to see alternatives or migration info |
+| ⚠ **New Arch Untested**   | Package has not been tested with New Architecture        | Click to check latest information           |
 | ? **Unlisted**             | Package not found in the official React Native directory | Click to check latest information           |
 | 📂 **Unmaintained**        | Package is unmaintained                                  | See maintenance status                      |
 | ✓ **Latest X.X.X**         | Package is up to date                                    | View package details                        |
 | ↑ **Latest X.X.X**         | Update available                                         | Click to see upgrade options                |
-| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                     | Open upgrade helper for migration steps     |
+| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                     | Open upgrade helper with current RN version |
 
 **Toggle CodeLens:**
 
@@ -103,6 +104,19 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 
 - Clear cache and fetch the latest package information
 - Useful when package data seems outdated
+
+**Package Checker: Show Logs**
+
+- Open the extension's output channel to view detailed logs
+- Useful for debugging and monitoring API calls
+
+**Package Checker: Open Upgrade Helper**
+
+- Opens the React Native Upgrade Helper website with intelligent version detection
+- **From Command Palette**: Automatically reads React Native version from your currently open package.json
+- **From CodeLens**: Uses the specific version from the package context
+- **Smart Version Parsing**: Handles version prefixes (^, ~, >=) and extracts clean version numbers
+- Perfect for planning React Native version upgrades and migrations
 
 ### Title Bar
 
@@ -131,13 +145,17 @@ Customize the extension in your VS Code settings (`settings.json`):
 
 ```json
 {
-    "reactNativePackageChecker.showLatestVersion": true
+    "reactNativePackageChecker.showLatestVersion": true,
+    "reactNativePackageChecker.enableLogging": true,
+    "reactNativePackageChecker.logLevel": "info"
 }
 ```
 
-| Setting             | Description                                                              | Default | Type      |
-| ------------------- | ------------------------------------------------------------------------ | ------- | --------- |
-| `showLatestVersion` | Show CodeLens for latest version information and fetch from NPM registry | `true`  | `boolean` |
+| Setting             | Description                                                              | Default | Type      | Options                          |
+| ------------------- | ------------------------------------------------------------------------ | ------- | --------- | -------------------------------- |
+| `showLatestVersion` | Show CodeLens for latest version information and fetch from NPM registry | `true`  | `boolean` | `true`, `false`                  |
+| `enableLogging`     | Enable logging of API calls and cache operations to the output channel   | `true`  | `boolean` | `true`, `false`                  |
+| `logLevel`          | Set the logging level for the extension                                  | `info`  | `string`  | `debug`, `info`, `warn`, `error` |
 
 **To access settings:**
 
@@ -179,7 +197,13 @@ Customize the extension in your VS Code settings (`settings.json`):
 ```bash
 bun install          # Install dependencies
 bun run compile      # Build the extension
+bun run watch        # Watch mode for development
 bun run test         # Run tests
+bun run lint         # Run ESLint
+bun run lint:fix     # Fix ESLint issues
+bun run format       # Format code with Prettier
+bun run format:check # Check code formatting
+bun run fix          # Run lint:fix and format together
 bun run package      # Create .vsix file
 bun run publish      # Publish to marketplace
 ```

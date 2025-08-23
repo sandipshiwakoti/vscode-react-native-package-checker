@@ -65,7 +65,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     const openUpgradeHelperCommand = vscode.commands.registerCommand(
         COMMANDS.OPEN_UPGRADE_HELPER,
-        (fromRNVersion: string, toRnVersion?: string) => openUpgradeHelper(browserService, fromRNVersion, toRnVersion)
+        (fromRNVersion?: string, toRnVersion?: string) => {
+            const readFromPackageJson = !fromRNVersion;
+            return openUpgradeHelper(browserService, fromRNVersion, toRnVersion, readFromPackageJson);
+        }
     );
 
     versionUpdateService.register(context);
@@ -150,7 +153,7 @@ export function activate(context: vscode.ExtensionContext) {
         );
     });
 
-    const showLogsCommand = vscode.commands.registerCommand('reactNativePackageChecker.showLogs', () => {
+    const showLogsCommand = vscode.commands.registerCommand(COMMANDS.SHOW_LOGS, () => {
         logger.show();
     });
 
