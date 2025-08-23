@@ -68,7 +68,7 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 1. **Open** your React Native project in VS Code
 2. **Open** your `package.json` file
 3. **View** CodeLens overlays showing compatibility info above each package
-4. **Analyze** all packages with `Ctrl+Shift+P` → "Package Checker: Check All Packages"
+4. **Analyze** all packages with `Ctrl+Shift+P` → "Package Checker: Open Package Checker Website"
 
 ## 📋 Usage
 
@@ -94,11 +94,10 @@ Open your `package.json` to see interactive overlays above each dependency:
 
 Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 
-**Package Checker: Check All Packages**
+**Package Checker: Open Package Checker Website**
 
-- Analyze all project dependencies
-- Choose **Editor Panel** for in-VS Code results
-- Choose **Browser** to open the React Native Package Checker website
+- Analyze all project dependencies in your browser
+- Opens the React Native Package Checker website with your project's packages
 
 **Package Checker: Refresh Package Data**
 
@@ -107,12 +106,12 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 
 ### Title Bar
 
-**Package Search Icon:**
+**External Link Icon:**
 
-- Click for quick package analysis
-- Choose between Editor Panel or Browser view
+- Click to open the React Native Package Checker website
+- Analyzes all your project's packages in the browser
 
-**Package Icon:**
+**Toggle Icon:**
 
 - Toggle CodeLens display on/off
 

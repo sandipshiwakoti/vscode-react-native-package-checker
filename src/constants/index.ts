@@ -49,10 +49,8 @@ export const NPM_REGISTRY_CONFIG = {
 
 export const UI_CONFIG = {
     EXTENSION_NAME: 'React Native Package Checker',
-    CHECKER_PANEL_ID: 'reactNativePackageChecker',
     PACKAGE_DETAILS_PANEL_ID: 'packageDetails',
     LOGO_PATH: 'assets/logo.svg',
-    WEBVIEW_COMMAND_OPEN_EXTERNAL: 'openExternal',
 } as const;
 
 export const ICONS = {
@@ -77,7 +75,7 @@ export enum COMMANDS {
     ENABLE_CODE_LENS = 'reactNativePackageChecker.enableCodeLens',
     DISABLE_CODE_LENS = 'reactNativePackageChecker.disableCodeLens',
     SHOW_PACKAGE_DETAILS = 'reactNativePackageChecker.showPackageDetails',
-    SHOW_CHECKER_OPTIONS = 'reactNativePackageChecker.showCheckerOptions',
+    OPEN_PACKAGE_CHECKER_WEBSITE = 'reactNativePackageChecker.openPackageCheckerWebsite',
     REFRESH_PACKAGES = 'reactNativePackageChecker.refreshPackages',
     UPDATE_PACKAGE_VERSION = 'reactNativePackageChecker.updatePackageVersion',
     OPEN_UPGRADE_HELPER = 'reactNativePackageChecker.openUpgradeHelper',

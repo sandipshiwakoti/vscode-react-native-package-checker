@@ -54,7 +54,7 @@
         },
         "commands": [
             {
-                "command": "reactNativePackageChecker.showCheckerOptions",
+                "command": "reactNativePackageChecker.openPackageCheckerWebsite",
                 "title": "Open Package Checker Website",
                 "category": "Package Checker",
                 "icon": {
@@ -99,7 +99,7 @@
         "menus": {
             "editor/title": [
                 {
-                    "command": "reactNativePackageChecker.showCheckerOptions",
+                    "command": "reactNativePackageChecker.openPackageCheckerWebsite",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/",
                     "group": "navigation"
                 },

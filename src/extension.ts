@@ -1,14 +1,13 @@
 import * as vscode from 'vscode';
 
 import { disableCodeLens, enableCodeLens, initializeCodeLens } from './commands/codeLensCommand';
+import { openPackageCheckerWebsite } from './commands/openPackageCheckerWebsiteCommand';
 import { openUpgradeHelper } from './commands/openUpgradeHelper';
 import { refreshPackages } from './commands/refreshPackagesCommand';
-import { showCheckerOptions } from './commands/showCheckerOptionsCommand';
 import { showPackageDetails } from './commands/showPackageDetailsCommand';
 import { COMMANDS, EXTENSION_CONFIG } from './constants/index';
 import { BrowserService } from './services/browserService';
 import { CacheManagerService } from './services/cacheManagerService';
-import { CheckerService } from './services/checkerService';
 import { CodeLensProviderService } from './services/codeLensProviderService';
 import { CodeLensService } from './services/codeLensService';
 import { DebouncedChangeHandler } from './services/debouncedChangeHandler';
@@ -48,7 +47,6 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const browserService = new BrowserService();
-    const checkerService = new CheckerService();
     const packageDetailsService = new PackageDetailsService();
 
     const codeLensDisposable = vscode.languages.registerCodeLensProvider(
@@ -70,8 +68,8 @@ export function activate(context: vscode.ExtensionContext) {
             showPackageDetails(packageDetailsService, packageName, packageInfo, context)
     );
 
-    const checkerCommand = vscode.commands.registerCommand(COMMANDS.SHOW_CHECKER_OPTIONS, () =>
-        showCheckerOptions(checkerService, browserService, context)
+    const checkerCommand = vscode.commands.registerCommand(COMMANDS.OPEN_PACKAGE_CHECKER_WEBSITE, () =>
+        openPackageCheckerWebsite(browserService)
     );
 
     const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH_PACKAGES, () =>
