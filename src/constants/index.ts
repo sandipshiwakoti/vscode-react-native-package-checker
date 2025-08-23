@@ -81,6 +81,7 @@ export enum COMMANDS {
     REFRESH_PACKAGES = 'reactNativePackageChecker.refreshPackages',
     UPDATE_PACKAGE_VERSION = 'reactNativePackageChecker.updatePackageVersion',
     OPEN_UPGRADE_HELPER = 'reactNativePackageChecker.openUpgradeHelper',
+    SHOW_LOGS = 'reactNativePackageChecker.showLogs',
 }
 
 export const NEW_ARCH_ISSUE_QUERY =

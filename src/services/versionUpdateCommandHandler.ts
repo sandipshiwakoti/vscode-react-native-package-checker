@@ -48,12 +48,10 @@ export class VersionUpdateCommandHandler {
 
             await this.versionUpdateService.updatePackageVersion(activeEditor.document, packageName, latestVersion);
 
-            await activeEditor.document.save();
-
             this.packageService.updatePackageVersionInCache(packageName, latestVersion);
 
             vscode.window.showInformationMessage(
-                `Updated ${packageName} to ${latestVersion} and saved. Run your package manager to install.`
+                `Updated ${packageName} to ${latestVersion}. Save file and run your package manager to install.`
             );
 
             this.codeLensProviderService.refresh();

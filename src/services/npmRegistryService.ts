@@ -8,9 +8,6 @@ export interface NpmPackageResponse {
 }
 
 export class NpmRegistryService {
-    private versionCache = new Map<string, string>();
-    private cacheExpiry = new Map<string, number>();
-
     private async fetchWithTimeout(url: string, timeoutMs: number = 5000): Promise<Response> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -31,10 +28,6 @@ export class NpmRegistryService {
     }
 
     async fetchLatestVersion(packageName: string): Promise<string> {
-        if (this.isCached(packageName)) {
-            return this.versionCache.get(packageName)!;
-        }
-
         try {
             const response = await this.fetchWithTimeout(
                 `${NPM_REGISTRY_CONFIG.BASE_URL}/${encodeURIComponent(packageName)}/latest`
@@ -47,7 +40,6 @@ export class NpmRegistryService {
             const data: any = await response.json();
             const latestVersion = data.version;
 
-            this.updateCache(packageName, latestVersion);
             return latestVersion;
         } catch (error) {
             console.error(`Failed to fetch latest version for ${packageName}:`, error);
@@ -57,19 +49,8 @@ export class NpmRegistryService {
 
     async fetchLatestVersions(packageNames: string[]): Promise<Record<string, string>> {
         const results: Record<string, string> = {};
-        const uncachedPackages = packageNames.filter((name) => !this.isCached(name));
 
-        packageNames.forEach((name) => {
-            if (this.isCached(name)) {
-                results[name] = this.versionCache.get(name)!;
-            }
-        });
-
-        if (uncachedPackages.length === 0) {
-            return results;
-        }
-
-        const fetchPromises = uncachedPackages.map(async (packageName) => {
+        const fetchPromises = packageNames.map(async (packageName) => {
             try {
                 const version = await this.fetchLatestVersion(packageName);
                 return { packageName, version };
@@ -88,26 +69,5 @@ export class NpmRegistryService {
         });
 
         return results;
-    }
-
-    private isCached(packageName: string): boolean {
-        const expiry = this.cacheExpiry.get(packageName);
-        if (!expiry || Date.now() > expiry) {
-            this.versionCache.delete(packageName);
-            this.cacheExpiry.delete(packageName);
-            return false;
-        }
-        return this.versionCache.has(packageName);
-    }
-
-    private updateCache(packageName: string, version: string): void {
-        const now = Date.now();
-        this.versionCache.set(packageName, version);
-        this.cacheExpiry.set(packageName, now + NPM_REGISTRY_CONFIG.CACHE_TIMEOUT);
-    }
-
-    clearCache(): void {
-        this.versionCache.clear();
-        this.cacheExpiry.clear();
     }
 }

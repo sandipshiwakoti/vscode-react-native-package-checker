@@ -33,6 +33,22 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Show CodeLens for latest version information and fetch from npm registry"
+                },
+                "reactNativePackageChecker.enableLogging": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable logging of API calls and cache operations to the output channel"
+                },
+                "reactNativePackageChecker.logLevel": {
+                    "type": "string",
+                    "enum": [
+                        "debug",
+                        "info",
+                        "warn",
+                        "error"
+                    ],
+                    "default": "info",
+                    "description": "Set the logging level for the extension"
                 }
             }
         },
@@ -72,6 +88,11 @@
             {
                 "command": "reactNativePackageChecker.showPackageDetails",
                 "title": "Show Details",
+                "category": "Package Checker"
+            },
+            {
+                "command": "reactNativePackageChecker.showLogs",
+                "title": "Show Logs",
                 "category": "Package Checker"
             }
         ],

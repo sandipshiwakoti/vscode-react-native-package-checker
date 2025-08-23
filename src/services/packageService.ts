@@ -1,95 +1,228 @@
-import { API_BASE_URL, API_CONFIG, EXTENSION_CONFIG } from '../constants';
+import { API_BASE_URL, API_CONFIG } from '../constants';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, PackageResponse } from '../types';
 
+import { CacheManagerService, PackageChange } from './cacheManagerService';
 import { LoadingNotificationService } from './loadingNotificationService';
+import { LoggerService } from './loggerService';
 import { NpmRegistryService } from './npmRegistryService';
 
 export class PackageService {
-    private cache = new Map<string, PackageInfo>();
-    private cacheExpiry = new Map<string, number>();
-
     constructor(
         private npmRegistryService: NpmRegistryService,
-        private loadingNotificationService: LoadingNotificationService
+        private loadingNotificationService: LoadingNotificationService,
+        private cacheManager: CacheManagerService,
+        private logger: LoggerService
     ) {}
 
     async checkPackages(
         packageWithVersions: string[],
         onVersionsReady?: () => void,
-        showLatestVersion: boolean = true
+        showLatestVersion: boolean = true,
+        documentContent?: string
     ): Promise<PackageInfoMap> {
         if (!packageWithVersions?.length) {
             return {};
         }
 
-        const uncachedPackages = packageWithVersions.filter((pkg) => {
-            const packageName = this.extractPackageName(pkg);
-            return !this.isCached(packageName);
+        const packageNames = packageWithVersions.map((pkg) => this.extractPackageName(pkg));
+
+        let fetchedPackagesCount = 0;
+        let fetchedVersionsCount = 0;
+
+        const depsPackages = documentContent
+            ? packageNames.filter((pkg) => this.isDependencyNotDev(pkg, documentContent))
+            : packageNames;
+
+        const cachedPackageInfos = this.cacheManager.getMultiplePackageInfos(packageNames);
+
+        let uncachedPackages = this.cacheManager.getUncachedPackages(depsPackages);
+
+        const devDepsPackages = documentContent
+            ? packageNames.filter((pkg) => !this.isDependencyNotDev(pkg, documentContent))
+            : [];
+
+        devDepsPackages.forEach((packageName) => {
+            if (!cachedPackageInfos[packageName]) {
+                cachedPackageInfos[packageName] = {
+                    npmUrl: '',
+                    latestVersion: '',
+                    newArchitecture: NewArchSupportStatus.Unlisted,
+                };
+            }
         });
 
-        if (uncachedPackages.length === 0) {
-            const cachedResults = this.getCachedResultsByVersions(packageWithVersions);
-            this.populateCurrentVersions(cachedResults, packageWithVersions);
-            await this.handleVersionsAndCallback(
-                cachedResults,
-                packageWithVersions,
-                showLatestVersion,
-                onVersionsReady
+        if (uncachedPackages.length > 0) {
+            this.logger.info(
+                `Fetching ${uncachedPackages.length} ${uncachedPackages.length === 1 ? 'package' : 'packages'} data`
             );
-            return cachedResults;
         }
 
-        let loadingDisposable: any = null;
+        this.populateCurrentVersions(cachedPackageInfos, packageWithVersions);
 
-        try {
-            loadingDisposable = this.loadingNotificationService.showLoading(`Fetching package information...`);
-            const data = await this.fetchPackageData(uncachedPackages);
-            this.updateCache(data.packages);
+        let packageInfos = cachedPackageInfos;
 
-            const results = this.getCachedResultsByVersions(packageWithVersions);
-            this.populateCurrentVersions(results, packageWithVersions);
-            await this.handleVersionsAndCallback(results, packageWithVersions, showLatestVersion, onVersionsReady);
-            return results;
-        } catch (error) {
-            console.error('Failed to check packages:', error);
-            const cachedResults = this.getCachedResultsByVersions(packageWithVersions);
-            this.populateCurrentVersions(cachedResults, packageWithVersions);
-
-            if (Object.keys(cachedResults).length === 0) {
-                throw error;
-            }
+        if (uncachedPackages.length > 0) {
+            let loadingDisposable: any = null;
 
             try {
-                await this.handleVersionsAndCallback(
-                    cachedResults,
-                    packageWithVersions,
-                    showLatestVersion,
-                    onVersionsReady
-                );
-            } catch (versionError) {
-                console.error('Failed to fetch version information:', versionError);
-            }
+                const startTime = Date.now();
+                this.logger.logLoadingState('start', 'package info', uncachedPackages);
 
-            return cachedResults;
-        } finally {
-            if (loadingDisposable) {
+                loadingDisposable = this.loadingNotificationService.showLoading(
+                    `Fetching information for ${uncachedPackages.length} packages...`
+                );
+
+                const data = await this.fetchPackageData(uncachedPackages);
+
+                const foundPackages: PackageInfoMap = {};
+
+                Object.entries(data.packages).forEach(([packageName, packageInfo]) => {
+                    foundPackages[packageName] = packageInfo;
+                });
+
+                this.cacheManager.setMultiplePackageInfos(foundPackages);
+
+                const duration = Date.now() - startTime;
+                this.logger.info(
+                    `Fetched ${uncachedPackages.length} ${uncachedPackages.length === 1 ? 'package' : 'packages'} data (${duration}ms)`
+                );
+
+                fetchedPackagesCount = uncachedPackages.length;
+
+                packageInfos = { ...packageInfos, ...foundPackages };
+                this.populateCurrentVersions(packageInfos, packageWithVersions);
+
                 this.loadingNotificationService.hideLoading(loadingDisposable);
+            } catch (error: any) {
+                this.logger.error('Failed to fetch package info', { error: error.message, packages: uncachedPackages });
+                console.error('Failed to check packages:', error);
+
+                if (loadingDisposable) {
+                    this.loadingNotificationService.hideLoading(loadingDisposable);
+                }
+
+                if (Object.keys(packageInfos).length === 0) {
+                    throw error;
+                }
             }
         }
+
+        if (showLatestVersion) {
+            fetchedVersionsCount = await this.handleVersionFetching(packageInfos, packageWithVersions);
+        }
+
+        if (fetchedPackagesCount > 0 || fetchedVersionsCount > 0) {
+            const parts = [];
+            if (fetchedPackagesCount > 0) {
+                parts.push(`${fetchedPackagesCount} packages`);
+            }
+            if (fetchedVersionsCount > 0) {
+                parts.push(`${fetchedVersionsCount} versions`);
+            }
+            this.logger.info(`Cached ${parts.join(' and ')} data`);
+        }
+
+        onVersionsReady?.();
+
+        return packageInfos;
     }
 
-    private async handleVersionsAndCallback(
-        results: PackageInfoMap,
-        packageWithVersions: string[],
-        showLatestVersion: boolean,
-        onVersionsReady?: () => void
-    ): Promise<void> {
-        try {
-            if (showLatestVersion) {
-                await this.enrichWithVersionInfo(results, packageWithVersions);
+    private async handleVersionFetching(packageInfos: PackageInfoMap, packageWithVersions: string[]): Promise<number> {
+        const allPackageNames = packageWithVersions.map((pkg) => this.extractPackageName(pkg));
+
+        const packageNames = allPackageNames;
+
+        const cachedVersions = this.cacheManager.getMultiplePackageVersions(packageNames);
+        const uncachedVersionPackages = this.cacheManager.getUncachedVersions(packageNames);
+
+        const packagesNeedingVersionCheck = allPackageNames.filter((packageName) => {
+            return this.cacheManager.needsVersionCheck(packageName);
+        });
+
+        Object.entries(cachedVersions).forEach(([packageName, version]) => {
+            if (packageInfos[packageName]) {
+                packageInfos[packageName].latestVersion = version;
+                this.updatePackageVersionInfo(packageInfos[packageName], packageWithVersions, packageName);
+            } else {
+                packageInfos[packageName] = {
+                    npmUrl: '',
+                    latestVersion: version,
+                    newArchitecture: NewArchSupportStatus.Unlisted,
+                };
+                this.updatePackageVersionInfo(packageInfos[packageName], packageWithVersions, packageName);
             }
-        } finally {
-            onVersionsReady?.();
+        });
+
+        if (packagesNeedingVersionCheck.length > 0 && uncachedVersionPackages.length > 0) {
+            let versionLoadingDisposable: any = null;
+
+            try {
+                this.logger.info(
+                    `Fetching ${uncachedVersionPackages.length} ${uncachedVersionPackages.length === 1 ? 'version' : 'versions'} data`
+                );
+
+                const startTime = Date.now();
+                this.logger.logLoadingState('start', 'version info', uncachedVersionPackages);
+
+                versionLoadingDisposable =
+                    this.loadingNotificationService.showLoadingForPackages(uncachedVersionPackages);
+
+                const latestVersions = await this.npmRegistryService.fetchLatestVersions(uncachedVersionPackages);
+                this.cacheManager.setMultiplePackageVersions(latestVersions);
+                const duration = Date.now() - startTime;
+                this.logger.info(
+                    `Fetched ${uncachedVersionPackages.length} ${uncachedVersionPackages.length === 1 ? 'version' : 'versions'} data (${duration}ms)`
+                );
+
+                Object.entries(latestVersions).forEach(([packageName, version]) => {
+                    if (packageInfos[packageName]) {
+                        packageInfos[packageName].latestVersion = version;
+                        this.updatePackageVersionInfo(packageInfos[packageName], packageWithVersions, packageName);
+                    } else {
+                        packageInfos[packageName] = {
+                            npmUrl: '',
+                            latestVersion: version,
+                            newArchitecture: NewArchSupportStatus.Unlisted,
+                        };
+                        this.updatePackageVersionInfo(packageInfos[packageName], packageWithVersions, packageName);
+                    }
+                });
+
+                return uncachedVersionPackages.length;
+            } catch (error: any) {
+                this.logger.error('Failed to fetch version info', {
+                    error: error.message,
+                    packages: uncachedVersionPackages,
+                });
+                console.error('Failed to fetch version information:', error);
+
+                uncachedVersionPackages.forEach((packageName) => {
+                    if (packageInfos[packageName]) {
+                        packageInfos[packageName].versionFetchError = 'Failed to fetch version information';
+                    }
+                });
+                return 0;
+            } finally {
+                if (versionLoadingDisposable) {
+                    this.loadingNotificationService.hideLoading(versionLoadingDisposable);
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    private updatePackageVersionInfo(
+        packageInfo: PackageInfo,
+        packageWithVersions: string[],
+        packageName: string
+    ): void {
+        const pkgWithVersion = packageWithVersions.find((pkg) => this.extractPackageName(pkg) === packageName);
+
+        if (pkgWithVersion && packageInfo.latestVersion) {
+            const currentVersion = this.extractVersion(pkgWithVersion);
+            packageInfo.currentVersion = currentVersion;
+            packageInfo.hasUpdate = this.hasVersionUpdate(currentVersion, packageInfo.latestVersion);
         }
     }
 
@@ -101,9 +234,215 @@ export class PackageService {
         return packageWithVersion.substring(0, lastAtIndex);
     }
 
+    public async handlePackageChanges(changes: PackageChange[], documentContent?: string): Promise<void> {
+        if (changes.length === 0) {
+            return;
+        }
+
+        this.logger.logFileChange('package changes', changes);
+
+        const addedDependencies: string[] = [];
+        const addedDevDependencies: string[] = [];
+
+        for (const change of changes) {
+            switch (change.type) {
+                case 'version_changed':
+                    this.cacheManager.handlePackageChanges([change]);
+                    this.logger.debug(
+                        `Cache updated: ${change.packageName} ${change.oldVersion} → ${change.newVersion}`
+                    );
+                    break;
+
+                case 'removed':
+                    this.cacheManager.removePackageInfo(change.packageName);
+                    this.cacheManager.removePackageVersion(change.packageName);
+                    this.logger.debug(`Cache removed: ${change.packageName}`);
+                    break;
+
+                case 'added':
+                    if (documentContent && this.isDependencyNotDev(change.packageName, documentContent)) {
+                        addedDependencies.push(change.packageName);
+                        this.logger.debug(`New dependency: ${change.packageName} - will fetch package data`);
+                    } else {
+                        addedDevDependencies.push(change.packageName);
+                        this.logger.debug(`New devDependency: ${change.packageName} - will fetch version data only`);
+                    }
+                    break;
+            }
+        }
+
+        if (addedDependencies.length > 0) {
+            await this.fetchMultiplePackages(addedDependencies);
+        }
+
+        if (addedDevDependencies.length > 0) {
+            await this.fetchVersionsOnly(addedDevDependencies);
+        }
+    }
+
+    private async fetchVersionsOnly(packageNames: string[]): Promise<void> {
+        try {
+            this.logger.info(
+                `Fetching ${packageNames.length} ${packageNames.length === 1 ? 'version' : 'versions'} data`
+            );
+
+            const startTime = Date.now();
+            const latestVersions = await this.npmRegistryService.fetchLatestVersions(packageNames);
+            this.cacheManager.setMultiplePackageVersions(latestVersions);
+
+            packageNames.forEach((packageName) => {
+                const version = latestVersions[packageName];
+                if (version) {
+                    this.cacheManager.setPackageInfo(packageName, {
+                        npmUrl: '',
+                        latestVersion: version,
+                        newArchitecture: NewArchSupportStatus.Unlisted,
+                    });
+                }
+            });
+
+            const duration = Date.now() - startTime;
+
+            this.logger.info(
+                `Fetched ${packageNames.length} ${packageNames.length === 1 ? 'version' : 'versions'} data (${duration}ms)`
+            );
+        } catch (error: any) {
+            this.logger.debug(`Failed to fetch versions for devDependencies: ${error.message}`);
+            packageNames.forEach((packageName) => {
+                this.cacheManager.setPackageInfo(packageName, {
+                    npmUrl: '',
+                    latestVersion: '',
+                    versionFetchError: `Failed to fetch version: ${error.message}`,
+                    newArchitecture: NewArchSupportStatus.Unlisted,
+                });
+            });
+        }
+    }
+
+    private async fetchMultiplePackages(packageNames: string[]): Promise<void> {
+        try {
+            this.logger.info(
+                `Fetching ${packageNames.length} ${packageNames.length === 1 ? 'package' : 'packages'} data`
+            );
+
+            const startTime = Date.now();
+            const packageData = await this.fetchPackageData(packageNames);
+
+            const foundPackages: PackageInfoMap = {};
+            Object.entries(packageData.packages).forEach(([packageName, packageInfo]) => {
+                foundPackages[packageName] = packageInfo;
+            });
+
+            this.cacheManager.setMultiplePackageInfos(foundPackages);
+            const duration = Date.now() - startTime;
+
+            this.logger.info(
+                `Fetched ${packageNames.length} ${packageNames.length === 1 ? 'package' : 'packages'} data (${duration}ms)`
+            );
+
+            const validPackages = packageNames.filter((name) => {
+                const info = foundPackages[name];
+                return info && !info.error;
+            });
+
+            if (validPackages.length > 0) {
+                try {
+                    this.logger.info(
+                        `Fetching ${validPackages.length} ${validPackages.length === 1 ? 'version' : 'versions'} data`
+                    );
+
+                    const versionStartTime = Date.now();
+                    const latestVersions = await this.npmRegistryService.fetchLatestVersions(validPackages);
+                    this.cacheManager.setMultiplePackageVersions(latestVersions);
+                    const versionDuration = Date.now() - versionStartTime;
+
+                    this.logger.info(
+                        `Fetched ${validPackages.length} ${validPackages.length === 1 ? 'version' : 'versions'} data (${versionDuration}ms)`
+                    );
+                } catch (versionError) {
+                    this.logger.debug(`Failed to fetch versions for bulk packages: ${versionError}`);
+                }
+            }
+        } catch (error: any) {
+            this.logger.debug(`Failed to fetch bulk packages: ${error.message}`);
+            packageNames.forEach((packageName) => {
+                this.cacheManager.setPackageInfo(packageName, {
+                    npmUrl: '',
+                    error: `Failed to fetch: ${error.message}`,
+                    newArchitecture: NewArchSupportStatus.Unlisted,
+                });
+            });
+        }
+    }
+
+    private async fetchSinglePackage(packageName: string): Promise<void> {
+        try {
+            const startTime = Date.now();
+            this.logger.info(`API package-info fetch ${packageName}`);
+            const packageData = await this.fetchPackageData([packageName]);
+            const packageInfo = packageData.packages[packageName];
+
+            if (packageInfo) {
+                this.cacheManager.setPackageInfo(packageName, packageInfo);
+                const duration = Date.now() - startTime;
+                this.logger.info(`API package-info obtained ${packageName} (${duration}ms)`);
+
+                if (!packageInfo.error) {
+                    try {
+                        const versionStartTime = Date.now();
+                        this.logger.info(`API npm registry fetch ${packageName}`);
+                        const latestVersions = await this.npmRegistryService.fetchLatestVersions([packageName]);
+                        const latestVersion = latestVersions[packageName];
+
+                        if (latestVersion) {
+                            this.cacheManager.setPackageVersion(packageName, latestVersion);
+                            const versionDuration = Date.now() - versionStartTime;
+                            this.logger.info(
+                                `API npm registry obtained ${packageName} v${latestVersion} (${versionDuration}ms)`
+                            );
+                        } else {
+                            this.logger.debug(`No version found for ${packageName}`);
+                        }
+                    } catch (versionError) {
+                        this.logger.debug(`Failed to fetch version for ${packageName}: ${versionError}`);
+                    }
+                } else {
+                    this.logger.debug(`Package ${packageName} has error, skipping version fetch`);
+                }
+            } else {
+                this.logger.debug(`No package info returned for ${packageName}`);
+            }
+        } catch (error: any) {
+            this.logger.debug(`Failed to fetch ${packageName}: ${error.message}`);
+            this.cacheManager.setPackageInfo(packageName, {
+                npmUrl: '',
+                error: `Failed to fetch: ${error.message}`,
+                newArchitecture: NewArchSupportStatus.Unlisted,
+            });
+        }
+    }
+
+    public updatePackageVersionInCache(packageName: string, newVersion: string): void {
+        const updated = this.cacheManager.updatePackageInfo(packageName, {
+            currentVersion: newVersion,
+            hasUpdate: false,
+        });
+
+        if (updated) {
+            this.logger.logCacheUpdate('version updated', [packageName]);
+        }
+    }
+
     public clearCache(): void {
-        this.cache.clear();
-        this.cacheExpiry.clear();
+        this.logger.debug('Cache cleared');
+        this.cacheManager.clearAllCache();
+    }
+
+    public getCachedResultsByVersions(packageWithVersions: string[]): PackageInfoMap {
+        const packageNames = packageWithVersions.map((pkg) => this.extractPackageName(pkg));
+        const results = this.cacheManager.getMultiplePackageInfos(packageNames);
+        this.populateCurrentVersions(results, packageWithVersions);
+        return results;
     }
 
     private async fetchPackageData(packages: string[]): Promise<PackageResponse> {
@@ -129,7 +468,7 @@ export class PackageService {
             const packageResponse = (await response.json()) as PackageResponse;
 
             Object.entries(packageResponse.packages).forEach(([, packageInfo]) => {
-                if (!packageInfo.newArchitecture && packageInfo.error) {
+                if (!packageInfo.newArchitecture) {
                     packageInfo.newArchitecture = NewArchSupportStatus.Unlisted;
                 }
             });
@@ -141,35 +480,6 @@ export class PackageService {
         }
     }
 
-    public getCachedResultsByVersions(packageWithVersions: string[]): PackageInfoMap {
-        return packageWithVersions.reduce((result, pkg) => {
-            const packageName = this.extractPackageName(pkg);
-            const cached = this.cache.get(packageName);
-            if (cached) {
-                result[packageName] = cached;
-            }
-            return result;
-        }, {} as PackageInfoMap);
-    }
-
-    private isCached(packageName: string): boolean {
-        const expiry = this.cacheExpiry.get(packageName);
-        if (!expiry || Date.now() > expiry) {
-            this.cache.delete(packageName);
-            this.cacheExpiry.delete(packageName);
-            return false;
-        }
-        return this.cache.has(packageName);
-    }
-
-    private updateCache(packages: PackageInfoMap): void {
-        const now = Date.now();
-        Object.entries(packages).forEach(([name, info]) => {
-            this.cache.set(name, info);
-            this.cacheExpiry.set(name, now + EXTENSION_CONFIG.CACHE_TIMEOUT);
-        });
-    }
-
     private populateCurrentVersions(packageInfos: PackageInfoMap, packageWithVersions: string[]): void {
         packageWithVersions.forEach((pkgWithVersion) => {
             const packageName = this.extractPackageName(pkgWithVersion);
@@ -179,65 +489,12 @@ export class PackageService {
             if (packageInfo) {
                 packageInfo.currentVersion = currentVersion;
 
-                if (!packageInfo.newArchitecture && packageInfo.error) {
+                if (packageInfo.latestVersion) {
+                    packageInfo.hasUpdate = this.hasVersionUpdate(currentVersion, packageInfo.latestVersion);
+                }
+
+                if (!packageInfo.newArchitecture) {
                     packageInfo.newArchitecture = NewArchSupportStatus.Unlisted;
-                }
-            }
-        });
-    }
-
-    private async enrichWithVersionInfo(packageInfos: PackageInfoMap, packageWithVersions: string[]): Promise<void> {
-        const packagesNeedingVersionCheck = packageWithVersions.filter((pkg) => {
-            const packageName = this.extractPackageName(pkg);
-            const packageInfo = packageInfos[packageName];
-            return packageInfo && !packageInfo.versionFetchError;
-        });
-
-        if (packagesNeedingVersionCheck.length === 0) {
-            return;
-        }
-
-        const packagesWithoutLatestVersion = packagesNeedingVersionCheck.filter((pkg) => {
-            const packageName = this.extractPackageName(pkg);
-            const packageInfo = packageInfos[packageName];
-            return !packageInfo.latestVersion;
-        });
-
-        let versionLoadingDisposable: any = null;
-        let latestVersions: Record<string, string> = {};
-
-        if (packagesWithoutLatestVersion.length > 0) {
-            const packageNames = packagesWithoutLatestVersion.map((pkg) => this.extractPackageName(pkg));
-
-            try {
-                versionLoadingDisposable = this.loadingNotificationService.showLoadingForPackages(packageNames);
-                latestVersions = await this.npmRegistryService.fetchLatestVersions(packageNames);
-            } catch (error) {
-                console.error('Failed to fetch version information:', error);
-                packageNames.forEach((packageName) => {
-                    if (packageInfos[packageName]) {
-                        packageInfos[packageName].versionFetchError = 'Failed to fetch version information';
-                    }
-                });
-                return;
-            } finally {
-                if (versionLoadingDisposable) {
-                    this.loadingNotificationService.hideLoading(versionLoadingDisposable);
-                }
-            }
-        }
-
-        packagesNeedingVersionCheck.forEach((pkgWithVersion) => {
-            const packageName = this.extractPackageName(pkgWithVersion);
-            const currentVersion = this.extractVersion(pkgWithVersion);
-            const packageInfo = packageInfos[packageName];
-
-            if (packageInfo) {
-                const latestVersion = latestVersions[packageName] || packageInfo.latestVersion;
-                if (latestVersion) {
-                    packageInfo.latestVersion = latestVersion;
-                    packageInfo.currentVersion = currentVersion;
-                    packageInfo.hasUpdate = this.hasVersionUpdate(currentVersion, latestVersion);
                 }
             }
         });
@@ -275,12 +532,23 @@ export class PackageService {
         return 0;
     }
 
-    updatePackageVersionInCache(packageName: string, newVersion: string): void {
-        const cachedPackage = this.cache.get(packageName);
-        if (cachedPackage) {
-            cachedPackage.currentVersion = newVersion;
-            cachedPackage.hasUpdate = false;
-            this.cache.set(packageName, cachedPackage);
+    private isDependencyNotDev(packageName: string, documentContent: string): boolean {
+        try {
+            const packageJson = JSON.parse(documentContent);
+            const dependencies = packageJson.dependencies || {};
+            const isDep = dependencies[packageName] !== undefined;
+
+            return isDep;
+        } catch {
+            return true;
         }
+    }
+
+    public getCacheStats() {
+        return this.cacheManager.getCacheStats();
+    }
+
+    public getCachedVersion(packageName: string): string | null {
+        return this.cacheManager.getLatestVersion(packageName);
     }
 }

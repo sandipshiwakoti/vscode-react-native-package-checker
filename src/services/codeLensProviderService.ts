@@ -16,6 +16,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
     private isProcessingLenses = false;
+    private refreshTimeout: NodeJS.Timeout | null = null;
 
     constructor(
         private packageService: PackageService,
@@ -41,13 +42,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             return [];
         }
 
-        // Check if we have cached data first
-        const cachedResults = this.packageService.getCachedResultsByVersions(packageWithVersions);
-        if (Object.keys(cachedResults).length > 0) {
-            return this.createCodeLenses(document, cachedResults, showLatestVersion);
-        }
-
-        // Prevent recursive calls during async refresh
         if (this.isProcessingLenses) {
             return [];
         }
@@ -55,15 +49,36 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         this.isProcessingLenses = true;
 
         try {
+            const hadCachedData = packageWithVersions.some((pkg) => {
+                const packageName = this.extractPackageNameFromVersionString(pkg);
+                return this.packageService.getCachedVersion(packageName) !== null;
+            });
+
             const packageInfos = await this.packageService.checkPackages(
                 packageWithVersions,
-                () => {
-                    // Use setTimeout to break the async chain and prevent recursion
-                    setTimeout(() => this.refresh(), 0);
-                },
-                showLatestVersion
+                undefined,
+                showLatestVersion,
+                document.getText()
             );
-            return this.createCodeLenses(document, packageInfos, showLatestVersion);
+
+            const hasNewData = packageWithVersions.some((pkg) => {
+                const packageName = this.extractPackageNameFromVersionString(pkg);
+                return (
+                    packageInfos[packageName]?.latestVersion &&
+                    this.packageService.getCachedVersion(packageName) !== null
+                );
+            });
+
+            const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion);
+
+            if (!hadCachedData && hasNewData && codeLenses.length > 0) {
+                console.log('Scheduling refresh after initial data fetch');
+                setTimeout(() => {
+                    this.refresh();
+                }, 100);
+            }
+
+            return codeLenses;
         } catch (error) {
             console.error('Error providing code lenses:', error);
 
@@ -172,6 +187,21 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
                     if (showLatestVersion && packageInfo.latestVersion && !packageInfo.versionFetchError) {
                         const versionCodeLens = this.createVersionCodeLens(range, packageName, packageInfo);
+                        codeLenses.push(versionCodeLens);
+                    }
+                } else if (showLatestVersion) {
+                    const cachedVersion = this.packageService.getCachedVersion(packageName);
+                    if (cachedVersion) {
+                        const range = new vscode.Range(i, 0, i, line.length);
+                        const currentVersion = this.extractVersionFromLine(line);
+                        const mockPackageInfo: PackageInfo = {
+                            npmUrl: '',
+                            latestVersion: cachedVersion,
+                            currentVersion: currentVersion,
+                            hasUpdate: this.hasVersionUpdate(currentVersion, cachedVersion),
+                            newArchitecture: NewArchSupportStatus.Unlisted,
+                        };
+                        const versionCodeLens = this.createVersionCodeLens(range, packageName, mockPackageInfo);
                         codeLenses.push(versionCodeLens);
                     }
                 }
@@ -289,21 +319,67 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             parts.push(`Update available: ${packageInfo.currentVersion} → ${packageInfo.latestVersion}`);
             parts.push('Click to update package version');
         } else {
-            parts.push(`Package is up to date (${packageInfo.latestVersion})`);
+            parts.push(`Already latest version (${packageInfo.latestVersion})`);
         }
 
         return parts.join(EXTENSION_CONFIG.TOOLTIP_SEPARATOR);
     }
 
     refresh(): void {
-        // Force refresh by clearing the processing flag first
-        this.isProcessingLenses = false;
+        if (this.refreshTimeout) {
+            clearTimeout(this.refreshTimeout);
+        }
 
-        // Use setTimeout to ensure this runs in the next event loop cycle
-        setTimeout(() => {
+        this.refreshTimeout = setTimeout(() => {
+            this.isProcessingLenses = false;
             this._onDidChangeCodeLenses.fire();
-        }, 0);
+            this.refreshTimeout = null;
+        }, 50);
     }
 
-    dispose() {}
+    private extractVersionFromLine(line: string): string {
+        const versionMatch = line.match(/"([^"]+)"/);
+        return versionMatch ? versionMatch[1].replace(/^[\^~]/, '') : '';
+    }
+
+    private extractPackageNameFromVersionString(packageWithVersion: string): string {
+        const lastAtIndex = packageWithVersion.lastIndexOf('@');
+        if (lastAtIndex === -1 || lastAtIndex === 0) {
+            return packageWithVersion;
+        }
+        return packageWithVersion.substring(0, lastAtIndex);
+    }
+
+    private hasVersionUpdate(currentVersion: string, latestVersion: string): boolean {
+        if (!currentVersion || !latestVersion) {
+            return false;
+        }
+        const cleanCurrent = currentVersion.replace(/^[\^~]/, '');
+        const cleanLatest = latestVersion.replace(/^[\^~]/, '');
+        return this.compareVersions(cleanLatest, cleanCurrent) > 0;
+    }
+
+    private compareVersions(version1: string, version2: string): number {
+        const v1Parts = version1.split('.').map(Number);
+        const v2Parts = version2.split('.').map(Number);
+        const maxLength = Math.max(v1Parts.length, v2Parts.length);
+
+        for (let i = 0; i < maxLength; i++) {
+            const v1Part = v1Parts[i] || 0;
+            const v2Part = v2Parts[i] || 0;
+            if (v1Part > v2Part) {
+                return 1;
+            }
+            if (v1Part < v2Part) {
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    dispose() {
+        if (this.refreshTimeout) {
+            clearTimeout(this.refreshTimeout);
+        }
+    }
 }
