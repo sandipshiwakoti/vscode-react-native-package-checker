@@ -202,7 +202,7 @@ export class CacheManagerService {
             return false;
         }
 
-        return !packageInfo.latestVersion;
+        return !packageInfo.latestVersion || packageInfo.latestVersion === '';
     }
 
     getLatestVersion(packageName: string): string | null {

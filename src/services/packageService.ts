@@ -257,7 +257,9 @@ export class PackageService {
                 case 'added':
                     if (documentContent && this.isDependencyNotDev(change.packageName, documentContent)) {
                         addedDependencies.push(change.packageName);
-                        this.logger.debug(`New dependency: ${change.packageName} - will fetch package data`);
+                        this.logger.debug(
+                            `New dependency: ${change.packageName} - will fetch package data and version data`
+                        );
                     } else {
                         addedDevDependencies.push(change.packageName);
                         this.logger.debug(`New devDependency: ${change.packageName} - will fetch version data only`);
@@ -267,10 +269,16 @@ export class PackageService {
         }
 
         if (addedDependencies.length > 0) {
+            this.logger.debug(
+                `Processing ${addedDependencies.length} added dependencies: ${addedDependencies.join(', ')}`
+            );
             await this.fetchMultiplePackages(addedDependencies);
         }
 
         if (addedDevDependencies.length > 0) {
+            this.logger.debug(
+                `Processing ${addedDevDependencies.length} added devDependencies: ${addedDevDependencies.join(', ')}`
+            );
             await this.fetchVersionsOnly(addedDevDependencies);
         }
     }
@@ -287,20 +295,24 @@ export class PackageService {
 
             packageNames.forEach((packageName) => {
                 const version = latestVersions[packageName];
-                if (version) {
-                    this.cacheManager.setPackageInfo(packageName, {
-                        npmUrl: '',
-                        latestVersion: version,
-                        newArchitecture: NewArchSupportStatus.Unlisted,
-                    });
-                }
+                this.cacheManager.setPackageInfo(packageName, {
+                    npmUrl: '',
+                    latestVersion: version || '',
+                    newArchitecture: NewArchSupportStatus.Unlisted,
+                    ...(version ? {} : { versionFetchError: 'Package not found on npm registry' }),
+                });
             });
 
             const duration = Date.now() - startTime;
+            const successCount = Object.keys(latestVersions).length;
 
-            this.logger.info(
-                `Fetched ${packageNames.length} ${packageNames.length === 1 ? 'version' : 'versions'} data (${duration}ms)`
-            );
+            if (successCount > 0) {
+                this.logger.info(
+                    `Fetched ${successCount} ${successCount === 1 ? 'version' : 'versions'} data (${duration}ms)`
+                );
+            } else {
+                this.logger.debug(`No versions found for ${packageNames.length} packages (${duration}ms)`);
+            }
         } catch (error: any) {
             this.logger.debug(`Failed to fetch versions for devDependencies: ${error.message}`);
             packageNames.forEach((packageName) => {
@@ -324,8 +336,21 @@ export class PackageService {
             const packageData = await this.fetchPackageData(packageNames);
 
             const foundPackages: PackageInfoMap = {};
+            const unlistedPackages: string[] = [];
+
             Object.entries(packageData.packages).forEach(([packageName, packageInfo]) => {
                 foundPackages[packageName] = packageInfo;
+            });
+
+            packageNames.forEach((packageName) => {
+                if (!foundPackages[packageName]) {
+                    unlistedPackages.push(packageName);
+                    foundPackages[packageName] = {
+                        npmUrl: '',
+                        latestVersion: '',
+                        newArchitecture: NewArchSupportStatus.Unlisted,
+                    };
+                }
             });
 
             this.cacheManager.setMultiplePackageInfos(foundPackages);
@@ -335,38 +360,111 @@ export class PackageService {
                 `Fetched ${packageNames.length} ${packageNames.length === 1 ? 'package' : 'packages'} data (${duration}ms)`
             );
 
-            const validPackages = packageNames.filter((name) => {
-                const info = foundPackages[name];
-                return info && !info.error;
+            if (unlistedPackages.length > 0) {
+                this.logger.debug(`Found ${unlistedPackages.length} unlisted packages: ${unlistedPackages.join(', ')}`);
+            }
+
+            const packagesNeedingVersions = packageNames.filter((packageName) => {
+                return !this.cacheManager.getPackageVersion(packageName);
             });
 
-            if (validPackages.length > 0) {
+            if (packagesNeedingVersions.length > 0) {
                 try {
                     this.logger.info(
-                        `Fetching ${validPackages.length} ${validPackages.length === 1 ? 'version' : 'versions'} data`
+                        `Fetching ${packagesNeedingVersions.length} ${packagesNeedingVersions.length === 1 ? 'version' : 'versions'} data`
                     );
 
                     const versionStartTime = Date.now();
-                    const latestVersions = await this.npmRegistryService.fetchLatestVersions(validPackages);
+                    const latestVersions = await this.npmRegistryService.fetchLatestVersions(packagesNeedingVersions);
                     this.cacheManager.setMultiplePackageVersions(latestVersions);
-                    const versionDuration = Date.now() - versionStartTime;
 
-                    this.logger.info(
-                        `Fetched ${validPackages.length} ${validPackages.length === 1 ? 'version' : 'versions'} data (${versionDuration}ms)`
-                    );
+                    packagesNeedingVersions.forEach((packageName) => {
+                        const version = latestVersions[packageName];
+                        if (version) {
+                            this.cacheManager.updatePackageInfo(packageName, {
+                                latestVersion: version,
+                            });
+                            this.logger.debug(`Updated ${packageName} with version ${version}`);
+                        } else {
+                            this.cacheManager.updatePackageInfo(packageName, {
+                                versionFetchError: 'Package not found on npm registry',
+                            });
+                            this.logger.debug(`Package ${packageName} not found on npm registry`);
+                        }
+                    });
+
+                    const versionDuration = Date.now() - versionStartTime;
+                    const successCount = Object.keys(latestVersions).length;
+
+                    if (successCount > 0) {
+                        this.logger.info(
+                            `Fetched ${successCount} ${successCount === 1 ? 'version' : 'versions'} data (${versionDuration}ms)`
+                        );
+                    } else {
+                        this.logger.debug(
+                            `No versions found for ${packagesNeedingVersions.length} packages (${versionDuration}ms)`
+                        );
+                    }
                 } catch (versionError) {
                     this.logger.debug(`Failed to fetch versions for bulk packages: ${versionError}`);
+                    packagesNeedingVersions.forEach((packageName) => {
+                        this.cacheManager.updatePackageInfo(packageName, {
+                            versionFetchError: 'Failed to fetch version information',
+                        });
+                    });
                 }
             }
         } catch (error: any) {
             this.logger.debug(`Failed to fetch bulk packages: ${error.message}`);
-            packageNames.forEach((packageName) => {
-                this.cacheManager.setPackageInfo(packageName, {
-                    npmUrl: '',
-                    error: `Failed to fetch: ${error.message}`,
-                    newArchitecture: NewArchSupportStatus.Unlisted,
-                });
+
+            const packagesNeedingVersions = packageNames.filter((packageName) => {
+                return !this.cacheManager.getPackageVersion(packageName);
             });
+
+            if (packagesNeedingVersions.length > 0) {
+                try {
+                    this.logger.info(
+                        `Package API failed, attempting to fetch versions for ${packagesNeedingVersions.length} packages`
+                    );
+                    const latestVersions = await this.npmRegistryService.fetchLatestVersions(packagesNeedingVersions);
+
+                    packageNames.forEach((packageName) => {
+                        const version = latestVersions[packageName];
+                        this.cacheManager.setPackageInfo(packageName, {
+                            npmUrl: '',
+                            latestVersion: version || '',
+                            newArchitecture: NewArchSupportStatus.Unlisted,
+                            ...(version ? {} : { versionFetchError: 'Failed to fetch version information' }),
+                        });
+                    });
+
+                    const successCount = Object.keys(latestVersions).length;
+                    if (successCount > 0) {
+                        this.cacheManager.setMultiplePackageVersions(latestVersions);
+                        this.logger.info(
+                            `Fallback: fetched ${successCount} ${successCount === 1 ? 'version' : 'versions'} data`
+                        );
+                    } else {
+                        this.logger.debug(`Fallback: no versions found for ${packagesNeedingVersions.length} packages`);
+                    }
+                } catch {
+                    packageNames.forEach((packageName) => {
+                        this.cacheManager.setPackageInfo(packageName, {
+                            npmUrl: '',
+                            error: `Failed to fetch: ${error.message}`,
+                            newArchitecture: NewArchSupportStatus.Unlisted,
+                        });
+                    });
+                }
+            } else {
+                packageNames.forEach((packageName) => {
+                    this.cacheManager.setPackageInfo(packageName, {
+                        npmUrl: '',
+                        error: `Failed to fetch: ${error.message}`,
+                        newArchitecture: NewArchSupportStatus.Unlisted,
+                    });
+                });
+            }
         }
     }
 
