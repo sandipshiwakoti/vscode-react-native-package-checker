@@ -1,14 +1,8 @@
+import { PackageJsonDiff } from '../types';
 import { extractAllPackages } from '../utils/packageUtils';
 
 import { PackageChange } from './cacheManagerService';
 import { LoggerService } from './loggerService';
-
-export interface PackageJsonDiff {
-    added: Record<string, string>;
-    removed: Record<string, string>;
-    updated: Record<string, { from: string; to: string }>;
-    versionChanged: Record<string, { from: string; to: string }>;
-}
 
 export class FileChangeService {
     constructor(private logger: LoggerService) {}
@@ -134,12 +128,10 @@ export class FileChangeService {
     }
 
     requiresApiCall(changes: PackageChange[]): boolean {
-        return changes.some((change) => change.type === 'added' || change.type === 'updated');
+        return changes.some((change) => change.type === 'added');
     }
 
     getPackagesNeedingFetch(changes: PackageChange[]): string[] {
-        return changes
-            .filter((change) => change.type === 'added' || change.type === 'updated')
-            .map((change) => change.packageName);
+        return changes.filter((change) => change.type === 'added').map((change) => change.packageName);
     }
 }

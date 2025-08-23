@@ -35,6 +35,7 @@
 - 🌐 **Web Integration** - Direct access to React Native Package Checker and Upgrade Helper websites
 - 🌐 **Migration Support** - Direct links to upgrade helpers, merged PRs, issues etc.
 - 🔄 **Data Caching** - Always get the latest package information with intelligent data refresh
+- ⚡ **Dependency Version Check** - Compare your current dependencies against React Native upgrade requirements using rn-diff-purge data
 
 ## 🚀 Installation
 
@@ -76,16 +77,17 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 
 Open your `package.json` to see interactive overlays above each dependency:
 
-| CodeLens Display           | Meaning                                                  | Action                                      |
-| -------------------------- | -------------------------------------------------------- | ------------------------------------------- |
-| ✓ **New Arch Supported**   | Package supports New Architecture                        | Click for detailed package info             |
-| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture                 | Click to see alternatives or migration info |
-| ⚠ **New Arch Untested**   | Package has not been tested with New Architecture        | Click to check latest information           |
-| ? **Unlisted**             | Package not found in the official React Native directory | Click to check latest information           |
-| 📂 **Unmaintained**        | Package is unmaintained                                  | See maintenance status                      |
-| ✓ **Latest X.X.X**         | Package is up to date                                    | View package details                        |
-| ↑ **Latest X.X.X**         | Update available                                         | Click to see upgrade options                |
-| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                     | Open upgrade helper with current RN version |
+| CodeLens Display           | Meaning                                                   | Action                                      |
+| -------------------------- | --------------------------------------------------------- | ------------------------------------------- |
+| ✓ **New Arch Supported**   | Package supports New Architecture                         | Click for detailed package info             |
+| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture                  | Click to see alternatives or migration info |
+| ⚠ **New Arch Untested**   | Package has not been tested with New Architecture         | Click to check latest information           |
+| ? **Unlisted**             | Package not found in the official React Native directory  | Click to check latest information           |
+| 📂 **Unmaintained**        | Package is unmaintained                                   | See maintenance status                      |
+| ✓ **Latest X.X.X**         | Package is up to date                                     | View package details                        |
+| ↑ **Latest X.X.X**         | Update available                                          | Click to see upgrade options                |
+| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                      | Open upgrade helper with current RN version |
+| ✎ **Expected: X.X.X**      | Version mismatch detected for target React Native version | Click to update to expected version         |
 
 **Toggle CodeLens:**
 
@@ -118,6 +120,18 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 - **Smart Version Parsing**: Handles version prefixes (^, ~, >=) and extracts clean version numbers
 - Perfect for planning React Native version upgrades and migrations
 
+**Package Checker: Enable Dependency Check**
+
+- Enables dependency version checking against a target React Native version
+- Prompts you to enter the target React Native version (e.g., 0.75.1)
+- Uses rn-diff-purge data to compare your current dependencies with expected versions
+- Shows inline decorations for packages that need version updates
+
+**Package Checker: Disable Dependency Check**
+
+- Disables dependency version checking and clears all version mismatch indicators
+- Removes inline decorations from package.json
+
 ### Title Bar
 
 **External Link Icon:**
@@ -136,8 +150,9 @@ This extension leverages data from trusted sources:
 - **[React Native Directory](https://reactnative.directory)** - Official React Native package directory with comprehensive compatibility data
 - **[NPM Registry](https://www.npmjs.com)** - Package version and metadata information
 - **[React Native Upgrade Helper](https://react-native-community.github.io/upgrade-helper)** - Official upgrade guidance for React Native versions
+- **[rn-diff-purge](https://github.com/react-native-community/rn-diff-purge)** - Community-maintained diffs between React Native versions for dependency version checking
 
-_Special thanks to the React Native Directory team for maintaining the comprehensive package database that powers this extension._
+_Special thanks to the React Native Directory team and rn-diff-purge maintainers for providing the comprehensive data that powers this extension._
 
 ## ⚙️ Configuration
 
@@ -175,6 +190,19 @@ Customize the extension in your VS Code settings (`settings.json`):
 
 - Use "Package Checker: Refresh Package Data" command to clear cache
 - This fetches the latest information from all data sources
+
+### Dependency check not working?
+
+- Ensure you have a valid `package.json` with React Native as a dependency
+- Verify the target React Native version exists in rn-diff-purge repository
+- Check that your current React Native version is different from the target version
+- Use "Package Checker: Show Logs" to view detailed error messages
+
+### Target React Native version not found?
+
+- The extension uses rn-diff-purge data, which may not have diffs for very new or very old React Native versions
+- Check the [rn-diff-purge repository](https://github.com/react-native-community/rn-diff-purge) for available versions
+- Try a different target version that's known to be available
 
 ## 🛠️ Development
 

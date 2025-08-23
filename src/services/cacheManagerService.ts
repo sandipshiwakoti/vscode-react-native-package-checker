@@ -1,182 +1,107 @@
-import { EXTENSION_CONFIG, NPM_REGISTRY_CONFIG } from '../constants';
-import { PackageInfo, PackageInfoMap } from '../types';
-import { compareVersions } from '../utils/versionUtils';
-
-export interface CacheEntry<T> {
-    data: T;
-    expiry: number;
-}
+import { LoggerService } from './loggerService';
 
 export interface PackageChange {
-    type: 'added' | 'removed' | 'updated' | 'version_changed';
     packageName: string;
     oldVersion?: string;
     newVersion?: string;
+    type: 'added' | 'removed' | 'version_changed';
 }
 
 export class CacheManagerService {
-    private packageCache = new Map<string, CacheEntry<PackageInfo>>();
-    private versionCache = new Map<string, CacheEntry<string>>();
+    private packageCache = new Map<string, any>();
+    private versionCache = new Map<string, string>();
 
-    getPackageInfo(packageName: string): PackageInfo | null {
-        const entry = this.packageCache.get(packageName);
-        if (!entry || Date.now() > entry.expiry) {
-            this.packageCache.delete(packageName);
-            return null;
-        }
-        return entry.data;
+    constructor(private logger: LoggerService) {}
+
+    getPackageInfo(packageName: string): any | null {
+        return this.packageCache.get(packageName) || null;
     }
 
-    setPackageInfo(packageName: string, packageInfo: PackageInfo): void {
-        const expiry = Date.now() + EXTENSION_CONFIG.CACHE_TIMEOUT;
-        this.packageCache.set(packageName, { data: packageInfo, expiry });
+    setPackageInfo(packageName: string, info: any): void {
+        this.packageCache.set(packageName, info);
     }
 
-    updatePackageInfo(packageName: string, updates: Partial<PackageInfo>): boolean {
-        const entry = this.packageCache.get(packageName);
-        if (!entry || Date.now() > entry.expiry) {
-            return false;
+    updatePackageInfo(packageName: string, updates: any): boolean {
+        const existing = this.packageCache.get(packageName);
+        if (existing) {
+            this.packageCache.set(packageName, { ...existing, ...updates });
+            return true;
         }
-
-        entry.data = { ...entry.data, ...updates };
-        return true;
+        return false;
     }
 
     removePackageInfo(packageName: string): void {
         this.packageCache.delete(packageName);
     }
 
+    getMultiplePackageInfos(packageNames: string[]): Record<string, any> {
+        const result: Record<string, any> = {};
+        packageNames.forEach((name) => {
+            const info = this.packageCache.get(name);
+            if (info) {
+                result[name] = info;
+            }
+        });
+        return result;
+    }
+
+    setMultiplePackageInfos(packages: Record<string, any>): void {
+        Object.entries(packages).forEach(([name, info]) => {
+            this.packageCache.set(name, info);
+        });
+    }
+
+    getUncachedPackages(packageNames: string[]): string[] {
+        return packageNames.filter((name) => !this.packageCache.has(name));
+    }
+
     getPackageVersion(packageName: string): string | null {
-        const entry = this.versionCache.get(packageName);
-        if (!entry || Date.now() > entry.expiry) {
-            this.versionCache.delete(packageName);
-            return null;
-        }
-        return entry.data;
+        return this.versionCache.get(packageName) || null;
     }
 
     setPackageVersion(packageName: string, version: string): void {
-        const expiry = Date.now() + NPM_REGISTRY_CONFIG.CACHE_TIMEOUT;
-        this.versionCache.set(packageName, { data: version, expiry });
+        this.versionCache.set(packageName, version);
     }
 
     removePackageVersion(packageName: string): void {
         this.versionCache.delete(packageName);
     }
 
-    getMultiplePackageInfos(packageNames: string[]): PackageInfoMap {
-        const result: PackageInfoMap = {};
-        for (const packageName of packageNames) {
-            const info = this.getPackageInfo(packageName);
-            if (info) {
-                result[packageName] = info;
-            }
-        }
-        return result;
-    }
-
-    setMultiplePackageInfos(packages: PackageInfoMap): void {
-        Object.entries(packages).forEach(([name, info]) => {
-            this.setPackageInfo(name, info);
-        });
-    }
-
     getMultiplePackageVersions(packageNames: string[]): Record<string, string> {
         const result: Record<string, string> = {};
-        for (const packageName of packageNames) {
-            const version = this.getPackageVersion(packageName);
+        packageNames.forEach((name) => {
+            const version = this.versionCache.get(name);
             if (version) {
-                result[packageName] = version;
+                result[name] = version;
             }
-        }
+        });
         return result;
     }
 
     setMultiplePackageVersions(versions: Record<string, string>): void {
         Object.entries(versions).forEach(([name, version]) => {
-            this.setPackageVersion(name, version);
+            this.versionCache.set(name, version);
         });
     }
 
+    getUncachedVersions(packageNames: string[]): string[] {
+        return packageNames.filter((name) => !this.versionCache.has(name));
+    }
+
+    needsVersionCheck(packageName: string): boolean {
+        return !this.versionCache.has(packageName);
+    }
+
+    getLatestVersion(packageName: string): string | null {
+        return this.versionCache.get(packageName) || null;
+    }
+
     handlePackageChanges(changes: PackageChange[]): void {
-        for (const change of changes) {
-            switch (change.type) {
-                case 'removed':
-                    this.removePackageInfo(change.packageName);
-                    this.removePackageVersion(change.packageName);
-                    break;
-
-                case 'version_changed':
-                    const packageInfo = this.getPackageInfo(change.packageName);
-                    if (packageInfo && packageInfo.latestVersion) {
-                        const hasUpdate = compareVersions(packageInfo.latestVersion, change.newVersion || '') > 0;
-                        this.updatePackageInfo(change.packageName, {
-                            currentVersion: change.newVersion,
-                            hasUpdate: hasUpdate,
-                        });
-                    } else {
-                        this.updatePackageInfo(change.packageName, {
-                            currentVersion: change.newVersion,
-                            hasUpdate: false,
-                        });
-                    }
-                    break;
-
-                case 'added':
-                    break;
-
-                case 'updated':
-                    break;
+        changes.forEach((change) => {
+            if (change.type === 'version_changed' && change.newVersion) {
+                this.setPackageVersion(change.packageName, change.newVersion);
             }
-        }
-    }
-
-    getCachedPackageNames(): string[] {
-        const now = Date.now();
-        const validPackages: string[] = [];
-
-        for (const [packageName, entry] of this.packageCache.entries()) {
-            if (now <= entry.expiry) {
-                validPackages.push(packageName);
-            } else {
-                this.packageCache.delete(packageName);
-            }
-        }
-
-        return validPackages;
-    }
-
-    getUncachedPackages(requestedPackages: string[]): string[] {
-        return requestedPackages.filter((packageName) => !this.getPackageInfo(packageName));
-    }
-
-    getUncachedVersions(requestedPackages: string[]): string[] {
-        return requestedPackages.filter((packageName) => !this.getPackageVersion(packageName));
-    }
-
-    getCacheStats(): { packageCount: number; versionCount: number; expiredCount: number } {
-        const now = Date.now();
-        let expiredCount = 0;
-
-        for (const [key, entry] of this.packageCache.entries()) {
-            if (now > entry.expiry) {
-                this.packageCache.delete(key);
-                expiredCount++;
-            }
-        }
-
-        for (const [key, entry] of this.versionCache.entries()) {
-            if (now > entry.expiry) {
-                this.versionCache.delete(key);
-                expiredCount++;
-            }
-        }
-
-        return {
-            packageCount: this.packageCache.size,
-            versionCount: this.versionCache.size,
-            expiredCount,
-        };
+        });
     }
 
     clearPackageCache(): void {
@@ -188,25 +113,15 @@ export class CacheManagerService {
     }
 
     clearAllCache(): void {
-        this.packageCache.clear();
-        this.versionCache.clear();
+        this.clearPackageCache();
+        this.clearVersionCache();
     }
 
-    needsVersionCheck(packageName: string): boolean {
-        const packageInfo = this.getPackageInfo(packageName);
-        if (!packageInfo) {
-            return false;
-        }
-
-        if (packageInfo.error) {
-            return false;
-        }
-
-        return !packageInfo.latestVersion || packageInfo.latestVersion === '';
-    }
-
-    getLatestVersion(packageName: string): string | null {
-        const packageInfo = this.getPackageInfo(packageName);
-        return packageInfo?.latestVersion || null;
+    getCacheStats() {
+        return {
+            packageCount: this.packageCache.size,
+            versionCount: this.versionCache.size,
+            expiredCount: 0,
+        };
     }
 }

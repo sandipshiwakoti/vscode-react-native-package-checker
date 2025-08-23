@@ -60,6 +60,17 @@ export const STATUS_SYMBOLS = {
     UPDATE: '$(arrow-up)',
     LATEST: '$(check)',
     UPGRADE_HELPER: '$(globe)',
+    DEPENDENCY_UPDATE: '$(tools)',
+} as const;
+
+export const DEPENDENCY_CHECK_CONFIG = {
+    RN_DIFF_BASE_URL: 'https://raw.githubusercontent.com/react-native-community/rn-diff-purge/diffs/diffs',
+    VERSION_FORMAT_REGEX: /^\d+\.\d+\.\d+$/,
+    REQUEST_TIMEOUT: 10000,
+    STATE_KEYS: {
+        ENABLED: 'dependencyCheckEnabled',
+        TARGET_VERSION: 'dependencyCheckTargetVersion',
+    },
 } as const;
 
 export const INTERNAL_PACKAGES = [

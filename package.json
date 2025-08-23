@@ -49,6 +49,13 @@
                     ],
                     "default": "info",
                     "description": "Set the logging level for the extension"
+                },
+                "reactNativePackageChecker.dependencyCheck.cacheDuration": {
+                    "type": "number",
+                    "default": 24,
+                    "minimum": 1,
+                    "maximum": 168,
+                    "description": "Cache duration for diff data in hours (1-168 hours)"
                 }
             }
         },
@@ -99,6 +106,24 @@
                 "command": "reactNativePackageChecker.openUpgradeHelper",
                 "title": "Open Upgrade Helper",
                 "category": "Package Checker"
+            },
+            {
+                "command": "reactNativePackageChecker.enableDependencyCheck",
+                "title": "Check dependencies version",
+                "category": "Package Checker",
+                "icon": {
+                    "light": "./assets/light/toggle-disabled.svg",
+                    "dark": "./assets/dark/toggle-disabled.svg"
+                }
+            },
+            {
+                "command": "reactNativePackageChecker.disableDependencyCheck",
+                "title": "Disable Dependency Check",
+                "category": "Package Checker",
+                "icon": {
+                    "light": "./assets/light/toggle-enabled.svg",
+                    "dark": "./assets/dark/toggle-enabled.svg"
+                }
             }
         ],
         "menus": {
@@ -130,6 +155,14 @@
                 },
                 {
                     "command": "reactNativePackageChecker.showPackageDetails",
+                    "when": "false"
+                },
+                {
+                    "command": "reactNativePackageChecker.enableDependencyCheck",
+                    "when": "false"
+                },
+                {
+                    "command": "reactNativePackageChecker.disableDependencyCheck",
                     "when": "false"
                 }
             ]

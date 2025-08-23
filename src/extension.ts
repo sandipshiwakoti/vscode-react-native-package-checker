@@ -1,10 +1,16 @@
 import * as vscode from 'vscode';
 
+import {
+    disableDependencyCheck,
+    enableDependencyCheck,
+    updateToExpectedVersion,
+} from './commands/dependencyCheckCommands';
 import { EXTENSION_CONFIG } from './constants/index';
 import { BrowserService } from './services/browserService';
 import { CacheManagerService } from './services/cacheManagerService';
 import { CodeLensProviderService } from './services/codeLensProviderService';
 import { DebouncedChangeService } from './services/debouncedChangeService';
+import { DependencyCheckService } from './services/dependencyCheckService';
 import { FileChangeService } from './services/fileChangeService';
 import { LoadingNotificationService } from './services/loadingNotificationService';
 import { LoggerService } from './services/loggerService';
@@ -18,20 +24,28 @@ import { PackageInfo } from './types';
 
 const documentContentCache = new Map<string, string>();
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     const logger = new LoggerService();
-    const cacheManager = new CacheManagerService();
+
+    const cacheManager = new CacheManagerService(logger);
+
     const npmRegistryService = new NpmRegistryService();
     const loadingNotificationService = new LoadingNotificationService();
     const packageService = new PackageService(npmRegistryService, loadingNotificationService, cacheManager, logger);
 
-    const codeLensProviderService = new CodeLensProviderService(packageService, context);
+    const dependencyCheckService = new DependencyCheckService(context, logger);
+    await dependencyCheckService.initialize();
+
+    const codeLensProviderService = new CodeLensProviderService(packageService, context, dependencyCheckService);
     const versionUpdateService = new VersionUpdateService(codeLensProviderService, packageService);
 
     const fileChangeService = new FileChangeService(logger);
-    const debouncedChangeService = new DebouncedChangeService(packageService, fileChangeService, logger, () =>
-        codeLensProviderService.refresh()
-    );
+    const debouncedChangeService = new DebouncedChangeService(packageService, fileChangeService, logger, () => {
+        codeLensProviderService.refresh();
+        if (dependencyCheckService.isEnabled()) {
+            dependencyCheckService.refresh();
+        }
+    });
 
     const browserService = new BrowserService();
     const packageDetailsService = new PackageDetailsService();
@@ -72,8 +86,22 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     versionUpdateService.register(context);
-
     codeLensProviderService.initialize();
+
+    const updateDependencyCheckContext = () => {
+        vscode.commands.executeCommand(
+            'setContext',
+            'reactNativePackageChecker.dependencyCheckEnabled',
+            dependencyCheckService.isEnabled()
+        );
+    };
+
+    updateDependencyCheckContext();
+
+    dependencyCheckService.onResultsChanged(() => {
+        updateDependencyCheckContext();
+        codeLensProviderService.refresh();
+    });
 
     const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
         if (event.document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
@@ -83,8 +111,11 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (oldContent !== newContent) {
                 documentContentCache.set(filePath, newContent);
-
                 debouncedChangeService.handleFileChange(event.document, oldContent);
+
+                if (dependencyCheckService.isEnabled()) {
+                    dependencyCheckService.refresh();
+                }
             }
         }
     });
@@ -157,6 +188,22 @@ export function activate(context: vscode.ExtensionContext) {
         logger.show();
     });
 
+    const enableDependencyCheckCommand = vscode.commands.registerCommand(
+        'reactNativePackageChecker.enableDependencyCheck',
+        () => enableDependencyCheck(dependencyCheckService, logger)
+    );
+
+    const disableDependencyCheckCommand = vscode.commands.registerCommand(
+        'reactNativePackageChecker.disableDependencyCheck',
+        () => disableDependencyCheck(dependencyCheckService, logger)
+    );
+
+    const updateToExpectedVersionCommand = vscode.commands.registerCommand(
+        'reactNativePackageChecker.updateToExpected',
+        (packageName: string, expectedVersion: string) =>
+            updateToExpectedVersion(packageName, expectedVersion, dependencyCheckService, logger)
+    );
+
     context.subscriptions.push(
         codeLensDisposable,
         enableCommand,
@@ -178,7 +225,11 @@ export function activate(context: vscode.ExtensionContext) {
         fileSystemWatcher,
         fileChangeListener,
         fileCreateListener,
-        fileDeleteListener
+        fileDeleteListener,
+        dependencyCheckService,
+        enableDependencyCheckCommand,
+        disableDependencyCheckCommand,
+        updateToExpectedVersionCommand
     );
 
     logger.info('React Native Package Checker activated');

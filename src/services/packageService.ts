@@ -234,7 +234,7 @@ export class PackageService {
             return;
         }
 
-        this.logger.logFileChange('package changes', changes);
+        this.logger.logFileChange(changes);
 
         const addedDependencies: string[] = [];
         const addedDevDependencies: string[] = [];

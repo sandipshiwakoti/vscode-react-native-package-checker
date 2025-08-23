@@ -118,7 +118,7 @@ export class LoggerService {
         }
     }
 
-    logFileChange(changeType: string, packageChanges: any[]): void {
+    logFileChange(packageChanges: any[]): void {
         const counts = packageChanges.reduce(
             (acc, c) => {
                 acc[c.type] = (acc[c.type] || 0) + 1;
