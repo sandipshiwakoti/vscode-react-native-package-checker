@@ -1,5 +1,6 @@
 import { API_BASE_URL, API_CONFIG } from '../constants';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, PackageResponse } from '../types';
+import { extractPackageNameFromVersionString, hasVersionUpdate } from '../utils/versionUtils';
 
 import { CacheManagerService, PackageChange } from './cacheManagerService';
 import { LoadingNotificationService } from './loadingNotificationService';
@@ -24,7 +25,7 @@ export class PackageService {
             return {};
         }
 
-        const packageNames = packageWithVersions.map((pkg) => this.extractPackageName(pkg));
+        const packageNames = packageWithVersions.map((pkg) => extractPackageNameFromVersionString(pkg));
 
         let fetchedPackagesCount = 0;
         let fetchedVersionsCount = 0;
@@ -128,7 +129,7 @@ export class PackageService {
     }
 
     private async handleVersionFetching(packageInfos: PackageInfoMap, packageWithVersions: string[]): Promise<number> {
-        const allPackageNames = packageWithVersions.map((pkg) => this.extractPackageName(pkg));
+        const allPackageNames = packageWithVersions.map((pkg) => extractPackageNameFromVersionString(pkg));
 
         const packageNames = allPackageNames;
 
@@ -217,21 +218,15 @@ export class PackageService {
         packageWithVersions: string[],
         packageName: string
     ): void {
-        const pkgWithVersion = packageWithVersions.find((pkg) => this.extractPackageName(pkg) === packageName);
+        const pkgWithVersion = packageWithVersions.find(
+            (pkg) => extractPackageNameFromVersionString(pkg) === packageName
+        );
 
         if (pkgWithVersion && packageInfo.latestVersion) {
             const currentVersion = this.extractVersion(pkgWithVersion);
             packageInfo.currentVersion = currentVersion;
-            packageInfo.hasUpdate = this.hasVersionUpdate(currentVersion, packageInfo.latestVersion);
+            packageInfo.hasUpdate = hasVersionUpdate(currentVersion, packageInfo.latestVersion);
         }
-    }
-
-    public extractPackageName(packageWithVersion: string): string {
-        const lastAtIndex = packageWithVersion.lastIndexOf('@');
-        if (lastAtIndex === -1 || lastAtIndex === 0) {
-            return packageWithVersion;
-        }
-        return packageWithVersion.substring(0, lastAtIndex);
     }
 
     public async handlePackageChanges(changes: PackageChange[], documentContent?: string): Promise<void> {
@@ -375,53 +370,6 @@ export class PackageService {
         }
     }
 
-    private async fetchSinglePackage(packageName: string): Promise<void> {
-        try {
-            const startTime = Date.now();
-            this.logger.info(`API package-info fetch ${packageName}`);
-            const packageData = await this.fetchPackageData([packageName]);
-            const packageInfo = packageData.packages[packageName];
-
-            if (packageInfo) {
-                this.cacheManager.setPackageInfo(packageName, packageInfo);
-                const duration = Date.now() - startTime;
-                this.logger.info(`API package-info obtained ${packageName} (${duration}ms)`);
-
-                if (!packageInfo.error) {
-                    try {
-                        const versionStartTime = Date.now();
-                        this.logger.info(`API npm registry fetch ${packageName}`);
-                        const latestVersions = await this.npmRegistryService.fetchLatestVersions([packageName]);
-                        const latestVersion = latestVersions[packageName];
-
-                        if (latestVersion) {
-                            this.cacheManager.setPackageVersion(packageName, latestVersion);
-                            const versionDuration = Date.now() - versionStartTime;
-                            this.logger.info(
-                                `API npm registry obtained ${packageName} v${latestVersion} (${versionDuration}ms)`
-                            );
-                        } else {
-                            this.logger.debug(`No version found for ${packageName}`);
-                        }
-                    } catch (versionError) {
-                        this.logger.debug(`Failed to fetch version for ${packageName}: ${versionError}`);
-                    }
-                } else {
-                    this.logger.debug(`Package ${packageName} has error, skipping version fetch`);
-                }
-            } else {
-                this.logger.debug(`No package info returned for ${packageName}`);
-            }
-        } catch (error: any) {
-            this.logger.debug(`Failed to fetch ${packageName}: ${error.message}`);
-            this.cacheManager.setPackageInfo(packageName, {
-                npmUrl: '',
-                error: `Failed to fetch: ${error.message}`,
-                newArchitecture: NewArchSupportStatus.Unlisted,
-            });
-        }
-    }
-
     public updatePackageVersionInCache(packageName: string, newVersion: string): void {
         const updated = this.cacheManager.updatePackageInfo(packageName, {
             currentVersion: newVersion,
@@ -439,7 +387,7 @@ export class PackageService {
     }
 
     public getCachedResultsByVersions(packageWithVersions: string[]): PackageInfoMap {
-        const packageNames = packageWithVersions.map((pkg) => this.extractPackageName(pkg));
+        const packageNames = packageWithVersions.map((pkg) => extractPackageNameFromVersionString(pkg));
         const results = this.cacheManager.getMultiplePackageInfos(packageNames);
         this.populateCurrentVersions(results, packageWithVersions);
         return results;
@@ -482,7 +430,7 @@ export class PackageService {
 
     private populateCurrentVersions(packageInfos: PackageInfoMap, packageWithVersions: string[]): void {
         packageWithVersions.forEach((pkgWithVersion) => {
-            const packageName = this.extractPackageName(pkgWithVersion);
+            const packageName = extractPackageNameFromVersionString(pkgWithVersion);
             const currentVersion = this.extractVersion(pkgWithVersion);
             const packageInfo = packageInfos[packageName];
 
@@ -490,7 +438,7 @@ export class PackageService {
                 packageInfo.currentVersion = currentVersion;
 
                 if (packageInfo.latestVersion) {
-                    packageInfo.hasUpdate = this.hasVersionUpdate(currentVersion, packageInfo.latestVersion);
+                    packageInfo.hasUpdate = hasVersionUpdate(currentVersion, packageInfo.latestVersion);
                 }
 
                 if (!packageInfo.newArchitecture) {
@@ -503,33 +451,6 @@ export class PackageService {
     private extractVersion(packageWithVersion: string): string {
         const parts = packageWithVersion.split('@');
         return parts[parts.length - 1] || '';
-    }
-
-    private hasVersionUpdate(currentVersion: string, latestVersion: string): boolean {
-        if (!currentVersion || !latestVersion) {
-            return false;
-        }
-        const cleanCurrent = currentVersion.replace(/^[\^~]/, '');
-        const cleanLatest = latestVersion.replace(/^[\^~]/, '');
-        return this.compareVersions(cleanLatest, cleanCurrent) > 0;
-    }
-
-    private compareVersions(version1: string, version2: string): number {
-        const v1Parts = version1.split('.').map(Number);
-        const v2Parts = version2.split('.').map(Number);
-        const maxLength = Math.max(v1Parts.length, v2Parts.length);
-
-        for (let i = 0; i < maxLength; i++) {
-            const v1Part = v1Parts[i] || 0;
-            const v2Part = v2Parts[i] || 0;
-            if (v1Part > v2Part) {
-                return 1;
-            }
-            if (v1Part < v2Part) {
-                return -1;
-            }
-        }
-        return 0;
     }
 
     private isDependencyNotDev(packageName: string, documentContent: string): boolean {

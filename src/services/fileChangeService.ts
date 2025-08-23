@@ -1,3 +1,5 @@
+import { extractAllPackages } from '../utils/packageUtils';
+
 import { PackageChange } from './cacheManagerService';
 import { LoggerService } from './loggerService';
 
@@ -8,7 +10,7 @@ export interface PackageJsonDiff {
     versionChanged: Record<string, { from: string; to: string }>;
 }
 
-export class FileChangeAnalyzer {
+export class FileChangeService {
     constructor(private logger: LoggerService) {}
 
     analyzePackageJsonChanges(oldContent: string, newContent: string): PackageChange[] {
@@ -18,8 +20,8 @@ export class FileChangeAnalyzer {
                 return [];
             }
 
-            const oldPackages = this.extractPackages(oldContent);
-            const newPackages = this.extractPackages(newContent);
+            const oldPackages = extractAllPackages(oldContent);
+            const newPackages = extractAllPackages(newContent);
 
             const diff = this.calculateDiff(oldPackages, newPackages);
             const changes = this.convertDiffToChanges(diff);
@@ -60,18 +62,6 @@ export class FileChangeAnalyzer {
         } catch {
             this.logger.debug('Could not parse package.json content, assuming changes exist');
             return true;
-        }
-    }
-
-    private extractPackages(content: string): Record<string, string> {
-        try {
-            const packageJson = JSON.parse(content);
-            const dependencies = packageJson.dependencies || {};
-            const devDependencies = packageJson.devDependencies || {};
-
-            return { ...dependencies, ...devDependencies };
-        } catch {
-            return {};
         }
     }
 

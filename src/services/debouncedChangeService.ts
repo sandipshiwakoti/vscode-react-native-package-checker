@@ -1,23 +1,25 @@
 import * as vscode from 'vscode';
 
-import { FileChangeAnalyzer } from './fileChangeAnalyzer';
+import { FileExtensions } from '../types';
+
+import { FileChangeService } from './fileChangeService';
 import { LoggerService } from './loggerService';
 import { PackageService } from './packageService';
 
-export class DebouncedChangeHandler {
+export class DebouncedChangeService {
     private debounceTimer: NodeJS.Timeout | null = null;
     private pendingChanges = new Map<string, { oldContent: string; newContent: string }>();
     private readonly debounceDelay = 500;
 
     constructor(
         private packageService: PackageService,
-        private fileChangeAnalyzer: FileChangeAnalyzer,
+        private fileChangeService: FileChangeService,
         private logger: LoggerService,
         private onRefreshNeeded: () => void
     ) {}
 
     handleFileChange(document: vscode.TextDocument, oldContent?: string): void {
-        if (!document.fileName.endsWith('package.json')) {
+        if (!document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             return;
         }
 
@@ -41,11 +43,11 @@ export class DebouncedChangeHandler {
     }
 
     handleFileSystemChange(uri: vscode.Uri): void {
-        if (!uri.fsPath.endsWith('package.json')) {
+        if (!uri.fsPath.endsWith(FileExtensions.PACKAGE_JSON)) {
             return;
         }
 
-        const fileName = uri.fsPath.split('/').pop() || 'package.json';
+        const fileName = uri.fsPath.split('/').pop() || FileExtensions.PACKAGE_JSON;
 
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
@@ -59,7 +61,7 @@ export class DebouncedChangeHandler {
                 const oldContent = this.pendingChanges.get(uri.fsPath)?.oldContent || '';
 
                 if (oldContent && newContent !== oldContent) {
-                    const changes = this.fileChangeAnalyzer.analyzePackageJsonChanges(oldContent, newContent);
+                    const changes = this.fileChangeService.analyzePackageJsonChanges(oldContent, newContent);
 
                     if (changes.length > 0) {
                         await this.packageService.handlePackageChanges(changes, newContent);
@@ -90,7 +92,7 @@ export class DebouncedChangeHandler {
 
         for (const [filePath, { oldContent, newContent }] of this.pendingChanges.entries()) {
             if (oldContent && newContent !== oldContent) {
-                const changes = this.fileChangeAnalyzer.analyzePackageJsonChanges(oldContent, newContent);
+                const changes = this.fileChangeService.analyzePackageJsonChanges(oldContent, newContent);
 
                 if (changes.length > 0) {
                     hasSignificantChanges = true;

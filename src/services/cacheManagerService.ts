@@ -1,5 +1,6 @@
 import { EXTENSION_CONFIG, NPM_REGISTRY_CONFIG } from '../constants';
 import { PackageInfo, PackageInfoMap } from '../types';
+import { compareVersions } from '../utils/versionUtils';
 
 export interface CacheEntry<T> {
     data: T;
@@ -108,7 +109,7 @@ export class CacheManagerService {
                 case 'version_changed':
                     const packageInfo = this.getPackageInfo(change.packageName);
                     if (packageInfo && packageInfo.latestVersion) {
-                        const hasUpdate = this.compareVersions(packageInfo.latestVersion, change.newVersion || '') > 0;
+                        const hasUpdate = compareVersions(packageInfo.latestVersion, change.newVersion || '') > 0;
                         this.updatePackageInfo(change.packageName, {
                             currentVersion: change.newVersion,
                             hasUpdate: hasUpdate,
@@ -202,27 +203,6 @@ export class CacheManagerService {
         }
 
         return !packageInfo.latestVersion;
-    }
-
-    private compareVersions(version1: string, version2: string): number {
-        const cleanVersion1 = version1.replace(/^[\^~]/, '');
-        const cleanVersion2 = version2.replace(/^[\^~]/, '');
-
-        const v1Parts = cleanVersion1.split('.').map(Number);
-        const v2Parts = cleanVersion2.split('.').map(Number);
-        const maxLength = Math.max(v1Parts.length, v2Parts.length);
-
-        for (let i = 0; i < maxLength; i++) {
-            const v1Part = v1Parts[i] || 0;
-            const v2Part = v2Parts[i] || 0;
-            if (v1Part > v2Part) {
-                return 1;
-            }
-            if (v1Part < v2Part) {
-                return -1;
-            }
-        }
-        return 0;
     }
 
     getLatestVersion(packageName: string): string | null {

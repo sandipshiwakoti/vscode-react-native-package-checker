@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 
-import { EXTENSION_CONFIG, EXTERNAL_URLS } from '../constants';
-import { extractPackagesFromPackageJson, getCheckUrl } from '../utils/checkerUtils';
+import { EXTERNAL_URLS } from '../constants';
+import { FileExtensions } from '../types';
+import { getCheckUrl } from '../utils/checkerUtils';
+import { extractPackagesFromPackageJson } from '../utils/packageUtils';
 
 export class BrowserService {
     openPackageChecker(): void {
         const editor = vscode.window.activeTextEditor;
-        if (!editor || !editor.document.fileName.endsWith(EXTENSION_CONFIG.PACKAGE_JSON_FILENAME)) {
+        if (!editor || !editor.document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             vscode.window.showErrorMessage('Please open a package.json file first');
             return;
         }

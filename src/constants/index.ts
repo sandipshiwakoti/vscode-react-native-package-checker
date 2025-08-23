@@ -12,13 +12,11 @@ export const EXTENSION_CONFIG = {
     CACHE_TIMEOUT: 5 * 60 * 1000,
     PACKAGE_JSON_PATTERN: '**/package.json',
     DEFAULT_CODE_LENS_ENABLED: true,
-    PACKAGE_JSON_FILENAME: 'package.json',
     CODE_LENS_STATE_KEY: 'enableCodeLens',
     CODE_LENS_CONTEXT_KEY: 'reactNativePackageChecker.enabled',
     LANGUAGE_JSON: 'json',
     VERSION_CLEAN_REGEX: /[\^~]/,
     PACKAGE_LINE_REGEX: /"([^"]+)"\s*:\s*"[^"]+"/,
-    DEPENDENCIES_KEY: 'dependencies',
     LINE_SEPARATOR: '\n',
     TOOLTIP_SEPARATOR: '\n\n',
     CONFIGURATION_SECTION: 'reactNativePackageChecker',
@@ -53,13 +51,6 @@ export const UI_CONFIG = {
     LOGO_PATH: 'assets/logo.svg',
 } as const;
 
-export const ICONS = {
-    SUPPORTED: 'check',
-    UNSUPPORTED: 'x',
-    UNTESTED: 'warning',
-    UNLISTED: 'question',
-} as const;
-
 export const STATUS_SYMBOLS = {
     SUPPORTED: '$(check)',
     UNSUPPORTED: '$(close)',
@@ -70,42 +61,6 @@ export const STATUS_SYMBOLS = {
     LATEST: '$(check)',
     UPGRADE_HELPER: '$(globe)',
 } as const;
-
-export enum COMMANDS {
-    ENABLE_CODE_LENS = 'reactNativePackageChecker.enableCodeLens',
-    DISABLE_CODE_LENS = 'reactNativePackageChecker.disableCodeLens',
-    SHOW_PACKAGE_DETAILS = 'reactNativePackageChecker.showPackageDetails',
-    OPEN_PACKAGE_CHECKER_WEBSITE = 'reactNativePackageChecker.openPackageCheckerWebsite',
-    REFRESH_PACKAGES = 'reactNativePackageChecker.refreshPackages',
-    UPDATE_PACKAGE_VERSION = 'reactNativePackageChecker.updatePackageVersion',
-    OPEN_UPGRADE_HELPER = 'reactNativePackageChecker.openUpgradeHelper',
-    SHOW_LOGS = 'reactNativePackageChecker.showLogs',
-}
-
-export const NEW_ARCH_ISSUE_QUERY =
-    'is:issue is:open "new arch" OR "new architecture" OR "fabric" OR "turbomodule" OR "JSI" OR "codegen"';
-
-export const NEW_ARCH_PR_QUERY =
-    'is:pr is:open "new arch" OR "new architecture" OR "fabric" OR "turbomodule" OR "JSI" OR "codegen"';
-
-export const NEW_ARCH_MERGED_PR_QUERY =
-    'is:pr is:merged "new arch" OR "new architecture" OR "fabric" OR "turbomodule" OR "JSI" OR "codegen"';
-
-export const NEW_ARCH_RELEASE_NOTES_QUERY = 'new+arch';
-
-export const MAINTENANCE_ISSUE_QUERY =
-    'is:issue is:open "unmaintained" OR "deprecated" OR "abandoned" OR "maintainer" OR "maintenance" OR "not maintained"';
-
-export const MAINTENANCE_PR_QUERY = 'is:pr is:open sort:updated-asc';
-
-export enum GITHUB_PATHS {
-    ISSUES = 'issues',
-    PULLS = 'pulls',
-    FORKS = 'forks',
-    CONTRIBUTORS_ACTIVITY = 'graphs/contributors',
-    RELEASES = 'releases',
-    README = 'blob/master/README.md',
-}
 
 export const INTERNAL_PACKAGES = [
     // Core React packages (maintained by Meta)
@@ -150,24 +105,3 @@ export const INTERNAL_PACKAGES = [
     '@react-native/normalize-colors',
     '@react-native/polyfills',
 ];
-
-export enum STATUS_LABELS {
-    SUPPORTED = 'New Arch Supported',
-    UNSUPPORTED = 'New Arch Unsupported',
-    UNTESTED = 'New Arch Untested',
-    UNLISTED = 'Unlisted',
-}
-
-export enum STATUS_DESCRIPTIONS {
-    SUPPORTED = 'This package fully supports the New Architecture',
-    UNSUPPORTED = 'This package does not support the New Architecture',
-    UNTESTED = 'This package has not been tested with the New Architecture',
-    UNLISTED = 'This package is not found in the official React Native directory',
-}
-
-export enum STATUS_CLASSES {
-    SUPPORTED = 'status-supported',
-    UNSUPPORTED = 'status-unsupported',
-    UNTESTED = 'status-untested',
-    UNLISTED = 'status-unlisted',
-}

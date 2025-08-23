@@ -1,22 +1,10 @@
 import * as vscode from 'vscode';
 
-export enum LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARN = 2,
-    ERROR = 3,
-}
-
-export interface LogEntry {
-    timestamp: Date;
-    level: LogLevel;
-    message: string;
-    data?: any;
-}
+import { LOG_LEVEL } from '../types';
 
 export class LoggerService {
     private outputChannel: vscode.OutputChannel;
-    private logLevel: LogLevel = LogLevel.INFO;
+    private logLevel: LOG_LEVEL = LOG_LEVEL.INFO;
     private isEnabled: boolean = true;
 
     constructor() {
@@ -31,28 +19,28 @@ export class LoggerService {
         this.logLevel = this.parseLogLevel(logLevelStr);
     }
 
-    private parseLogLevel(level: string): LogLevel {
+    private parseLogLevel(level: string): LOG_LEVEL {
         switch (level.toLowerCase()) {
             case 'debug':
-                return LogLevel.DEBUG;
+                return LOG_LEVEL.DEBUG;
             case 'info':
-                return LogLevel.INFO;
+                return LOG_LEVEL.INFO;
             case 'warn':
-                return LogLevel.WARN;
+                return LOG_LEVEL.WARN;
             case 'error':
-                return LogLevel.ERROR;
+                return LOG_LEVEL.ERROR;
             default:
-                return LogLevel.INFO;
+                return LOG_LEVEL.INFO;
         }
     }
 
-    private shouldLog(level: LogLevel): boolean {
+    private shouldLog(level: LOG_LEVEL): boolean {
         return this.isEnabled && level >= this.logLevel;
     }
 
-    private formatMessage(level: LogLevel, message: string, data?: any): string {
+    private formatMessage(level: LOG_LEVEL, message: string, data?: any): string {
         const timestamp = new Date().toISOString();
-        const levelStr = LogLevel[level].padEnd(5);
+        const levelStr = LOG_LEVEL[level].padEnd(5);
         let formatted = `[${timestamp}] ${levelStr} ${message}`;
 
         if (data) {
@@ -63,29 +51,29 @@ export class LoggerService {
     }
 
     debug(message: string, data?: any): void {
-        if (this.shouldLog(LogLevel.DEBUG)) {
-            const formatted = this.formatMessage(LogLevel.DEBUG, message, data);
+        if (this.shouldLog(LOG_LEVEL.DEBUG)) {
+            const formatted = this.formatMessage(LOG_LEVEL.DEBUG, message, data);
             this.outputChannel.appendLine(formatted);
         }
     }
 
     info(message: string, data?: any): void {
-        if (this.shouldLog(LogLevel.INFO)) {
-            const formatted = this.formatMessage(LogLevel.INFO, message, data);
+        if (this.shouldLog(LOG_LEVEL.INFO)) {
+            const formatted = this.formatMessage(LOG_LEVEL.INFO, message, data);
             this.outputChannel.appendLine(formatted);
         }
     }
 
     warn(message: string, data?: any): void {
-        if (this.shouldLog(LogLevel.WARN)) {
-            const formatted = this.formatMessage(LogLevel.WARN, message, data);
+        if (this.shouldLog(LOG_LEVEL.WARN)) {
+            const formatted = this.formatMessage(LOG_LEVEL.WARN, message, data);
             this.outputChannel.appendLine(formatted);
         }
     }
 
     error(message: string, data?: any): void {
-        if (this.shouldLog(LogLevel.ERROR)) {
-            const formatted = this.formatMessage(LogLevel.ERROR, message, data);
+        if (this.shouldLog(LOG_LEVEL.ERROR)) {
+            const formatted = this.formatMessage(LOG_LEVEL.ERROR, message, data);
             this.outputChannel.appendLine(formatted);
         }
     }

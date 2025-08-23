@@ -1,24 +1,19 @@
 import * as vscode from 'vscode';
 
-import { disableCodeLens, enableCodeLens, initializeCodeLens } from './commands/codeLensCommand';
-import { openPackageCheckerWebsite } from './commands/openPackageCheckerWebsiteCommand';
-import { openUpgradeHelper } from './commands/openUpgradeHelper';
-import { refreshPackages } from './commands/refreshPackagesCommand';
-import { showPackageDetails } from './commands/showPackageDetailsCommand';
-import { COMMANDS, EXTENSION_CONFIG } from './constants/index';
+import { EXTENSION_CONFIG } from './constants/index';
 import { BrowserService } from './services/browserService';
 import { CacheManagerService } from './services/cacheManagerService';
 import { CodeLensProviderService } from './services/codeLensProviderService';
-import { CodeLensService } from './services/codeLensService';
-import { DebouncedChangeHandler } from './services/debouncedChangeHandler';
-import { FileChangeAnalyzer } from './services/fileChangeAnalyzer';
+import { DebouncedChangeService } from './services/debouncedChangeService';
+import { FileChangeService } from './services/fileChangeService';
 import { LoadingNotificationService } from './services/loadingNotificationService';
 import { LoggerService } from './services/loggerService';
 import { NpmRegistryService } from './services/npmRegistryService';
 import { PackageDetailsService } from './services/packageDetailsService';
 import { PackageService } from './services/packageService';
-import { VersionUpdateCommandHandler } from './services/versionUpdateCommandHandler';
 import { VersionUpdateService } from './services/versionUpdateService';
+import { openPackageCheckerWebsite, openUpgradeHelper, refreshPackages, showPackageDetails } from './commands';
+import { COMMANDS, FileExtensions } from './types';
 import { PackageInfo } from './types';
 
 const documentContentCache = new Map<string, string>();
@@ -28,22 +23,14 @@ export function activate(context: vscode.ExtensionContext) {
     const cacheManager = new CacheManagerService();
     const npmRegistryService = new NpmRegistryService();
     const loadingNotificationService = new LoadingNotificationService();
-    const versionUpdateService = new VersionUpdateService();
-
     const packageService = new PackageService(npmRegistryService, loadingNotificationService, cacheManager, logger);
 
     const codeLensProviderService = new CodeLensProviderService(packageService, context);
-    const codeLensService = new CodeLensService(codeLensProviderService, context);
+    const versionUpdateService = new VersionUpdateService(codeLensProviderService, packageService);
 
-    const fileChangeAnalyzer = new FileChangeAnalyzer(logger);
-    const debouncedChangeHandler = new DebouncedChangeHandler(packageService, fileChangeAnalyzer, logger, () =>
+    const fileChangeService = new FileChangeService(logger);
+    const debouncedChangeService = new DebouncedChangeService(packageService, fileChangeService, logger, () =>
         codeLensProviderService.refresh()
-    );
-
-    const versionUpdateCommandHandler = new VersionUpdateCommandHandler(
-        versionUpdateService,
-        codeLensProviderService,
-        packageService
     );
 
     const browserService = new BrowserService();
@@ -55,11 +42,11 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const enableCommand = vscode.commands.registerCommand(COMMANDS.ENABLE_CODE_LENS, () =>
-        enableCodeLens(codeLensService)
+        codeLensProviderService.enable()
     );
 
     const disableCommand = vscode.commands.registerCommand(COMMANDS.DISABLE_CODE_LENS, () =>
-        disableCodeLens(codeLensService)
+        codeLensProviderService.disable()
     );
 
     const detailsCommand = vscode.commands.registerCommand(
@@ -73,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH_PACKAGES, () =>
-        refreshPackages(codeLensProviderService, packageService)
+        refreshPackages(codeLensProviderService)
     );
 
     const openUpgradeHelperCommand = vscode.commands.registerCommand(
@@ -81,12 +68,12 @@ export function activate(context: vscode.ExtensionContext) {
         (fromRNVersion: string, toRnVersion?: string) => openUpgradeHelper(browserService, fromRNVersion, toRnVersion)
     );
 
-    versionUpdateCommandHandler.register(context);
+    versionUpdateService.register(context);
 
-    initializeCodeLens(codeLensService);
+    codeLensProviderService.initialize();
 
     const documentChangeListener = vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
-        if (event.document.fileName.endsWith('package.json')) {
+        if (event.document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             const filePath = event.document.fileName;
             const oldContent = documentContentCache.get(filePath) || '';
             const newContent = event.document.getText();
@@ -94,31 +81,31 @@ export function activate(context: vscode.ExtensionContext) {
             if (oldContent !== newContent) {
                 documentContentCache.set(filePath, newContent);
 
-                debouncedChangeHandler.handleFileChange(event.document, oldContent);
+                debouncedChangeService.handleFileChange(event.document, oldContent);
             }
         }
     });
 
     const documentOpenListener = vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
-        if (document.fileName.endsWith('package.json')) {
+        if (document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             documentContentCache.set(document.fileName, document.getText());
         }
     });
 
     const documentCloseListener = vscode.workspace.onDidCloseTextDocument((document: vscode.TextDocument) => {
-        if (document.fileName.endsWith('package.json')) {
+        if (document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             documentContentCache.delete(document.fileName);
         }
     });
 
     const documentSaveListener = vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
-        if (document.fileName.endsWith('package.json')) {
+        if (document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             const filePath = document.fileName;
             const oldContent = documentContentCache.get(filePath) || '';
             const currentContent = document.getText();
 
             if (oldContent !== currentContent) {
-                const changes = fileChangeAnalyzer.analyzePackageJsonChanges(oldContent, currentContent);
+                const changes = fileChangeService.analyzePackageJsonChanges(oldContent, currentContent);
 
                 if (changes.length > 0) {
                     await packageService.handlePackageChanges(changes, currentContent);
@@ -133,15 +120,15 @@ export function activate(context: vscode.ExtensionContext) {
     const fileSystemWatcher = vscode.workspace.createFileSystemWatcher('**/package.json');
 
     const fileChangeListener = fileSystemWatcher.onDidChange((uri: vscode.Uri) => {
-        debouncedChangeHandler.handleFileSystemChange(uri);
+        debouncedChangeService.handleFileSystemChange(uri);
     });
 
     const fileCreateListener = fileSystemWatcher.onDidCreate((uri: vscode.Uri) => {
-        debouncedChangeHandler.handleFileSystemChange(uri);
+        debouncedChangeService.handleFileSystemChange(uri);
     });
 
     const fileDeleteListener = fileSystemWatcher.onDidDelete((uri: vscode.Uri) => {
-        if (uri.fsPath.endsWith('package.json')) {
+        if (uri.fsPath.endsWith(FileExtensions.PACKAGE_JSON)) {
             logger.info(`Package.json deleted: ${uri.fsPath}`);
             documentContentCache.delete(uri.fsPath);
             packageService.clearCache();
@@ -150,7 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     vscode.workspace.textDocuments.forEach((document) => {
-        if (document.fileName.endsWith('package.json')) {
+        if (document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             documentContentCache.set(document.fileName, document.getText());
         }
     });
@@ -180,7 +167,7 @@ export function activate(context: vscode.ExtensionContext) {
         codeLensProviderService,
         loadingNotificationService,
         logger,
-        debouncedChangeHandler,
+        debouncedChangeService,
         documentChangeListener,
         documentOpenListener,
         documentCloseListener,

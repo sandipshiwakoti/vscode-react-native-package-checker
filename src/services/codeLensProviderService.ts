@@ -1,14 +1,10 @@
 import * as vscode from 'vscode';
 
-import {
-    COMMANDS,
-    EXTENSION_CONFIG,
-    INTERNAL_PACKAGES,
-    STATUS_DESCRIPTIONS,
-    STATUS_LABELS,
-    STATUS_SYMBOLS,
-} from '../constants';
+import { EXTENSION_CONFIG, INTERNAL_PACKAGES, STATUS_SYMBOLS } from '../constants';
+import { COMMANDS, FileExtensions, STATUS_DESCRIPTIONS, STATUS_LABELS } from '../types';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
+import { extractPackageNames, isDevDependency } from '../utils/packageUtils';
+import { extractPackageNameFromVersionString, extractVersionFromLine, hasVersionUpdate } from '../utils/versionUtils';
 
 import { PackageService } from './packageService';
 
@@ -29,7 +25,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED
         );
 
-        if (!isEnabled || !document.fileName.endsWith(EXTENSION_CONFIG.PACKAGE_JSON_FILENAME)) {
+        if (!isEnabled || !document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             return [];
         }
 
@@ -37,7 +33,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             .getConfiguration(EXTENSION_CONFIG.CONFIGURATION_SECTION)
             .get(EXTENSION_CONFIG.SHOW_LATEST_VERSION_KEY, EXTENSION_CONFIG.DEFAULT_SHOW_LATEST_VERSION);
 
-        const packageWithVersions = this.extractPackageNames(document.getText());
+        const packageWithVersions = extractPackageNames(document.getText());
         if (packageWithVersions.length === 0) {
             return [];
         }
@@ -50,7 +46,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
         try {
             const hadCachedData = packageWithVersions.some((pkg) => {
-                const packageName = this.extractPackageNameFromVersionString(pkg);
+                const packageName = extractPackageNameFromVersionString(pkg);
                 return this.packageService.getCachedVersion(packageName) !== null;
             });
 
@@ -62,7 +58,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             );
 
             const hasNewData = packageWithVersions.some((pkg) => {
-                const packageName = this.extractPackageNameFromVersionString(pkg);
+                const packageName = extractPackageNameFromVersionString(pkg);
                 return (
                     packageInfos[packageName]?.latestVersion &&
                     this.packageService.getCachedVersion(packageName) !== null
@@ -110,35 +106,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }
     }
 
-    private extractPackageNames(content: string): string[] {
-        try {
-            const packageJson = JSON.parse(content);
-            const dependencies = packageJson[EXTENSION_CONFIG.DEPENDENCIES_KEY] || {};
-            const devDependencies = packageJson['devDependencies'] || {};
-
-            const allDependencies = { ...dependencies, ...devDependencies };
-
-            return Object.entries(allDependencies).map(([name, version]) => {
-                const cleanVersion = (version as string).replace(EXTENSION_CONFIG.VERSION_CLEAN_REGEX, '');
-                return `${name}@${cleanVersion}`;
-            });
-        } catch {
-            return [];
-        }
-    }
-
-    private isDevDependency(content: string, packageName: string): boolean {
-        try {
-            const packageJson = JSON.parse(content);
-            const dependencies = packageJson[EXTENSION_CONFIG.DEPENDENCIES_KEY] || {};
-            const devDependencies = packageJson['devDependencies'] || {};
-
-            return devDependencies[packageName] !== undefined && dependencies[packageName] === undefined;
-        } catch {
-            return false;
-        }
-    }
-
     private createCodeLenses(
         document: vscode.TextDocument,
         packageInfos: PackageInfoMap,
@@ -158,7 +125,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
                 if (packageInfo) {
                     const range = new vscode.Range(i, 0, i, line.length);
-                    const isDevDep = this.isDevDependency(documentContent, packageName);
+                    const isDevDep = isDevDependency(documentContent, packageName);
 
                     if (!isDevDep) {
                         const newArchCodeLens = this.createNewArchCodeLens(range, packageName, packageInfo);
@@ -193,12 +160,12 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                     const cachedVersion = this.packageService.getCachedVersion(packageName);
                     if (cachedVersion) {
                         const range = new vscode.Range(i, 0, i, line.length);
-                        const currentVersion = this.extractVersionFromLine(line);
+                        const currentVersion = extractVersionFromLine(line);
                         const mockPackageInfo: PackageInfo = {
                             npmUrl: '',
                             latestVersion: cachedVersion,
                             currentVersion: currentVersion,
-                            hasUpdate: this.hasVersionUpdate(currentVersion, cachedVersion),
+                            hasUpdate: hasVersionUpdate(currentVersion, cachedVersion),
                             newArchitecture: NewArchSupportStatus.Unlisted,
                         };
                         const versionCodeLens = this.createVersionCodeLens(range, packageName, mockPackageInfo);
@@ -337,44 +304,39 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }, 50);
     }
 
-    private extractVersionFromLine(line: string): string {
-        const versionMatch = line.match(/"([^"]+)"/);
-        return versionMatch ? versionMatch[1].replace(/^[\^~]/, '') : '';
+    async refreshPackages(): Promise<void> {
+        try {
+            this.packageService.clearCache();
+            this.refresh();
+            vscode.window.showInformationMessage('Package data refreshed successfully');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to refresh package data: ${errorMessage}`);
+        }
     }
 
-    private extractPackageNameFromVersionString(packageWithVersion: string): string {
-        const lastAtIndex = packageWithVersion.lastIndexOf('@');
-        if (lastAtIndex === -1 || lastAtIndex === 0) {
-            return packageWithVersion;
-        }
-        return packageWithVersion.substring(0, lastAtIndex);
+    async enable(): Promise<void> {
+        await this.updateState(true);
+        vscode.window.showInformationMessage('React Native Package Checker enabled');
     }
 
-    private hasVersionUpdate(currentVersion: string, latestVersion: string): boolean {
-        if (!currentVersion || !latestVersion) {
-            return false;
-        }
-        const cleanCurrent = currentVersion.replace(/^[\^~]/, '');
-        const cleanLatest = latestVersion.replace(/^[\^~]/, '');
-        return this.compareVersions(cleanLatest, cleanCurrent) > 0;
+    async disable(): Promise<void> {
+        await this.updateState(false);
+        vscode.window.showInformationMessage('React Native Package Checker disabled');
     }
 
-    private compareVersions(version1: string, version2: string): number {
-        const v1Parts = version1.split('.').map(Number);
-        const v2Parts = version2.split('.').map(Number);
-        const maxLength = Math.max(v1Parts.length, v2Parts.length);
+    initialize(): void {
+        const isEnabled = this.context.globalState.get(
+            EXTENSION_CONFIG.CODE_LENS_STATE_KEY,
+            EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED
+        );
+        vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, isEnabled);
+    }
 
-        for (let i = 0; i < maxLength; i++) {
-            const v1Part = v1Parts[i] || 0;
-            const v2Part = v2Parts[i] || 0;
-            if (v1Part > v2Part) {
-                return 1;
-            }
-            if (v1Part < v2Part) {
-                return -1;
-            }
-        }
-        return 0;
+    private async updateState(enabled: boolean): Promise<void> {
+        await this.context.globalState.update(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, enabled);
+        await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, enabled);
+        this.refresh();
     }
 
     dispose() {

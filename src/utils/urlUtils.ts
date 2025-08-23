@@ -1,16 +1,6 @@
-import {
-    EXTERNAL_URLS,
-    GITHUB_PATHS,
-    MAINTENANCE_ISSUE_QUERY,
-    MAINTENANCE_PR_QUERY,
-    NEW_ARCH_ISSUE_QUERY,
-    NEW_ARCH_MERGED_PR_QUERY,
-    NEW_ARCH_PR_QUERY,
-    NEW_ARCH_RELEASE_NOTES_QUERY,
-    REGEX_PATTERNS,
-    STATUS_CLASSES,
-} from '../constants';
-import { NewArchSupportStatus } from '../types';
+import { EXTERNAL_URLS, REGEX_PATTERNS } from '../constants';
+import { GITHUB_QUERIES } from '../constants/queries';
+import { GITHUB_PATHS, NewArchSupportStatus, STATUS_CLASSES } from '../types';
 
 const createGithubUrl = (repoUrl: string, path: GITHUB_PATHS | string, query?: string) => {
     const baseUrl = `${repoUrl}/${path}`;
@@ -18,24 +8,24 @@ const createGithubUrl = (repoUrl: string, path: GITHUB_PATHS | string, query?: s
 };
 
 export const getNewArchIssueSearchUrl = (repoUrl: string) =>
-    createGithubUrl(repoUrl, GITHUB_PATHS.ISSUES, NEW_ARCH_ISSUE_QUERY);
+    createGithubUrl(repoUrl, GITHUB_PATHS.ISSUES, GITHUB_QUERIES.NEW_ARCH_ISSUE);
 
 export const getNewArchPRSearchUrl = (repoUrl: string) =>
-    createGithubUrl(repoUrl, GITHUB_PATHS.PULLS, NEW_ARCH_PR_QUERY);
+    createGithubUrl(repoUrl, GITHUB_PATHS.PULLS, GITHUB_QUERIES.NEW_ARCH_PR);
 
 export const getNewArchMergedPRSearchUrl = (repoUrl: string) =>
-    createGithubUrl(repoUrl, GITHUB_PATHS.PULLS, NEW_ARCH_MERGED_PR_QUERY);
+    createGithubUrl(repoUrl, GITHUB_PATHS.PULLS, GITHUB_QUERIES.NEW_ARCH_MERGED_PR);
 
 export const getNewArchReleaseNotesUrl = (repoUrl: string) =>
-    createGithubUrl(repoUrl, GITHUB_PATHS.RELEASES, NEW_ARCH_RELEASE_NOTES_QUERY);
+    createGithubUrl(repoUrl, GITHUB_PATHS.RELEASES, GITHUB_QUERIES.NEW_ARCH_RELEASE_NOTES);
 
 export const getReadmeUrl = (repoUrl: string) => createGithubUrl(repoUrl, GITHUB_PATHS.README);
 
 export const getMaintenanceIssuesUrl = (repoUrl: string) =>
-    createGithubUrl(repoUrl, GITHUB_PATHS.ISSUES, MAINTENANCE_ISSUE_QUERY);
+    createGithubUrl(repoUrl, GITHUB_PATHS.ISSUES, GITHUB_QUERIES.MAINTENANCE_ISSUE);
 
 export const getMaintenancePRSearchUrl = (repoUrl: string) =>
-    createGithubUrl(repoUrl, GITHUB_PATHS.PULLS, MAINTENANCE_PR_QUERY);
+    createGithubUrl(repoUrl, GITHUB_PATHS.PULLS, GITHUB_QUERIES.MAINTENANCE_PR);
 
 export const getContributorsActivityUrl = (repoUrl: string) =>
     createGithubUrl(repoUrl, GITHUB_PATHS.CONTRIBUTORS_ACTIVITY);

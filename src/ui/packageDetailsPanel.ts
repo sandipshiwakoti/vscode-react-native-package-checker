@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-import { INTERNAL_PACKAGES, STATUS_LABELS, UI_CONFIG } from '../constants';
+import { INTERNAL_PACKAGES, UI_CONFIG } from '../constants';
+import { STATUS_LABELS } from '../types';
 import { NewArchSupportStatus, PackageInfo } from '../types';
 import { getStatusClass } from '../utils/urlUtils';
 import {

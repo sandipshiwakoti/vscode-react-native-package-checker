@@ -1,4 +1,5 @@
 import { NPM_REGISTRY_CONFIG } from '../constants';
+import { CONTENT_TYPES, HTTP_HEADERS } from '../types';
 
 export interface NpmPackageResponse {
     'dist-tags': {
@@ -16,7 +17,7 @@ export class NpmRegistryService {
             const response = await fetch(url, {
                 signal: controller.signal,
                 headers: {
-                    Accept: 'application/json',
+                    [HTTP_HEADERS.ACCEPT]: CONTENT_TYPES.JSON,
                 },
             });
             clearTimeout(timeoutId);
