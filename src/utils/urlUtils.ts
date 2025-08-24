@@ -1,5 +1,4 @@
-import { EXTERNAL_URLS, REGEX_PATTERNS } from '../constants';
-import { GITHUB_QUERIES } from '../constants/queries';
+import { EXTERNAL_URLS, GITHUB_QUERIES, REGEX_PATTERNS } from '../constants';
 import { GITHUB_PATHS, NewArchSupportStatus, STATUS_CLASSES } from '../types';
 
 const createGithubUrl = (repoUrl: string, path: GITHUB_PATHS | string, query?: string) => {

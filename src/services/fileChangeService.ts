@@ -1,5 +1,5 @@
 import { PackageJsonDiff } from '../types';
-import { extractAllPackages } from '../utils/packageUtils';
+import { extractAllPackages, parsePackageJson } from '../utils/packageUtils';
 
 import { PackageChange } from './cacheManagerService';
 import { LoggerService } from './loggerService';
@@ -33,10 +33,14 @@ export class FileChangeService {
     }
 
     private hasDependencyChanges(oldContent: string, newContent: string): boolean {
-        try {
-            const oldJson = JSON.parse(oldContent);
-            const newJson = JSON.parse(newContent);
+        const oldJson = parsePackageJson(oldContent);
+        const newJson = parsePackageJson(newContent);
 
+        if (!oldJson || !newJson) {
+            return false;
+        }
+
+        try {
             const oldDeps = JSON.stringify({
                 dependencies: oldJson.dependencies || {},
                 devDependencies: oldJson.devDependencies || {},
@@ -101,24 +105,36 @@ export class FileChangeService {
 
         for (const [packageName, version] of Object.entries(diff.added)) {
             changes.push({
-                type: 'added',
                 packageName,
+                fromVersion: '',
+                toVersion: version,
+                changeType: 'addition',
+                // Legacy properties for backward compatibility
+                type: 'added',
                 newVersion: version,
             });
         }
 
         for (const [packageName, version] of Object.entries(diff.removed)) {
             changes.push({
-                type: 'removed',
                 packageName,
+                fromVersion: version,
+                toVersion: '',
+                changeType: 'removal',
+                // Legacy properties for backward compatibility
+                type: 'removed',
                 oldVersion: version,
             });
         }
 
         for (const [packageName, { from, to }] of Object.entries(diff.versionChanged)) {
             changes.push({
-                type: 'version_changed',
                 packageName,
+                fromVersion: from,
+                toVersion: to,
+                changeType: 'version_change',
+                // Legacy properties for backward compatibility
+                type: 'version_changed',
                 oldVersion: from,
                 newVersion: to,
             });

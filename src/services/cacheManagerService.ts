@@ -1,11 +1,8 @@
+import { PackageChange } from '../types';
+
 import { LoggerService } from './loggerService';
 
-export interface PackageChange {
-    packageName: string;
-    oldVersion?: string;
-    newVersion?: string;
-    type: 'added' | 'removed' | 'version_changed';
-}
+export { PackageChange };
 
 export class CacheManagerService {
     private packageCache = new Map<string, any>();

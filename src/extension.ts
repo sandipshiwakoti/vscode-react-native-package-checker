@@ -1,10 +1,24 @@
 import * as vscode from 'vscode';
 
 import {
+    addPackage,
+    bulkUpdateToExpectedVersions,
     disableDependencyCheck,
     enableDependencyCheck,
+    removePackage,
     updateToExpectedVersion,
 } from './commands/dependencyCheckCommands';
+import {
+    browseAllPackagesCommand,
+    browsePackagesCommand,
+    showQuickActionsCommand,
+    showQuickActionsWithBackCommand,
+    showSupportedPackagesCommand,
+    showUnlistedPackagesCommand,
+    showUnmaintainedPackagesCommand,
+    showUnsupportedPackagesCommand,
+    showUntestedPackagesCommand,
+} from './commands/quickPickCommands';
 import { EXTENSION_CONFIG } from './constants/index';
 import { BrowserService } from './services/browserService';
 import { CacheManagerService } from './services/cacheManagerService';
@@ -15,7 +29,9 @@ import { FileChangeService } from './services/fileChangeService';
 import { LoggerService } from './services/loggerService';
 import { NpmRegistryService } from './services/npmRegistryService';
 import { PackageDetailsService } from './services/packageDetailsService';
+import { PackageFilterService } from './services/packageFilterService';
 import { PackageService } from './services/packageService';
+import { QuickPickService } from './services/quickPickService';
 import { VersionUpdateService } from './services/versionUpdateService';
 import { openPackageCheckerWebsite, openUpgradeHelper, refreshPackages, showPackageDetails } from './commands';
 import { COMMANDS, FileExtensions } from './types';
@@ -47,6 +63,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const browserService = new BrowserService();
     const packageDetailsService = new PackageDetailsService();
+
+    const packageFilterService = new PackageFilterService();
+    const quickPickService = new QuickPickService(packageService, packageFilterService, packageDetailsService);
 
     const codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { language: EXTENSION_CONFIG.LANGUAGE_JSON, pattern: EXTENSION_CONFIG.PACKAGE_JSON_PATTERN },
@@ -202,6 +221,66 @@ export async function activate(context: vscode.ExtensionContext) {
             updateToExpectedVersion(packageName, expectedVersion, dependencyCheckService, logger)
     );
 
+    const bulkUpdateToExpectedVersionsCommand = vscode.commands.registerCommand(
+        COMMANDS.BULK_UPDATE_TO_EXPECTED_VERSIONS,
+        () => bulkUpdateToExpectedVersions(dependencyCheckService, logger)
+    );
+
+    const addPackageCommand = vscode.commands.registerCommand(
+        COMMANDS.ADD_PACKAGE,
+        (packageName: string, version: string, dependencyType?: 'dependencies' | 'devDependencies') =>
+            addPackage(packageName, version, dependencyType, dependencyCheckService, logger)
+    );
+
+    const removePackageCommand = vscode.commands.registerCommand(COMMANDS.REMOVE_PACKAGE, (packageName: string) =>
+        removePackage(packageName, dependencyCheckService, logger)
+    );
+
+    // Keep individual commands for internal use (CodeLens)
+    const browseAllPackagesCommandDisposable = vscode.commands.registerCommand(
+        'reactNativePackageChecker.browseAllPackages',
+        () => browseAllPackagesCommand(quickPickService, logger)
+    );
+
+    const showSupportedPackagesCommandDisposable = vscode.commands.registerCommand(
+        'reactNativePackageChecker.showSupportedPackages',
+        () => showSupportedPackagesCommand(quickPickService, logger)
+    );
+
+    const showUnsupportedPackagesCommandDisposable = vscode.commands.registerCommand(
+        'reactNativePackageChecker.showUnsupportedPackages',
+        () => showUnsupportedPackagesCommand(quickPickService, logger)
+    );
+
+    const showUntestedPackagesCommandDisposable = vscode.commands.registerCommand(
+        'reactNativePackageChecker.showUntestedPackages',
+        () => showUntestedPackagesCommand(quickPickService, logger)
+    );
+
+    const showUnlistedPackagesCommandDisposable = vscode.commands.registerCommand(
+        'reactNativePackageChecker.showUnlistedPackages',
+        () => showUnlistedPackagesCommand(quickPickService, logger)
+    );
+
+    const showUnmaintainedPackagesCommandDisposable = vscode.commands.registerCommand(
+        'reactNativePackageChecker.showUnmaintainedPackages',
+        () => showUnmaintainedPackagesCommand(quickPickService, logger)
+    );
+
+    // New consolidated command for command palette
+    const browsePackagesCommandDisposable = vscode.commands.registerCommand(COMMANDS.BROWSE_PACKAGES, () =>
+        browsePackagesCommand(quickPickService, logger)
+    );
+
+    const showQuickActionsCommandDisposable = vscode.commands.registerCommand(COMMANDS.SHOW_QUICK_ACTIONS, () =>
+        showQuickActionsCommand(dependencyCheckService, logger)
+    );
+
+    const showQuickActionsWithBackCommandDisposable = vscode.commands.registerCommand(
+        COMMANDS.SHOW_QUICK_ACTIONS_WITH_BACK,
+        () => showQuickActionsWithBackCommand(dependencyCheckService, logger)
+    );
+
     context.subscriptions.push(
         codeLensDisposable,
         enableCommand,
@@ -226,7 +305,19 @@ export async function activate(context: vscode.ExtensionContext) {
         dependencyCheckService,
         enableDependencyCheckCommand,
         disableDependencyCheckCommand,
-        updateToExpectedVersionCommand
+        updateToExpectedVersionCommand,
+        bulkUpdateToExpectedVersionsCommand,
+        addPackageCommand,
+        removePackageCommand,
+        browseAllPackagesCommandDisposable,
+        showSupportedPackagesCommandDisposable,
+        showUnsupportedPackagesCommandDisposable,
+        showUntestedPackagesCommandDisposable,
+        showUnlistedPackagesCommandDisposable,
+        showUnmaintainedPackagesCommandDisposable,
+        browsePackagesCommandDisposable,
+        showQuickActionsCommandDisposable,
+        showQuickActionsWithBackCommandDisposable
     );
 
     logger.info('React Native Package Checker activated');

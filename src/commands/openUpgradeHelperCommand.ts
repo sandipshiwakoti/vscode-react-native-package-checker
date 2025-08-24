@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 import { BrowserService } from '../services/browserService';
 import { FileExtensions } from '../types';
+import { parsePackageJson } from '../utils/packageUtils';
 import { cleanVersion } from '../utils/versionUtils';
 
 export async function openUpgradeHelper(
@@ -17,10 +18,15 @@ export async function openUpgradeHelper(
             return;
         }
 
-        try {
-            const packageJsonContent = editor.document.getText();
-            const packageJson = JSON.parse(packageJsonContent);
+        const packageJsonContent = editor.document.getText();
+        const packageJson = parsePackageJson(packageJsonContent);
 
+        if (!packageJson) {
+            vscode.window.showErrorMessage('Failed to parse package.json');
+            return;
+        }
+
+        try {
             const dependencies = packageJson.dependencies || {};
             const devDependencies = packageJson.devDependencies || {};
 

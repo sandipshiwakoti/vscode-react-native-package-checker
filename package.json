@@ -120,6 +120,11 @@
                     "light": "./assets/light/toggle-enabled.svg",
                     "dark": "./assets/dark/toggle-enabled.svg"
                 }
+            },
+            {
+                "command": "reactNativePackageChecker.browsePackages",
+                "title": "Browse Packages",
+                "category": "Package Checker"
             }
         ],
         "menus": {
@@ -155,6 +160,10 @@
                 {
                     "command": "reactNativePackageChecker.disableDependencyCheck",
                     "when": "false"
+                },
+                {
+                    "command": "reactNativePackageChecker.browsePackages",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 }
             ]
         }

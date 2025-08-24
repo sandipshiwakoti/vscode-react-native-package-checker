@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 export enum NewArchSupportStatus {
     Supported = 'supported',
     Unsupported = 'unsupported',
@@ -78,6 +80,12 @@ export enum COMMANDS {
     DISABLE_DEPENDENCY_VALIDATION = 'reactNativePackageChecker.disableDependencyValidation',
     CHECK_DEPENDENCIES_FOR_RN_VERSION = 'reactNativePackageChecker.checkDependenciesForRnVersion',
     UPDATE_TO_EXPECTED_VERSION = 'reactNativePackageChecker.updateToExpectedVersion',
+    BULK_UPDATE_TO_EXPECTED_VERSIONS = 'reactNativePackageChecker.bulkUpdateToExpectedVersions',
+    ADD_PACKAGE = 'reactNativePackageChecker.addPackage',
+    REMOVE_PACKAGE = 'reactNativePackageChecker.removePackage',
+    BROWSE_PACKAGES = 'reactNativePackageChecker.browsePackages',
+    SHOW_QUICK_ACTIONS = 'reactNativePackageChecker.showQuickActions',
+    SHOW_QUICK_ACTIONS_WITH_BACK = 'reactNativePackageChecker.showQuickActionsWithBack',
 }
 
 export enum GITHUB_PATHS {
@@ -162,6 +170,8 @@ export interface ValidationResult {
     currentVersion: string;
     expectedVersion: string;
     hasVersionMismatch: boolean;
+    changeType?: 'version_change' | 'addition' | 'removal';
+    dependencyType?: 'dependencies' | 'devDependencies';
 }
 
 export interface SummaryData {
@@ -186,5 +196,41 @@ export interface PackageChange {
     packageName: string;
     fromVersion: string;
     toVersion: string;
-    changeType: 'version_change';
+    changeType: 'version_change' | 'addition' | 'removal';
+    dependencyType?: 'dependencies' | 'devDependencies';
+    // Legacy properties for backward compatibility
+    oldVersion?: string;
+    newVersion?: string;
+    type?: 'added' | 'removed' | 'version_changed';
+}
+
+export interface PackageQuickPickItem extends vscode.QuickPickItem {
+    packageName: string;
+    packageInfo: PackageInfo;
+    status: NewArchSupportStatus;
+}
+
+export interface CodeLensSegment {
+    symbol: string;
+    count: number;
+    label: string;
+    status: PackageStatus;
+    command: string;
+    tooltip: string;
+}
+
+export type PackageStatus = 'supported' | 'unsupported' | 'untested' | 'unlisted' | 'unmaintained' | 'all';
+
+export interface FilterConfig {
+    status: PackageStatus;
+    searchTerm?: string;
+    includeDevDependencies?: boolean;
+}
+
+export interface StatusPackageMap {
+    supported: PackageInfoMap;
+    unsupported: PackageInfoMap;
+    untested: PackageInfoMap;
+    unlisted: PackageInfoMap;
+    unmaintained: PackageInfoMap;
 }

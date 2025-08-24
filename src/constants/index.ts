@@ -73,6 +73,18 @@ export const DEPENDENCY_CHECK_CONFIG = {
     },
 } as const;
 
+export const GITHUB_QUERIES = {
+    NEW_ARCH_ISSUE:
+        'is:issue is:open "new arch" OR "new architecture" OR "fabric" OR "turbomodule" OR "JSI" OR "codegen"',
+    NEW_ARCH_PR: 'is:pr is:open "new arch" OR "new architecture" OR "fabric" OR "turbomodule" OR "JSI" OR "codegen"',
+    NEW_ARCH_MERGED_PR:
+        'is:pr is:merged "new arch" OR "new architecture" OR "fabric" OR "turbomodule" OR "JSI" OR "codegen"',
+    NEW_ARCH_RELEASE_NOTES: 'new+arch',
+    MAINTENANCE_ISSUE:
+        'is:issue is:open "unmaintained" OR "deprecated" OR "abandoned" OR "maintainer" OR "maintenance" OR "not maintained"',
+    MAINTENANCE_PR: 'is:pr is:open sort:updated-asc',
+} as const;
+
 export const INTERNAL_PACKAGES = [
     // Core React packages (maintained by Meta)
     'react',
@@ -116,3 +128,19 @@ export const INTERNAL_PACKAGES = [
     '@react-native/normalize-colors',
     '@react-native/polyfills',
 ];
+
+export const ERROR_MESSAGES = {
+    PACKAGE_JSON_NOT_FOUND: 'No package.json file is currently open',
+    PACKAGE_JSON_PARSE_FAILED: 'Failed to parse package.json',
+    NO_PACKAGES_FOUND: 'No packages found. Please open a package.json file first.',
+    COMMAND_EXECUTION_FAILED: 'Failed to execute command. Please try again.',
+} as const;
+
+export const SUCCESS_MESSAGES = {
+    PACKAGE_ADDED: (packageName: string, version: string, section: string) =>
+        `Added ${packageName}@${version} to ${section}`,
+    PACKAGE_REMOVED: (packageName: string) => `Removed ${packageName} from dependencies`,
+    PACKAGE_UPDATED: (packageName: string, version: string) => `Updated ${packageName} to ${version}`,
+    DEPENDENCY_CHECK_ENABLED: (version: string) => `Dependency check enabled for React Native ${version}`,
+    DEPENDENCY_CHECK_DISABLED: 'Dependency check disabled',
+} as const;

@@ -1,8 +1,9 @@
 import { API_BASE_URL, API_CONFIG } from '../constants';
-import { NewArchSupportStatus, PackageInfo, PackageInfoMap, PackageResponse } from '../types';
+import { NewArchSupportStatus, PackageChange, PackageInfo, PackageInfoMap, PackageResponse } from '../types';
+import { parsePackageJson } from '../utils/packageUtils';
 import { extractPackageNameFromVersionString, hasVersionUpdate } from '../utils/versionUtils';
 
-import { CacheManagerService, PackageChange } from './cacheManagerService';
+import { CacheManagerService } from './cacheManagerService';
 import { LoggerService } from './loggerService';
 import { NpmRegistryService } from './npmRegistryService';
 
@@ -530,15 +531,15 @@ export class PackageService {
     }
 
     private isDependencyNotDev(packageName: string, documentContent: string): boolean {
-        try {
-            const packageJson = JSON.parse(documentContent);
-            const dependencies = packageJson.dependencies || {};
-            const isDep = dependencies[packageName] !== undefined;
-
-            return isDep;
-        } catch {
+        const packageJson = parsePackageJson(documentContent);
+        if (!packageJson) {
             return true;
         }
+
+        const dependencies = packageJson.dependencies || {};
+        const isDep = dependencies[packageName] !== undefined;
+
+        return isDep;
     }
 
     public getCacheStats() {

@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { EXTENSION_CONFIG, INTERNAL_PACKAGES, STATUS_SYMBOLS } from '../constants';
 import { COMMANDS, FileExtensions, STATUS_DESCRIPTIONS, STATUS_LABELS } from '../types';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
-import { SummaryData, ValidationResult } from '../types';
+import { CodeLensSegment, SummaryData, ValidationResult } from '../types';
 import { extractPackageNames, isDevDependency } from '../utils/packageUtils';
 import { extractPackageNameFromVersionString, extractVersionFromLine, hasVersionUpdate } from '../utils/versionUtils';
 
@@ -75,7 +75,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             const hasAnyCachedData = hadCachedData || Object.keys(hasCachedPackageInfo).length > 0;
 
             if (this.isApiCallInProgress) {
-                return this.createCodeLenses(document, {}, showLatestVersion, packageWithVersions);
+                return this.createCodeLenses(document, {}, showLatestVersion);
             }
 
             if (!hasAnyCachedData && !this.lastSummaryData) {
@@ -99,7 +99,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                         this.isApiCallInProgress = false;
                     });
 
-                return this.createCodeLenses(document, {}, showLatestVersion, packageWithVersions);
+                return this.createCodeLenses(document, {}, showLatestVersion);
             }
 
             let packageInfos: PackageInfoMap = {};
@@ -139,7 +139,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
             this.isAnalyzing = false;
 
-            const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion, packageWithVersions);
+            const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion);
 
             return codeLenses;
         } catch (error) {
@@ -152,7 +152,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 if (Object.keys(cachedResults).length > 0) {
                     vscode.window.showWarningMessage('Failed to fetch package data. Using cached data instead.');
                     this.lastSummaryData = this.calculateSummaryData(cachedResults, document.getText());
-                    return this.createCodeLenses(document, cachedResults, showLatestVersion, packageWithVersions);
+                    return this.createCodeLenses(document, cachedResults, showLatestVersion);
                 } else {
                     vscode.window.showErrorMessage(
                         'Failed to fetch package data and no cache available. CodeLens has been disabled.'
@@ -177,8 +177,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     private createCodeLenses(
         document: vscode.TextDocument,
         packageInfos: PackageInfoMap,
-        showLatestVersion: boolean,
-        packageWithVersions: string[]
+        showLatestVersion: boolean
     ): vscode.CodeLens[] {
         const codeLenses: vscode.CodeLens[] = [];
         const lines = document.getText().split(EXTENSION_CONFIG.LINE_SEPARATOR);
@@ -193,17 +192,8 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 const range = new vscode.Range(i, 0, i, line.length);
 
                 if (line.includes('"dependencies"') && !line.includes('"devDependencies"')) {
-                    const totalPackagesCodeLens = this.createTotalPackagesCodeLens(
-                        new vscode.Range(i, 0, i, 0),
-                        packageWithVersions,
-                        documentContent
-                    );
-                    codeLenses.push(totalPackagesCodeLens);
-
-                    const summaryCodeLens = this.createSummaryCodeLens(new vscode.Range(i, 0, i, 0), packageInfos);
-                    if (summaryCodeLens) {
-                        codeLenses.push(summaryCodeLens);
-                    }
+                    const summaryCodeLenses = this.createSummaryCodeLens(new vscode.Range(i, 0, i, 0), packageInfos);
+                    codeLenses.push(...summaryCodeLenses);
                 }
 
                 const dependencyHeaderCodeLenses = this.createDependencyHeaderCodeLenses(range, dependencyCheckResults);
@@ -227,21 +217,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                         if (packageInfo.unmaintained) {
                             const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range);
                             codeLenses.push(unmaintainedCodeLens);
-                        }
-
-                        if (
-                            packageName === 'react-native' &&
-                            packageInfo.currentVersion &&
-                            packageInfo.currentVersion !== packageInfo.latestVersion
-                        ) {
-                            const fromRnVersion = packageInfo.currentVersion;
-                            const toRnVersion = packageInfo.latestVersion;
-                            const upgradeHelperCodeLens = this.createUpgradeHelperCodeLens(
-                                range,
-                                fromRnVersion,
-                                toRnVersion
-                            );
-                            codeLenses.push(upgradeHelperCodeLens);
                         }
                     }
 
@@ -347,75 +322,131 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         });
     }
 
-    private createTotalPackagesCodeLens(
-        range: vscode.Range,
-        packageWithVersions: string[],
-        documentContent?: string
-    ): vscode.CodeLens {
-        const productionPackages = documentContent
-            ? packageWithVersions.filter((pkg) => {
-                  const packageName = extractPackageNameFromVersionString(pkg);
-                  return !isDevDependency(documentContent, packageName);
-              })
-            : packageWithVersions;
-
-        const totalPackages = productionPackages.length;
-
-        if (this.isAnalyzing || (!this.lastSummaryData && totalPackages > 0)) {
-            return new vscode.CodeLens(range, {
-                title: `$(sync)\u2009Analysing packages...`,
-                tooltip: 'Package analysis in progress',
-                command: '',
-            });
+    private createSummaryCodeLens(range: vscode.Range, packageInfos: PackageInfoMap): vscode.CodeLens[] {
+        if (this.isAnalyzing) {
+            return [
+                new vscode.CodeLens(range, {
+                    title: '$(sync~spin)\u2009Analyzing packages...',
+                    tooltip: 'Package analysis in progress',
+                    command: '',
+                }),
+            ];
         }
 
-        return new vscode.CodeLens(range, {
-            title: `$(refresh)\u2009${totalPackages} packages`,
-            tooltip: 'Click to refresh package data',
-            command: COMMANDS.REFRESH_PACKAGES,
-        });
-    }
-
-    private createSummaryCodeLens(range: vscode.Range, packageInfos: PackageInfoMap): vscode.CodeLens | null {
-        if (this.isAnalyzing || (!this.lastSummaryData && Object.keys(packageInfos).length === 0)) {
-            return null;
+        if (!this.lastSummaryData && Object.keys(packageInfos).length === 0) {
+            return [];
         }
 
         if (!this.lastSummaryData) {
-            return null;
+            return [];
         }
 
         const { statusCounts } = this.lastSummaryData;
-        const segments: string[] = [];
-
-        if (statusCounts.supported > 0) {
-            segments.push(`${STATUS_SYMBOLS.SUPPORTED}\u2009${statusCounts.supported} New Arch Supported`);
-        }
-        if (statusCounts.unsupported > 0) {
-            segments.push(`\u2009${STATUS_SYMBOLS.UNSUPPORTED}\u2009${statusCounts.unsupported} New Arch Unsupported`);
-        }
-        if (statusCounts.untested > 0) {
-            segments.push(`\u2009${STATUS_SYMBOLS.UNTESTED}\u2009${statusCounts.untested} New Arch Untested`);
-        }
-        if (statusCounts.unlisted > 0) {
-            segments.push(`\u2009${STATUS_SYMBOLS.UNLISTED}\u2009${statusCounts.unlisted} Unlisted`);
-        }
-        if (statusCounts.unmaintained > 0) {
-            segments.push(`\u2009${STATUS_SYMBOLS.UNMAINTAINED}\u2009${statusCounts.unmaintained} Unmaintained`);
-        }
+        const segments = this.createClickableSegments(statusCounts);
 
         if (segments.length === 0) {
-            return null;
+            return [];
         }
 
-        const title = segments.join(' | ');
-        const totalPackages = Object.keys(packageInfos).length;
-        const tooltip = this.createSummaryTooltip(statusCounts, totalPackages);
+        const codeLenses: vscode.CodeLens[] = [];
+
+        segments.forEach((segment) => {
+            const segmentCodeLens = this.createSegmentCodeLens(range, segment);
+            codeLenses.push(segmentCodeLens);
+        });
+
+        const quickActionsCodeLens = new vscode.CodeLens(range, {
+            title: `$(list-unordered)\u2009Quick actions`,
+            tooltip: 'Show quick actions menu',
+            command: COMMANDS.SHOW_QUICK_ACTIONS,
+            arguments: [],
+        });
+        codeLenses.push(quickActionsCodeLens);
+
+        return codeLenses;
+    }
+
+    private createClickableSegments(statusCounts: SummaryData['statusCounts']): CodeLensSegment[] {
+        const segments: CodeLensSegment[] = [];
+
+        const totalPackages =
+            statusCounts.supported + statusCounts.unsupported + statusCounts.untested + statusCounts.unlisted;
+        if (totalPackages > 0) {
+            segments.push({
+                symbol: '$(package)',
+                count: totalPackages,
+                label: `${totalPackages} packages`,
+                status: 'all',
+                command: 'reactNativePackageChecker.browseAllPackages',
+                tooltip: 'Click to browse all packages',
+            });
+        }
+
+        if (statusCounts.supported > 0) {
+            segments.push({
+                symbol: STATUS_SYMBOLS.SUPPORTED,
+                count: statusCounts.supported,
+                label: `${statusCounts.supported} New Arch Supported`,
+                status: 'supported',
+                command: 'reactNativePackageChecker.showSupportedPackages',
+                tooltip: 'Click to view packages that support New Architecture',
+            });
+        }
+
+        if (statusCounts.unsupported > 0) {
+            segments.push({
+                symbol: STATUS_SYMBOLS.UNSUPPORTED,
+                count: statusCounts.unsupported,
+                label: `${statusCounts.unsupported} New Arch Unsupported`,
+                status: 'unsupported',
+                command: 'reactNativePackageChecker.showUnsupportedPackages',
+                tooltip: 'Click to view packages that do not support New Architecture',
+            });
+        }
+
+        if (statusCounts.untested > 0) {
+            segments.push({
+                symbol: STATUS_SYMBOLS.UNTESTED,
+                count: statusCounts.untested,
+                label: `${statusCounts.untested} Untested`,
+                status: 'untested',
+                command: 'reactNativePackageChecker.showUntestedPackages',
+                tooltip: 'Click to view packages that are untested with New Architecture',
+            });
+        }
+
+        if (statusCounts.unlisted > 0) {
+            segments.push({
+                symbol: STATUS_SYMBOLS.UNLISTED,
+                count: statusCounts.unlisted,
+                label: `${statusCounts.unlisted} Unlisted`,
+                status: 'unlisted',
+                command: 'reactNativePackageChecker.showUnlistedPackages',
+                tooltip: 'Click to view packages not listed in the directory',
+            });
+        }
+
+        if (statusCounts.unmaintained > 0) {
+            segments.push({
+                symbol: STATUS_SYMBOLS.UNMAINTAINED,
+                count: statusCounts.unmaintained,
+                label: `${statusCounts.unmaintained} Unmaintained`,
+                status: 'unmaintained',
+                command: 'reactNativePackageChecker.showUnmaintainedPackages',
+                tooltip: 'Click to view packages that appear unmaintained',
+            });
+        }
+
+        return segments;
+    }
+
+    private createSegmentCodeLens(range: vscode.Range, segment: CodeLensSegment): vscode.CodeLens {
+        const title = `${segment.symbol}\u2009${segment.label}`;
 
         return new vscode.CodeLens(range, {
             title,
-            tooltip,
-            command: COMMANDS.OPEN_PACKAGE_CHECKER_WEBSITE,
+            tooltip: segment.tooltip,
+            command: segment.command,
         });
     }
 
@@ -502,16 +533,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             return codeLenses;
         }
 
-        if (!this.dependencyCheckService.isEnabled()) {
-            codeLenses.push(
-                new vscode.CodeLens(range, {
-                    title: `$(checklist)\u2009Check deps versions`,
-                    tooltip: 'Check if dependencies match expected versions for a React Native version',
-                    command: 'reactNativePackageChecker.enableDependencyCheck',
-                    arguments: [],
-                })
-            );
-        } else {
+        if (this.dependencyCheckService.isEnabled()) {
             const targetVersion = this.dependencyCheckService.getTargetVersion();
             const hasAnyMismatches = dependencyCheckResults && dependencyCheckResults.some((r) => r.hasVersionMismatch);
 
