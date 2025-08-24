@@ -12,7 +12,6 @@ import { CodeLensProviderService } from './services/codeLensProviderService';
 import { DebouncedChangeService } from './services/debouncedChangeService';
 import { DependencyCheckService } from './services/dependencyCheckService';
 import { FileChangeService } from './services/fileChangeService';
-import { LoadingNotificationService } from './services/loadingNotificationService';
 import { LoggerService } from './services/loggerService';
 import { NpmRegistryService } from './services/npmRegistryService';
 import { PackageDetailsService } from './services/packageDetailsService';
@@ -30,13 +29,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const cacheManager = new CacheManagerService(logger);
 
     const npmRegistryService = new NpmRegistryService();
-    const loadingNotificationService = new LoadingNotificationService();
-    const packageService = new PackageService(npmRegistryService, loadingNotificationService, cacheManager, logger);
+    const packageService = new PackageService(npmRegistryService, cacheManager, logger);
 
     const dependencyCheckService = new DependencyCheckService(context, logger);
     await dependencyCheckService.initialize();
 
-    const codeLensProviderService = new CodeLensProviderService(packageService, context, dependencyCheckService);
+    const codeLensProviderService = new CodeLensProviderService(packageService, dependencyCheckService);
     const versionUpdateService = new VersionUpdateService(codeLensProviderService, packageService);
 
     const fileChangeService = new FileChangeService(logger);
@@ -215,7 +213,6 @@ export async function activate(context: vscode.ExtensionContext) {
         showCacheStatsCommand,
         showLogsCommand,
         codeLensProviderService,
-        loadingNotificationService,
         logger,
         debouncedChangeService,
         documentChangeListener,

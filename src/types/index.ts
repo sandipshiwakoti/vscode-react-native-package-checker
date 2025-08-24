@@ -157,69 +157,22 @@ export interface PackageJsonDiff {
     updated: Record<string, { from: string; to: string }>;
     versionChanged: Record<string, { from: string; to: string }>;
 }
-
-// Validation Types
-// export interface ValidationResult {
-//     packageName: string;
-//     currentVersion: string;
-//     expectedVersion: string;
-//     isNewPackage: boolean;
-//     hasVersionMismatch: boolean;
-// }
-
-// export interface DiffData {
-//     fromVersion: string;
-//     toVersion: string;
-//     packageChanges: DiffPackageChange[];
-//     newPackages: NewPackage[];
-//     rawDiff: string;
-// }
-
-// export interface DiffPackageChange {
-//     packageName: string;
-//     fromVersion: string;
-//     toVersion: string;
-//     changeType: 'version_change' | 'addition' | 'removal';
-// }
-
-// export interface NewPackage {
-//     packageName: string;
-//     version: string;
-//     isExcluded: boolean;
-// }
-
-// export interface DiffCacheEntry {
-//     key: string;
-//     data: DiffData;
-//     timestamp: number;
-//     expiresAt: number;
-// }
-
-// export interface ValidationConfig {
-//     enabled: boolean;
-//     targetVersion: string | null;
-//     cacheExpiration: number;
-//     excludedPackages: string[];
-// }
-
-// export interface VersionValidationResult {
-//     isValid: boolean;
-//     exists: boolean;
-//     errorMessage?: string;
-// }
-
-// export interface DiffParseResult {
-//     packageChanges: DiffPackageChange[];
-//     newPackages: NewPackage[];
-//     success: boolean;
-//     error?: string;
-// }
-
 export interface ValidationResult {
     packageName: string;
     currentVersion: string;
     expectedVersion: string;
     hasVersionMismatch: boolean;
+}
+
+export interface SummaryData {
+    isLoading: boolean;
+    statusCounts: {
+        supported: number;
+        unsupported: number;
+        untested: number;
+        unlisted: number;
+        unmaintained: number;
+    };
 }
 
 export interface DiffData {

@@ -63,11 +63,7 @@
             {
                 "command": "reactNativePackageChecker.openPackageCheckerWebsite",
                 "title": "Open Package Checker Website",
-                "category": "Package Checker",
-                "icon": {
-                    "light": "./assets/light/external-link.svg",
-                    "dark": "./assets/dark/external-link.svg"
-                }
+                "category": "Package Checker"
             },
             {
                 "command": "reactNativePackageChecker.refreshPackages",
@@ -128,11 +124,6 @@
         ],
         "menus": {
             "editor/title": [
-                {
-                    "command": "reactNativePackageChecker.openPackageCheckerWebsite",
-                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/",
-                    "group": "navigation"
-                },
                 {
                     "command": "reactNativePackageChecker.enableCodeLens",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && !reactNativePackageChecker.enabled",

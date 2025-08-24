@@ -11,7 +11,7 @@ export const EXTERNAL_URLS = {
 export const EXTENSION_CONFIG = {
     CACHE_TIMEOUT: 5 * 60 * 1000,
     PACKAGE_JSON_PATTERN: '**/package.json',
-    DEFAULT_CODE_LENS_ENABLED: true,
+    DEFAULT_CODE_LENS_ENABLED: false,
     CODE_LENS_STATE_KEY: 'enableCodeLens',
     CODE_LENS_CONTEXT_KEY: 'reactNativePackageChecker.enabled',
     LANGUAGE_JSON: 'json',

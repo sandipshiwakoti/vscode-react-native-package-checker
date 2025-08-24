@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { EXTENSION_CONFIG, INTERNAL_PACKAGES, STATUS_SYMBOLS } from '../constants';
 import { COMMANDS, FileExtensions, STATUS_DESCRIPTIONS, STATUS_LABELS } from '../types';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
-import { ValidationResult } from '../types';
+import { SummaryData, ValidationResult } from '../types';
 import { extractPackageNames, isDevDependency } from '../utils/packageUtils';
 import { extractPackageNameFromVersionString, extractVersionFromLine, hasVersionUpdate } from '../utils/versionUtils';
 
@@ -16,13 +16,15 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     private isProcessingLenses = false;
     private refreshTimeout: NodeJS.Timeout | null = null;
     private dependencyCheckResults: ValidationResult[] = [];
+    private isAnalyzing = false;
+    private lastSummaryData: SummaryData | null = null;
+    private isEnabled = false;
+    private isApiCallInProgress = false;
 
     constructor(
         private packageService: PackageService,
-        private context: vscode.ExtensionContext,
         private dependencyCheckService?: DependencyCheckService
     ) {
-        // Subscribe to dependency check results if service is provided
         if (this.dependencyCheckService) {
             this.dependencyCheckService.onResultsChanged((results) => {
                 console.log(`[CodeLens] Dependency check results changed: ${results.length} mismatches`);
@@ -31,7 +33,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 );
                 this.dependencyCheckResults = results;
 
-                // Force a refresh with a slight delay to ensure the UI updates properly
                 setTimeout(() => {
                     console.log(`[CodeLens] Triggering refresh after results change`);
                     this.refresh();
@@ -41,12 +42,11 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     }
 
     async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
-        const isEnabled = this.context.globalState.get(
-            EXTENSION_CONFIG.CODE_LENS_STATE_KEY,
-            EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED
+        console.log(
+            `[CodeLens] provideCodeLenses called - enabled: ${this.isEnabled}, processing: ${this.isProcessingLenses}`
         );
 
-        if (!isEnabled || !document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
+        if (!this.isEnabled || !document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
             return [];
         }
 
@@ -71,46 +71,94 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 return this.packageService.getCachedVersion(packageName) !== null;
             });
 
-            const packageInfos = await this.packageService.checkPackages(
-                packageWithVersions,
-                undefined,
-                showLatestVersion,
-                document.getText()
-            );
+            const hasCachedPackageInfo = this.packageService.getCachedResultsByVersions(packageWithVersions);
+            const hasAnyCachedData = hadCachedData || Object.keys(hasCachedPackageInfo).length > 0;
 
-            const hasNewData = packageWithVersions.some((pkg) => {
-                const packageName = extractPackageNameFromVersionString(pkg);
-                return (
-                    packageInfos[packageName]?.latestVersion &&
-                    this.packageService.getCachedVersion(packageName) !== null
-                );
-            });
-
-            const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion);
-
-            if (!hadCachedData && hasNewData && codeLenses.length > 0) {
-                console.log('Scheduling refresh after initial data fetch');
-                setTimeout(() => {
-                    this.refresh();
-                }, 100);
+            if (this.isApiCallInProgress) {
+                return this.createCodeLenses(document, {}, showLatestVersion, packageWithVersions);
             }
+
+            if (!hasAnyCachedData && !this.lastSummaryData) {
+                this.isAnalyzing = true;
+                this.isApiCallInProgress = true;
+
+                this.packageService
+                    .checkPackages(packageWithVersions, undefined, showLatestVersion, document.getText())
+                    .then((packageInfos) => {
+                        console.log('[CodeLens] Background API call completed');
+                        this.lastSummaryData = this.calculateSummaryData(packageInfos, document.getText());
+                        this.isAnalyzing = false;
+                        this.isApiCallInProgress = false;
+                        if (Object.keys(packageInfos).length > 0) {
+                            this.refresh();
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error in background package analysis:', error);
+                        this.isAnalyzing = false;
+                        this.isApiCallInProgress = false;
+                    });
+
+                return this.createCodeLenses(document, {}, showLatestVersion, packageWithVersions);
+            }
+
+            let packageInfos: PackageInfoMap = {};
+
+            if (hadCachedData && !this.isApiCallInProgress) {
+                console.log('[CodeLens] Making API call with cached data in background');
+                this.isApiCallInProgress = true;
+
+                this.packageService
+                    .checkPackages(packageWithVersions, undefined, showLatestVersion, document.getText())
+                    .then((fetchedPackageInfos) => {
+                        console.log('[CodeLens] Background cached data API call completed');
+                        this.lastSummaryData = this.calculateSummaryData(fetchedPackageInfos, document.getText());
+                        this.isApiCallInProgress = false;
+                    })
+                    .catch((error) => {
+                        console.error('Error in background cached data API call:', error);
+                        this.isApiCallInProgress = false;
+                    });
+
+                packageInfos = this.packageService.getCachedResultsByVersions(packageWithVersions);
+
+                if (!this.lastSummaryData && Object.keys(packageInfos).length > 0) {
+                    this.lastSummaryData = this.calculateSummaryData(packageInfos, document.getText());
+                }
+            } else if (this.lastSummaryData) {
+                console.log('[CodeLens] Using existing summary data and cached results');
+                packageInfos = this.packageService.getCachedResultsByVersions(packageWithVersions);
+            } else if (hasAnyCachedData) {
+                console.log('[CodeLens] Using cached package info without background API call');
+                packageInfos = this.packageService.getCachedResultsByVersions(packageWithVersions);
+
+                if (Object.keys(packageInfos).length > 0) {
+                    this.lastSummaryData = this.calculateSummaryData(packageInfos, document.getText());
+                }
+            }
+
+            this.isAnalyzing = false;
+
+            const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion, packageWithVersions);
 
             return codeLenses;
         } catch (error) {
             console.error('Error providing code lenses:', error);
+            this.isAnalyzing = false;
 
             try {
                 const cachedResults = this.packageService.getCachedResultsByVersions(packageWithVersions);
 
                 if (Object.keys(cachedResults).length > 0) {
                     vscode.window.showWarningMessage('Failed to fetch package data. Using cached data instead.');
-                    return this.createCodeLenses(document, cachedResults, showLatestVersion);
+                    this.lastSummaryData = this.calculateSummaryData(cachedResults, document.getText());
+                    return this.createCodeLenses(document, cachedResults, showLatestVersion, packageWithVersions);
                 } else {
                     vscode.window.showErrorMessage(
                         'Failed to fetch package data and no cache available. CodeLens has been disabled.'
                     );
-                    await this.context.globalState.update(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, false);
-                    await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+                    this.isEnabled = false;
+                    vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
                     return [];
                 }
             } catch (cacheError) {
@@ -118,8 +166,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 vscode.window.showErrorMessage(
                     'Failed to fetch package data and retrieve cache. CodeLens has been disabled.'
                 );
-                await this.context.globalState.update(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, false);
-                await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+                vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
                 return [];
             }
         } finally {
@@ -130,21 +177,35 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     private createCodeLenses(
         document: vscode.TextDocument,
         packageInfos: PackageInfoMap,
-        showLatestVersion: boolean
+        showLatestVersion: boolean,
+        packageWithVersions: string[]
     ): vscode.CodeLens[] {
         const codeLenses: vscode.CodeLens[] = [];
         const lines = document.getText().split(EXTENSION_CONFIG.LINE_SEPARATOR);
         const documentContent = document.getText();
 
-        // Get dependency check results if available
         const dependencyCheckResults = this.getDependencyCheckResults();
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
 
-            // Check for dependencies section headers
             if (line.includes('"dependencies"') || line.includes('"devDependencies"')) {
                 const range = new vscode.Range(i, 0, i, line.length);
+
+                if (line.includes('"dependencies"') && !line.includes('"devDependencies"')) {
+                    const totalPackagesCodeLens = this.createTotalPackagesCodeLens(
+                        new vscode.Range(i, 0, i, 0),
+                        packageWithVersions,
+                        documentContent
+                    );
+                    codeLenses.push(totalPackagesCodeLens);
+
+                    const summaryCodeLens = this.createSummaryCodeLens(new vscode.Range(i, 0, i, 0), packageInfos);
+                    if (summaryCodeLens) {
+                        codeLenses.push(summaryCodeLens);
+                    }
+                }
+
                 const dependencyHeaderCodeLenses = this.createDependencyHeaderCodeLenses(range, dependencyCheckResults);
                 codeLenses.push(...dependencyHeaderCodeLenses);
             }
@@ -204,7 +265,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                     }
                 }
 
-                // Add dependency check CodeLens at the end (after other CodeLenses)
                 const dependencyResult = dependencyCheckResults?.find((r) => r.packageName === packageName);
                 console.log(`[CodeLens] Checking dependency result for ${packageName}:`, dependencyResult);
                 if (dependencyResult && dependencyResult.hasVersionMismatch) {
@@ -287,6 +347,151 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         });
     }
 
+    private createTotalPackagesCodeLens(
+        range: vscode.Range,
+        packageWithVersions: string[],
+        documentContent?: string
+    ): vscode.CodeLens {
+        const productionPackages = documentContent
+            ? packageWithVersions.filter((pkg) => {
+                  const packageName = extractPackageNameFromVersionString(pkg);
+                  return !isDevDependency(documentContent, packageName);
+              })
+            : packageWithVersions;
+
+        const totalPackages = productionPackages.length;
+
+        if (this.isAnalyzing || (!this.lastSummaryData && totalPackages > 0)) {
+            return new vscode.CodeLens(range, {
+                title: `$(sync)\u2009Analysing packages...`,
+                tooltip: 'Package analysis in progress',
+                command: '',
+            });
+        }
+
+        return new vscode.CodeLens(range, {
+            title: `$(refresh)\u2009${totalPackages} packages`,
+            tooltip: 'Click to refresh package data',
+            command: COMMANDS.REFRESH_PACKAGES,
+        });
+    }
+
+    private createSummaryCodeLens(range: vscode.Range, packageInfos: PackageInfoMap): vscode.CodeLens | null {
+        if (this.isAnalyzing || (!this.lastSummaryData && Object.keys(packageInfos).length === 0)) {
+            return null;
+        }
+
+        if (!this.lastSummaryData) {
+            return null;
+        }
+
+        const { statusCounts } = this.lastSummaryData;
+        const segments: string[] = [];
+
+        if (statusCounts.supported > 0) {
+            segments.push(`${STATUS_SYMBOLS.SUPPORTED}\u2009${statusCounts.supported} New Arch Supported`);
+        }
+        if (statusCounts.unsupported > 0) {
+            segments.push(`\u2009${STATUS_SYMBOLS.UNSUPPORTED}\u2009${statusCounts.unsupported} New Arch Unsupported`);
+        }
+        if (statusCounts.untested > 0) {
+            segments.push(`\u2009${STATUS_SYMBOLS.UNTESTED}\u2009${statusCounts.untested} New Arch Untested`);
+        }
+        if (statusCounts.unlisted > 0) {
+            segments.push(`\u2009${STATUS_SYMBOLS.UNLISTED}\u2009${statusCounts.unlisted} Unlisted`);
+        }
+        if (statusCounts.unmaintained > 0) {
+            segments.push(`\u2009${STATUS_SYMBOLS.UNMAINTAINED}\u2009${statusCounts.unmaintained} Unmaintained`);
+        }
+
+        if (segments.length === 0) {
+            return null;
+        }
+
+        const title = segments.join(' | ');
+        const totalPackages = Object.keys(packageInfos).length;
+        const tooltip = this.createSummaryTooltip(statusCounts, totalPackages);
+
+        return new vscode.CodeLens(range, {
+            title,
+            tooltip,
+            command: COMMANDS.OPEN_PACKAGE_CHECKER_WEBSITE,
+        });
+    }
+
+    private calculateSummaryData(packageInfos: PackageInfoMap, documentContent?: string): SummaryData {
+        const statusCounts = {
+            supported: 0,
+            unsupported: 0,
+            untested: 0,
+            unlisted: 0,
+            unmaintained: 0,
+        };
+
+        for (const [packageName, packageInfo] of Object.entries(packageInfos)) {
+            if (!packageInfo) {
+                continue;
+            }
+
+            const isDevDep = documentContent ? isDevDependency(documentContent, packageName) : false;
+
+            switch (packageInfo.newArchitecture) {
+                case NewArchSupportStatus.Supported:
+                    statusCounts.supported++;
+                    break;
+                case NewArchSupportStatus.Unsupported:
+                    statusCounts.unsupported++;
+                    break;
+                case NewArchSupportStatus.Untested:
+                    statusCounts.untested++;
+                    break;
+                case NewArchSupportStatus.Unlisted:
+                default:
+                    if (!isDevDep) {
+                        statusCounts.unlisted++;
+                    }
+                    break;
+            }
+
+            if (packageInfo.unmaintained) {
+                statusCounts.unmaintained++;
+            }
+        }
+
+        return {
+            isLoading: this.isAnalyzing,
+            statusCounts,
+        };
+    }
+
+    private createSummaryTooltip(statusCounts: SummaryData['statusCounts'], totalPackages?: number): string {
+        const parts = ['Package Analysis Summary:', ''];
+
+        if (totalPackages !== undefined) {
+            parts.push(`📦 Total: ${totalPackages} packages analyzed`, '');
+        }
+
+        if (statusCounts.supported > 0) {
+            parts.push(`✅ ${statusCounts.supported} packages support New Architecture`);
+        }
+        if (statusCounts.unsupported > 0) {
+            parts.push(`❌ ${statusCounts.unsupported} packages do not support New Architecture`);
+        }
+        if (statusCounts.untested > 0) {
+            parts.push(`⚠️ ${statusCounts.untested} packages are untested with New Architecture`);
+        }
+        if (statusCounts.unlisted > 0) {
+            parts.push(`❓ ${statusCounts.unlisted} packages are not listed in the directory`);
+        }
+        if (statusCounts.unmaintained > 0) {
+            parts.push(`📦 ${statusCounts.unmaintained} packages appear unmaintained`);
+        }
+
+        parts.push('', 'Click to open React Native Package Checker website');
+
+        return parts.join('\n');
+    }
+
     private createDependencyHeaderCodeLenses(
         range: vscode.Range,
         dependencyCheckResults: ValidationResult[] | null
@@ -298,7 +503,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }
 
         if (!this.dependencyCheckService.isEnabled()) {
-            // Show "Check deps versions" CodeLens
             codeLenses.push(
                 new vscode.CodeLens(range, {
                     title: `$(checklist)\u2009Check deps versions`,
@@ -312,7 +516,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             const hasAnyMismatches = dependencyCheckResults && dependencyCheckResults.some((r) => r.hasVersionMismatch);
 
             if (!hasAnyMismatches && dependencyCheckResults && dependencyCheckResults.length > 0) {
-                // All dependencies meet the target version
                 codeLenses.push(
                     new vscode.CodeLens(range, {
                         title: `✅\u2009Meets RN ${targetVersion} version`,
@@ -323,10 +526,9 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 );
             }
 
-            // Always show reset option when enabled
             codeLenses.push(
                 new vscode.CodeLens(range, {
-                    title: `🔄\u2009Reset deps version`,
+                    title: `$(refresh)\u2009Reset deps version`,
                     tooltip: 'Disable dependency checking or check for a different React Native version',
                     command: 'reactNativePackageChecker.disableDependencyCheck',
                     arguments: [],
@@ -415,7 +617,9 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     }
 
     refresh(): void {
-        console.log(`[CodeLens] Refresh called`);
+        console.log(
+            `[CodeLens] Refresh called - processing: ${this.isProcessingLenses}, timeout exists: ${!!this.refreshTimeout}`
+        );
         if (this.refreshTimeout) {
             clearTimeout(this.refreshTimeout);
         }
@@ -425,12 +629,15 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             this.isProcessingLenses = false;
             this._onDidChangeCodeLenses.fire();
             this.refreshTimeout = null;
-        }, 50);
+        }, 10);
     }
 
     async refreshPackages(): Promise<void> {
         try {
             this.packageService.clearCache();
+            this.isAnalyzing = false;
+            this.lastSummaryData = null;
+            this.isApiCallInProgress = false;
             this.refresh();
             vscode.window.showInformationMessage('Package data refreshed successfully');
         } catch (error) {
@@ -440,27 +647,30 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     }
 
     async enable(): Promise<void> {
-        await this.updateState(true);
+        console.log('[CodeLens] Enable called');
+        this.isEnabled = true;
+        await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, true);
+
         vscode.window.showInformationMessage('React Native Package Checker enabled');
+
+        this._onDidChangeCodeLenses.fire();
     }
 
     async disable(): Promise<void> {
-        await this.updateState(false);
+        this.isEnabled = false;
+        await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+        this.refresh();
         vscode.window.showInformationMessage('React Native Package Checker disabled');
     }
 
     initialize(): void {
-        const isEnabled = this.context.globalState.get(
-            EXTENSION_CONFIG.CODE_LENS_STATE_KEY,
-            EXTENSION_CONFIG.DEFAULT_CODE_LENS_ENABLED
-        );
-        vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, isEnabled);
-    }
+        this.isEnabled = false;
 
-    private async updateState(enabled: boolean): Promise<void> {
-        await this.context.globalState.update(EXTENSION_CONFIG.CODE_LENS_STATE_KEY, enabled);
-        await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, enabled);
-        this.refresh();
+        this.lastSummaryData = null;
+        this.isAnalyzing = false;
+        this.isApiCallInProgress = false;
+
+        vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
     }
 
     dispose() {

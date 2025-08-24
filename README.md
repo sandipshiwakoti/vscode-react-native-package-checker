@@ -29,10 +29,9 @@
 
 - 🎯 **New Architecture Compatibility** - See which packages support React Native's New Architecture directly in your package.json
 - 🔎 **CodeLens Integration** - Interactive overlays show package status, maintenance info, and available updates
-- 📊 **Comprehensive Analysis** - Get detailed compatibility reports for all project dependencies
+- 📊 **Comprehensive Analysis** - Get detailed compatibility reports with package count summaries
 - 🔧 **Maintenance Tracking** - Monitor package maintenance status and identify unmaintained dependencies
 - 🔗 **Package Details** - Access NPM, GitHub, documentation, and New Architecture migration resources
-- 🌐 **Web Integration** - Direct access to React Native Package Checker and Upgrade Helper websites
 - 🌐 **Migration Support** - Direct links to upgrade helpers, merged PRs, issues etc.
 - 🔄 **Data Caching** - Always get the latest package information with intelligent data refresh
 - ⚡ **Dependency Version Check** - Compare your current dependencies against React Native upgrade requirements using rn-diff-purge data
@@ -77,21 +76,23 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 
 Open your `package.json` to see interactive overlays above each dependency:
 
-| CodeLens Display           | Meaning                                                   | Action                                      |
-| -------------------------- | --------------------------------------------------------- | ------------------------------------------- |
-| ✓ **New Arch Supported**   | Package supports New Architecture                         | Click for detailed package info             |
-| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture                  | Click to see alternatives or migration info |
-| ⚠ **New Arch Untested**   | Package has not been tested with New Architecture         | Click to check latest information           |
-| ? **Unlisted**             | Package not found in the official React Native directory  | Click to check latest information           |
-| 📂 **Unmaintained**        | Package is unmaintained                                   | See maintenance status                      |
-| ✓ **Latest X.X.X**         | Package is up to date                                     | View package details                        |
-| ↑ **Latest X.X.X**         | Update available                                          | Click to see upgrade options                |
-| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                      | Open upgrade helper with current RN version |
-| ✎ **Expected: X.X.X**      | Version mismatch detected for target React Native version | Click to update to expected version         |
+| CodeLens Display           | Meaning                                                        | Action                                      |
+| -------------------------- | -------------------------------------------------------------- | ------------------------------------------- |
+| ✓ **New Arch Supported**   | Package supports New Architecture                              | Click for detailed package info             |
+| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture                       | Click to see alternatives or migration info |
+| ⚠ **New Arch Untested**   | Package has not been tested with New Architecture              | Click to check latest information           |
+| ? **Unlisted**             | Package not found in the official React Native directory       | Click to check latest information           |
+| 📂 **Unmaintained**        | Package is unmaintained                                        | See maintenance status                      |
+| ✓ **Latest X.X.X**         | Package is up to date                                          | View package details                        |
+| ↑ **Latest X.X.X**         | Update available                                               | Click to see upgrade options                |
+| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                           | Open upgrade helper with current RN version |
+| ✎ **Expected: X.X.X**      | Version mismatch detected for target React Native version      | Click to update to expected version         |
+| 🔄 **X packages**          | Total production dependencies count (excludes devDependencies) | Click to refresh package data               |
+| 📊 **Package Summary**     | New Architecture compatibility breakdown with totals           | Click to open React Native Package Checker  |
 
 **Toggle CodeLens:**
 
-- Use the package icon in the editor title bar
+- Use the toggle icon in the editor title bar for instant enable/disable
 
 ### Command Palette
 
@@ -101,6 +102,7 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 
 - Analyze all project dependencies in your browser
 - Opens the React Native Package Checker website with your project's packages
+- Also accessible via the package summary CodeLens
 
 **Package Checker: Refresh Package Data**
 
@@ -133,11 +135,6 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 - Removes inline decorations from package.json
 
 ### Title Bar
-
-**External Link Icon:**
-
-- Click to open the React Native Package Checker website
-- Analyzes all your project's packages in the browser
 
 **Toggle Icon:**
 

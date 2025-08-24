@@ -3,14 +3,12 @@ import { NewArchSupportStatus, PackageInfo, PackageInfoMap, PackageResponse } fr
 import { extractPackageNameFromVersionString, hasVersionUpdate } from '../utils/versionUtils';
 
 import { CacheManagerService, PackageChange } from './cacheManagerService';
-import { LoadingNotificationService } from './loadingNotificationService';
 import { LoggerService } from './loggerService';
 import { NpmRegistryService } from './npmRegistryService';
 
 export class PackageService {
     constructor(
         private npmRegistryService: NpmRegistryService,
-        private loadingNotificationService: LoadingNotificationService,
         private cacheManager: CacheManagerService,
         private logger: LoggerService
     ) {}
@@ -63,15 +61,9 @@ export class PackageService {
         let packageInfos = cachedPackageInfos;
 
         if (uncachedPackages.length > 0) {
-            let loadingDisposable: any = null;
-
             try {
                 const startTime = Date.now();
                 this.logger.logLoadingState('start', 'package info', uncachedPackages);
-
-                loadingDisposable = this.loadingNotificationService.showLoading(
-                    `Fetching information for ${uncachedPackages.length} packages...`
-                );
 
                 const data = await this.fetchPackageData(uncachedPackages);
 
@@ -92,15 +84,9 @@ export class PackageService {
 
                 packageInfos = { ...packageInfos, ...foundPackages };
                 this.populateCurrentVersions(packageInfos, packageWithVersions);
-
-                this.loadingNotificationService.hideLoading(loadingDisposable);
             } catch (error: any) {
                 this.logger.error('Failed to fetch package info', { error: error.message, packages: uncachedPackages });
                 console.error('Failed to check packages:', error);
-
-                if (loadingDisposable) {
-                    this.loadingNotificationService.hideLoading(loadingDisposable);
-                }
 
                 if (Object.keys(packageInfos).length === 0) {
                     throw error;
@@ -155,8 +141,6 @@ export class PackageService {
         });
 
         if (packagesNeedingVersionCheck.length > 0 && uncachedVersionPackages.length > 0) {
-            let versionLoadingDisposable: any = null;
-
             try {
                 this.logger.info(
                     `Fetching ${uncachedVersionPackages.length} ${uncachedVersionPackages.length === 1 ? 'version' : 'versions'} data`
@@ -164,9 +148,6 @@ export class PackageService {
 
                 const startTime = Date.now();
                 this.logger.logLoadingState('start', 'version info', uncachedVersionPackages);
-
-                versionLoadingDisposable =
-                    this.loadingNotificationService.showLoadingForPackages(uncachedVersionPackages);
 
                 const latestVersions = await this.npmRegistryService.fetchLatestVersions(uncachedVersionPackages);
                 this.cacheManager.setMultiplePackageVersions(latestVersions);
@@ -204,9 +185,6 @@ export class PackageService {
                 });
                 return 0;
             } finally {
-                if (versionLoadingDisposable) {
-                    this.loadingNotificationService.hideLoading(versionLoadingDisposable);
-                }
             }
         }
 
