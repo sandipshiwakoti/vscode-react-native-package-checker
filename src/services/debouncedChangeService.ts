@@ -38,16 +38,12 @@ export class DebouncedChangeService {
         this.debounceTimer = setTimeout(() => {
             this.processPendingChanges();
         }, this.debounceDelay);
-
-        this.logger.debug(`File change debounced for ${filePath}`);
     }
 
     handleFileSystemChange(uri: vscode.Uri): void {
         if (!uri.fsPath.endsWith(FileExtensions.PACKAGE_JSON)) {
             return;
         }
-
-        const fileName = uri.fsPath.split('/').pop() || FileExtensions.PACKAGE_JSON;
 
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
@@ -66,11 +62,8 @@ export class DebouncedChangeService {
                     if (changes.length > 0) {
                         await this.packageService.handlePackageChanges(changes, newContent);
                         this.onRefreshNeeded();
-                    } else {
-                        this.logger.debug('File system change: no dependency changes detected');
                     }
                 } else {
-                    this.logger.debug(`${fileName} → no old content, refreshing`);
                     this.onRefreshNeeded();
                 }
             } catch (error: any) {
@@ -85,12 +78,10 @@ export class DebouncedChangeService {
             return;
         }
 
-        this.logger.debug(`Processing ${this.pendingChanges.size} pending file changes`);
-
         let hasSignificantChanges = false;
         let allChanges: any[] = [];
 
-        for (const [filePath, { oldContent, newContent }] of this.pendingChanges.entries()) {
+        for (const [, { oldContent, newContent }] of this.pendingChanges.entries()) {
             if (oldContent && newContent !== oldContent) {
                 const changes = this.fileChangeService.analyzePackageJsonChanges(oldContent, newContent);
 
@@ -102,7 +93,6 @@ export class DebouncedChangeService {
                 }
             } else if (!oldContent) {
                 hasSignificantChanges = true;
-                this.logger.debug(`No old content available for ${filePath}, clearing cache`);
                 this.packageService.clearCache();
                 break;
             }
@@ -112,8 +102,6 @@ export class DebouncedChangeService {
 
         if (hasSignificantChanges) {
             this.onRefreshNeeded();
-        } else {
-            this.logger.debug('No significant changes detected, skipping refresh');
         }
     }
 

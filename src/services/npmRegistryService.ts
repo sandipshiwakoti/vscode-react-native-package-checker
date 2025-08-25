@@ -1,14 +1,11 @@
 import { NPM_REGISTRY_CONFIG } from '../constants';
 import { CONTENT_TYPES, HTTP_HEADERS } from '../types';
 
-export interface NpmPackageResponse {
-    'dist-tags': {
-        latest: string;
-    };
-    versions: Record<string, any>;
-}
+import { LoggerService } from './loggerService';
 
 export class NpmRegistryService {
+    constructor(private logger: LoggerService) {}
+
     private async fetchWithTimeout(url: string, timeoutMs: number = 5000): Promise<Response> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -29,21 +26,33 @@ export class NpmRegistryService {
     }
 
     async fetchLatestVersion(packageName: string): Promise<string> {
+        const startTime = Date.now();
+        const url = `${NPM_REGISTRY_CONFIG.BASE_URL}/${encodeURIComponent(packageName)}/latest`;
+
         try {
-            const response = await this.fetchWithTimeout(
-                `${NPM_REGISTRY_CONFIG.BASE_URL}/${encodeURIComponent(packageName)}/latest`
-            );
+            this.logger.debugApiRequest('GET', url);
+            const response = await this.fetchWithTimeout(url);
+            const duration = Date.now() - startTime;
 
             if (!response.ok) {
+                this.logger.errorApiFailure(url, response.status, 'NPM registry request failed');
                 throw new Error(`NPM registry request failed: ${response.status}`);
             }
+
+            this.logger.debugApiResponse(url, response.status, duration);
 
             const data: any = await response.json();
             const latestVersion = data.version;
 
             return latestVersion;
         } catch (error) {
-            console.error(`Failed to fetch latest version for ${packageName}:`, error);
+            if (error instanceof Error && error.name === 'AbortError') {
+                this.logger.errorNetworkTimeout(url, 5000);
+            } else {
+                this.logger.error(
+                    `NPM registry error ${packageName}: ${error instanceof Error ? error.message : 'Unknown error'}`
+                );
+            }
             throw error;
         }
     }

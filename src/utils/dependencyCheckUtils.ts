@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { EXTERNAL_URLS } from '../constants';
 import { PackageChange, ValidationResult } from '../types';
 
 import { parsePackageJson } from './packageUtils';
@@ -169,8 +170,8 @@ export function createHoverMessage(
     }
 
     if (currentRnVersion && currentRnVersion !== targetVersion) {
-        const diffUrl = `https://raw.githubusercontent.com/react-native-community/rn-diff-purge/release/${targetVersion}/RnDiffApp/package.json`;
-        message += `\n\n---\n\n[View React Native ${targetVersion} package.json reference](${diffUrl})`;
+        const diffUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentRnVersion}&to=${targetVersion}#RnDiffApp-package.json`;
+        message += `\n\n---\n\n[View React Native ${targetVersion} upgrade guide](${diffUrl})`;
     }
 
     return new vscode.MarkdownString(message);

@@ -88,6 +88,37 @@ export class LoggerService {
         this.info(`API ${apiType} ${packages.length} packages${durationStr}`);
     }
 
+    debugApiRequest(method: string, url: string): void {
+        this.debug(`API ${method} ${url}`);
+    }
+
+    debugApiResponse(url: string, status: number, responseTime: number, size?: number): void {
+        const sizeStr = size ? ` ${size}b` : '';
+        this.debug(`API response ${status} ${responseTime}ms${sizeStr} ${url}`);
+    }
+
+    debugCacheOperation(operation: 'get' | 'set' | 'delete' | 'clear', key: string, ttl?: number): void {
+        const ttlStr = ttl ? ` ttl:${ttl}s` : '';
+        this.debug(`Cache ${operation} ${key}${ttlStr}`);
+    }
+
+    debugParseOperation(file: string, packages: number, dependencies: number): void {
+        this.debug(`Parse ${file} found ${packages} packages, ${dependencies} deps`);
+    }
+
+    debugStateChange(component: string, from: string, to: string): void {
+        this.debug(`State ${component} ${from}→${to}`);
+    }
+
+    debugPerformance(operation: string, duration: number, items?: number): void {
+        const itemsStr = items ? ` ${items} items` : '';
+        this.debug(`Perf ${operation} ${duration}ms${itemsStr}`);
+    }
+
+    debugRetry(operation: string, attempt: number, maxAttempts: number, delay: number): void {
+        this.debug(`Retry ${operation} ${attempt}/${maxAttempts} delay:${delay}ms`);
+    }
+
     logCacheHit(packageNames: string[]): void {
         if (packageNames.length > 0) {
             const packageList =
@@ -156,6 +187,70 @@ export class LoggerService {
     logLoadingState(state: 'start' | 'end', operation: string, packages?: string[]): void {
         const message = `Loading ${state} ${operation}`;
         this.debug(message, packages ? { packages } : undefined);
+    }
+
+    warnSlowOperation(operation: string, duration: number, threshold: number): void {
+        this.warn(`Slow ${operation} ${duration}ms (threshold: ${threshold}ms)`);
+    }
+
+    warnLargeResponse(endpoint: string, size: number, threshold: number): void {
+        this.warn(`Large response ${endpoint} ${size}b (threshold: ${threshold}b)`);
+    }
+
+    warnCacheEviction(reason: string, keys: number): void {
+        this.warn(`Cache eviction ${reason} ${keys} keys`);
+    }
+
+    warnRateLimitApproaching(endpoint: string, remaining: number, resetTime: number): void {
+        this.warn(`Rate limit ${endpoint} ${remaining} remaining, resets in ${resetTime}s`);
+    }
+
+    warnDeprecatedPackage(packageName: string, version: string): void {
+        this.warn(`Deprecated package ${packageName}@${version}`);
+    }
+
+    warnMissingDependency(packageName: string, requiredBy: string): void {
+        this.warn(`Missing dependency ${packageName} required by ${requiredBy}`);
+    }
+
+    warnVersionMismatch(packageName: string, expected: string, actual: string): void {
+        this.warn(`Version mismatch ${packageName} expected:${expected} actual:${actual}`);
+    }
+
+    warnConfigurationIssue(setting: string, value: any, suggestion: string): void {
+        this.warn(`Config issue ${setting}=${value} suggest:${suggestion}`);
+    }
+
+    errorApiFailure(endpoint: string, status: number, error: string): void {
+        this.error(`API failure ${endpoint} ${status} ${error}`);
+    }
+
+    errorNetworkTimeout(endpoint: string, timeout: number): void {
+        this.error(`Network timeout ${endpoint} ${timeout}ms`);
+    }
+
+    errorParseFailure(file: string, line: number, error: string): void {
+        this.error(`Parse failure ${file}:${line} ${error}`);
+    }
+
+    errorCacheCorruption(key: string, error: string): void {
+        this.error(`Cache corruption ${key} ${error}`);
+    }
+
+    errorFileSystemAccess(path: string, operation: string, error: string): void {
+        this.error(`FS error ${operation} ${path} ${error}`);
+    }
+
+    errorValidationFailure(item: string, field: string, value: any): void {
+        this.error(`Validation failure ${item}.${field}=${value}`);
+    }
+
+    errorResourceExhaustion(resource: string, limit: number, current: number): void {
+        this.error(`Resource exhaustion ${resource} ${current}/${limit}`);
+    }
+
+    errorUnexpectedState(component: string, state: string, expected: string): void {
+        this.error(`Unexpected state ${component} ${state} expected:${expected}`);
     }
 
     show(): void {

@@ -12,7 +12,8 @@ export class CacheManagerService {
     constructor(private logger: LoggerService) {}
 
     getPackageInfo(packageName: string): any | null {
-        return this.packageCache.get(packageName) || null;
+        const result = this.packageCache.get(packageName) || null;
+        return result;
     }
 
     setPackageInfo(packageName: string, info: any): void {

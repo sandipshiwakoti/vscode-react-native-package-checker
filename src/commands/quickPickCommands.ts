@@ -60,15 +60,6 @@ export async function showQuickActionsCommand(
             description: 'Disable dependency checking or check for a different React Native version',
             detail: `Currently checking for React Native ${dependencyCheckService.getTargetVersion()}`,
         });
-
-        const validationResults = dependencyCheckService.getCurrentResults();
-        if (validationResults.length > 0) {
-            items.push({
-                label: '$(edit-sparkle) Update Checked Dependencies',
-                description: `Update all ${validationResults.length} mismatched dependencies to expected versions`,
-                detail: `Update packages to React Native ${dependencyCheckService.getTargetVersion()} expected versions`,
-            });
-        }
     } else {
         items.push({
             label: '$(gear) Check Dependency Version',
@@ -114,8 +105,6 @@ export async function showQuickActionsCommand(
                 await vscode.commands.executeCommand('reactNativePackageChecker.disableDependencyCheck');
             } else if (selectedItem.label.includes('Check Dependency Version')) {
                 await vscode.commands.executeCommand('reactNativePackageChecker.enableDependencyCheck');
-            } else if (selectedItem.label.includes('Update Checked Dependencies')) {
-                await vscode.commands.executeCommand(COMMANDS.BULK_UPDATE_TO_EXPECTED_VERSIONS);
             } else if (selectedItem.label.includes('Bulk Update Dependencies')) {
                 await vscode.commands.executeCommand(COMMANDS.PERFORM_BULK_UPDATE);
             } else if (selectedItem.label.includes('Refresh Package Data')) {

@@ -80,7 +80,6 @@ export enum COMMANDS {
     DISABLE_DEPENDENCY_VALIDATION = 'reactNativePackageChecker.disableDependencyValidation',
     CHECK_DEPENDENCIES_FOR_RN_VERSION = 'reactNativePackageChecker.checkDependenciesForRnVersion',
     UPDATE_TO_EXPECTED_VERSION = 'reactNativePackageChecker.updateToExpectedVersion',
-    BULK_UPDATE_TO_EXPECTED_VERSIONS = 'reactNativePackageChecker.bulkUpdateToExpectedVersions',
     ADD_PACKAGE = 'reactNativePackageChecker.addPackage',
     REMOVE_PACKAGE = 'reactNativePackageChecker.removePackage',
     BROWSE_PACKAGES = 'reactNativePackageChecker.browsePackages',
@@ -89,7 +88,6 @@ export enum COMMANDS {
     TOGGLE_STATUS_DECORATIONS = 'reactNativePackageChecker.toggleStatusDecorations',
     CHECK_DEPENDENCY_VERSION = 'reactNativePackageChecker.checkDependencyVersion',
     RESET_DEPENDENCY_CHECK = 'reactNativePackageChecker.resetDependencyCheck',
-    BULK_UPDATE_DEPENDENCIES = 'reactNativePackageChecker.bulkUpdateDependencies',
     PERFORM_BULK_UPDATE = 'reactNativePackageChecker.performBulkUpdate',
 }
 

@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import { performBulkUpdate } from './commands/bulkUpdateCommands';
 import {
     addPackage,
-    bulkUpdateToExpectedVersions,
     disableDependencyCheck,
     enableDependencyCheck,
     removePackage,
@@ -48,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const cacheManager = new CacheManagerService(logger);
 
-    const npmRegistryService = new NpmRegistryService();
+    const npmRegistryService = new NpmRegistryService(logger);
     const packageService = new PackageService(npmRegistryService, cacheManager, logger);
 
     const dependencyCheckService = new DependencyCheckService(context, logger, cacheManager);
@@ -255,11 +254,6 @@ export async function activate(context: vscode.ExtensionContext) {
             updateToExpectedVersion(packageName, expectedVersion, dependencyCheckService)
     );
 
-    const bulkUpdateToExpectedVersionsCommand = vscode.commands.registerCommand(
-        COMMANDS.BULK_UPDATE_TO_EXPECTED_VERSIONS,
-        () => bulkUpdateToExpectedVersions(dependencyCheckService)
-    );
-
     const addPackageCommand = vscode.commands.registerCommand(
         COMMANDS.ADD_PACKAGE,
         (packageName: string, version: string, dependencyType?: 'dependencies' | 'devDependencies') =>
@@ -325,10 +319,6 @@ export async function activate(context: vscode.ExtensionContext) {
         disableDependencyCheck(dependencyCheckService)
     );
 
-    const bulkUpdateDependenciesCommand = vscode.commands.registerCommand(COMMANDS.BULK_UPDATE_DEPENDENCIES, () =>
-        bulkUpdateToExpectedVersions(dependencyCheckService)
-    );
-
     const performBulkUpdateCommand = vscode.commands.registerCommand(COMMANDS.PERFORM_BULK_UPDATE, () =>
         performBulkUpdate(bulkUpdateService)
     );
@@ -358,7 +348,7 @@ export async function activate(context: vscode.ExtensionContext) {
         enableDependencyCheckCommand,
         disableDependencyCheckCommand,
         updateToExpectedVersionCommand,
-        bulkUpdateToExpectedVersionsCommand,
+
         addPackageCommand,
         removePackageCommand,
         browseAllPackagesCommandDisposable,
@@ -373,7 +363,6 @@ export async function activate(context: vscode.ExtensionContext) {
         toggleStatusDecorationsCommand,
         checkDependencyVersionCommand,
         resetDependencyCheckCommand,
-        bulkUpdateDependenciesCommand,
         performBulkUpdateCommand,
         packageDecorationService,
         activeEditorChangeListener,

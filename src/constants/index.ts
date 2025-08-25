@@ -59,6 +59,8 @@ export const STATUS_SYMBOLS = {
     LATEST: '$(check)',
     UPGRADE_HELPER: '$(globe)',
     DEPENDENCY_UPDATE: '$(tools)',
+    ADD: '$(add)',
+    REMOVE: '$(remove)',
 } as const;
 
 export const DEPENDENCY_CHECK_CONFIG = {
@@ -139,8 +141,14 @@ export const SUCCESS_MESSAGES = {
         `Added ${packageName}@${version} to ${section}`,
     PACKAGE_REMOVED: (packageName: string) => `Removed ${packageName} from dependencies`,
     PACKAGE_UPDATED: (packageName: string, version: string) => `Updated ${packageName} to ${version}`,
-    DEPENDENCY_CHECK_ENABLED: (version: string) =>
-        `Dependency check enabled for React Native ${version}. Mismatched versions will be highlighted with update suggestions.`,
+    DEPENDENCY_CHECK_ENABLED: (version: string, currentVersion?: string) => {
+        const baseMessage = `Dependency check enabled for React Native ${version}. Mismatched versions will be highlighted with update suggestions.`;
+        if (currentVersion && currentVersion !== version) {
+            const upgradeUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentVersion}&to=${version}#RnDiffApp-package.json`;
+            return `${baseMessage} [View upgrade guide](${upgradeUrl})`;
+        }
+        return baseMessage;
+    },
     DEPENDENCY_CHECK_DISABLED: 'Dependency check disabled. Version validation is no longer active.',
     BULK_UPDATE_COMPLETED: (count: number, version: string) =>
         `Successfully updated ${count} package${count > 1 ? 's' : ''} for React Native ${version}. All requirements fulfilled!`,

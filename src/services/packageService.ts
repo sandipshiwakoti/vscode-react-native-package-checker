@@ -77,6 +77,10 @@ export class PackageService {
                 this.cacheManager.setMultiplePackageInfos(foundPackages);
 
                 const duration = Date.now() - startTime;
+
+                if (duration > 5000) {
+                    this.logger.warnSlowOperation('package-info-api', duration, 5000);
+                }
                 this.logger.info(
                     `Fetched ${uncachedPackages.length} ${uncachedPackages.length === 1 ? 'package' : 'packages'} data (${duration}ms)`
                 );
@@ -121,6 +125,7 @@ export class PackageService {
         const packageNames = allPackageNames;
 
         const cachedVersions = this.cacheManager.getMultiplePackageVersions(packageNames);
+
         const uncachedVersionPackages = this.cacheManager.getUncachedVersions(packageNames);
 
         const packagesNeedingVersionCheck = allPackageNames.filter((packageName) => {
@@ -230,7 +235,6 @@ export class PackageService {
                 case 'removed':
                     this.cacheManager.removePackageInfo(change.packageName);
                     this.cacheManager.removePackageVersion(change.packageName);
-                    this.logger.debug(`Cache removed: ${change.packageName}`);
                     break;
 
                 case 'added':
@@ -459,7 +463,6 @@ export class PackageService {
     }
 
     public clearCache(): void {
-        this.logger.debug('Cache cleared');
         this.cacheManager.clearAllCache();
     }
 
@@ -473,9 +476,12 @@ export class PackageService {
     private async fetchPackageData(packages: string[]): Promise<PackageResponse> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const url = `${API_BASE_URL}${API_CONFIG.ENDPOINT_PACKAGE_INFO}`;
 
         try {
-            const response = await fetch(`${API_BASE_URL}${API_CONFIG.ENDPOINT_PACKAGE_INFO}`, {
+            this.logger.debugApiRequest('POST', url);
+
+            const response = await fetch(url, {
                 method: API_CONFIG.METHOD_POST,
                 headers: { [API_CONFIG.HEADER_CONTENT_TYPE]: API_CONFIG.CONTENT_TYPE_JSON },
                 body: JSON.stringify({ packages }),
@@ -486,7 +492,7 @@ export class PackageService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('API Error response:', errorText);
+                this.logger.errorApiFailure(url, response.status, errorText);
                 throw new Error(`API request failed: ${response.status}`);
             }
 
@@ -501,6 +507,9 @@ export class PackageService {
             return packageResponse;
         } catch (error) {
             clearTimeout(timeoutId);
+            if (error instanceof Error && error.name === 'AbortError') {
+                this.logger.errorNetworkTimeout(url, 10000);
+            }
             throw error;
         }
     }

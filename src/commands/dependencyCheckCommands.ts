@@ -24,10 +24,6 @@ export async function updateToExpectedVersion(
     await service.updateToExpectedVersion(packageName, expectedVersion);
 }
 
-export async function bulkUpdateToExpectedVersions(service: DependencyCheckService): Promise<void> {
-    await service.bulkUpdateToExpectedVersions();
-}
-
 export async function addPackage(
     packageName: string,
     version: string,

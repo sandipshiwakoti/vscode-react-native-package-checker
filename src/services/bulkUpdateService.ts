@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { DEPENDENCY_CHECK_CONFIG, ERROR_MESSAGES } from '../constants';
+import { DEPENDENCY_CHECK_CONFIG, ERROR_MESSAGES, EXTERNAL_URLS, STATUS_SYMBOLS } from '../constants';
 import { DiffData, ValidationResult } from '../types';
 import { extractCurrentRnVersion, parseDiff } from '../utils/dependencyCheckUtils';
 import { parsePackageJson, removePackageFromJson, updatePackageJsonSection } from '../utils/packageUtils';
@@ -14,29 +14,28 @@ export class BulkUpdateService {
     constructor(private cacheManager: CacheManagerService) {}
 
     async performBulkUpdate(): Promise<void> {
-        const activeEditor = vscode.window.activeTextEditor;
-        if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
-            vscode.window.showErrorMessage(ERROR_MESSAGES.PACKAGE_JSON_NOT_FOUND);
-            return;
-        }
-
-        const content = activeEditor.document.getText();
-        const currentRnVersion = extractCurrentRnVersion(content);
-
-        if (!currentRnVersion) {
-            vscode.window.showWarningMessage('Could not find React Native version in package.json');
-            return;
-        }
-
-        // Get cached React Native latest version
-        const cachedLatestRnVersion = this.cacheManager.getLatestVersion('react-native');
-
-        const targetVersion = await promptForTargetVersion(currentRnVersion, cachedLatestRnVersion || undefined);
-        if (!targetVersion) {
-            return;
-        }
-
         try {
+            const activeEditor = vscode.window.activeTextEditor;
+            if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
+                vscode.window.showErrorMessage(ERROR_MESSAGES.PACKAGE_JSON_NOT_FOUND);
+                return;
+            }
+
+            const content = activeEditor.document.getText();
+            const currentRnVersion = extractCurrentRnVersion(content);
+
+            if (!currentRnVersion) {
+                vscode.window.showWarningMessage('Could not find React Native version in package.json');
+                return;
+            }
+
+            const cachedLatestRnVersion = this.cacheManager.getLatestVersion('react-native');
+
+            const targetVersion = await promptForTargetVersion(currentRnVersion, cachedLatestRnVersion || undefined);
+            if (!targetVersion) {
+                return;
+            }
+
             const diffData = await this.fetchDiff(currentRnVersion, targetVersion);
             const currentPackages = this.parsePackageJson(content);
             const results = this.generateResults(currentPackages, diffData);
@@ -51,24 +50,45 @@ export class BulkUpdateService {
             await this.showBulkUpdatePreview(results, targetVersion);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Failed to analyze dependencies: ${errorMessage}`);
+            console.error('Bulk update error:', error);
+            vscode.window.showErrorMessage(`Failed to perform bulk update: ${errorMessage}`);
         }
     }
 
     private async showBulkUpdatePreview(results: ValidationResult[], targetVersion: string): Promise<void> {
-        const previewItems = results.map((result) => {
+        const quickPick = vscode.window.createQuickPick();
+        quickPick.title = `Bulk Update Dependencies for React Native ${targetVersion}`;
+        quickPick.placeholder = 'Select packages to update (uncheck to skip)';
+        quickPick.canSelectMany = true;
+        quickPick.ignoreFocusOut = true;
+
+        const currentRnVersion = this.getCurrentRnVersion();
+        const diffUrl = currentRnVersion
+            ? `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentRnVersion}&to=${targetVersion}#RnDiffApp-package.json`
+            : `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?to=${targetVersion}#RnDiffApp-package.json`;
+
+        quickPick.buttons = [
+            {
+                iconPath: new vscode.ThemeIcon('link-external'),
+                tooltip: `View React Native ${targetVersion} upgrade guide and package.json reference`,
+            },
+        ];
+
+        const sortedResults = this.sortResultsForPackageJson(results);
+
+        const packageItems = sortedResults.map((result) => {
             let description = '';
             let detail = '';
 
             if (result.changeType === 'addition') {
                 description = `Add ${result.expectedVersion}`;
-                detail = `Add new package required for React Native ${targetVersion}`;
+                detail = `${STATUS_SYMBOLS.ADD} Add new package required for React Native ${targetVersion}`;
             } else if (result.changeType === 'removal') {
                 description = `Remove ${result.currentVersion}`;
-                detail = `Remove package no longer needed for React Native ${targetVersion}`;
+                detail = `${STATUS_SYMBOLS.REMOVE} Remove package no longer needed for React Native ${targetVersion}`;
             } else {
                 description = `${result.currentVersion} → ${result.expectedVersion}`;
-                detail = `Update to React Native ${targetVersion} expected version`;
+                detail = `${STATUS_SYMBOLS.UPDATE} Update to React Native ${targetVersion} expected version`;
             }
 
             return {
@@ -79,18 +99,31 @@ export class BulkUpdateService {
             };
         });
 
-        const selectedItems = await vscode.window.showQuickPick(previewItems, {
-            title: `Bulk Update Dependencies for React Native ${targetVersion}`,
-            placeHolder: 'Select packages to update (uncheck to skip)',
-            canPickMany: true,
-            ignoreFocusOut: true,
+        quickPick.items = packageItems;
+        quickPick.selectedItems = packageItems;
+
+        return new Promise((resolve) => {
+            quickPick.onDidTriggerButton(async () => {
+                await vscode.env.openExternal(vscode.Uri.parse(diffUrl));
+            });
+
+            quickPick.onDidAccept(async () => {
+                const selectedItems = quickPick.selectedItems;
+                quickPick.hide();
+
+                if (selectedItems.length > 0) {
+                    await this.applyBulkUpdates([...selectedItems], results, targetVersion);
+                }
+                resolve();
+            });
+
+            quickPick.onDidHide(() => {
+                quickPick.dispose();
+                resolve();
+            });
+
+            quickPick.show();
         });
-
-        if (!selectedItems || selectedItems.length === 0) {
-            return;
-        }
-
-        await this.applyBulkUpdates(selectedItems, results, targetVersion);
     }
 
     private async applyBulkUpdates(
@@ -117,7 +150,8 @@ export class BulkUpdateService {
             const failedUpdates: string[] = [];
 
             for (const item of selectedItems) {
-                const result = results.find((r) => r.packageName === item.label);
+                const packageName = item.label.replace(/^\$\([^)]+\)\s+/, '');
+                const result = results.find((r) => r.packageName === packageName);
                 if (!result) {
                     continue;
                 }
@@ -275,13 +309,24 @@ export class BulkUpdateService {
                     });
                 }
             } else if (change.changeType === 'addition') {
-                if (!currentPackages[change.packageName]) {
+                const currentVersion = currentPackages[change.packageName];
+                if (!currentVersion) {
                     results.push({
                         packageName: change.packageName,
                         currentVersion: '',
                         expectedVersion: change.toVersion,
                         hasVersionMismatch: true,
                         changeType: 'addition',
+                        dependencyType: change.dependencyType,
+                    });
+                } else if (this.hasVersionDifference(currentVersion, change.toVersion)) {
+                    const cleanCurrentVersion = currentVersion.replace(/^[\^~]/, '');
+                    results.push({
+                        packageName: change.packageName,
+                        currentVersion: cleanCurrentVersion,
+                        expectedVersion: change.toVersion,
+                        hasVersionMismatch: true,
+                        changeType: 'version_change',
                         dependencyType: change.dependencyType,
                     });
                 }
@@ -307,5 +352,26 @@ export class BulkUpdateService {
         const cleanCurrent = currentVersion.replace(/^[\^~]/, '');
         const cleanExpected = expectedVersion.replace(/^[\^~]/, '');
         return cleanCurrent !== cleanExpected;
+    }
+
+    private getCurrentRnVersion(): string | null {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
+            return null;
+        }
+        const content = activeEditor.document.getText();
+        return extractCurrentRnVersion(content);
+    }
+
+    private sortResultsForPackageJson(results: ValidationResult[]): ValidationResult[] {
+        const dependencies = results
+            .filter((r) => r.dependencyType === 'dependencies' || !r.dependencyType)
+            .sort((a, b) => a.packageName.localeCompare(b.packageName));
+
+        const devDependencies = results
+            .filter((r) => r.dependencyType === 'devDependencies')
+            .sort((a, b) => a.packageName.localeCompare(b.packageName));
+
+        return [...dependencies, ...devDependencies];
     }
 }

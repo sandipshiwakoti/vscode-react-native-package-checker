@@ -147,13 +147,8 @@
                 "category": "Package Checker"
             },
             {
-                "command": "reactNativePackageChecker.bulkUpdateDependencies",
-                "title": "Bulk Update Dependencies",
-                "category": "Package Checker"
-            },
-            {
                 "command": "reactNativePackageChecker.performBulkUpdate",
-                "title": "Perform Bulk Update",
+                "title": "Bulk Update Dependencies",
                 "category": "Package Checker"
             }
         ],
@@ -201,10 +196,6 @@
                 },
                 {
                     "command": "reactNativePackageChecker.resetDependencyCheck",
-                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
-                },
-                {
-                    "command": "reactNativePackageChecker.bulkUpdateDependencies",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 },
                 {
