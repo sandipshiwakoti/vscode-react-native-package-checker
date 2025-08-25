@@ -135,6 +135,21 @@
                 "command": "reactNativePackageChecker.toggleStatusDecorations",
                 "title": "Toggle Status Decorations",
                 "category": "Package Checker"
+            },
+            {
+                "command": "reactNativePackageChecker.checkDependencyVersion",
+                "title": "Check Dependencies Version",
+                "category": "Package Checker"
+            },
+            {
+                "command": "reactNativePackageChecker.resetDependencyCheck",
+                "title": "Reset Dependencies Check",
+                "category": "Package Checker"
+            },
+            {
+                "command": "reactNativePackageChecker.bulkUpdateDependencies",
+                "title": "Bulk Update Dependencies",
+                "category": "Package Checker"
             }
         ],
         "menus": {
@@ -173,6 +188,18 @@
                 },
                 {
                     "command": "reactNativePackageChecker.browsePackages",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.checkDependencyVersion",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.resetDependencyCheck",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.bulkUpdateDependencies",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 }
             ]

@@ -319,6 +319,18 @@ export async function activate(context: vscode.ExtensionContext) {
         packageDecorationService.toggleDecorations()
     );
 
+    const checkDependencyVersionCommand = vscode.commands.registerCommand(COMMANDS.CHECK_DEPENDENCY_VERSION, () =>
+        enableDependencyCheck(dependencyCheckService, logger)
+    );
+
+    const resetDependencyCheckCommand = vscode.commands.registerCommand(COMMANDS.RESET_DEPENDENCY_CHECK, () =>
+        disableDependencyCheck(dependencyCheckService, logger)
+    );
+
+    const bulkUpdateDependenciesCommand = vscode.commands.registerCommand(COMMANDS.BULK_UPDATE_DEPENDENCIES, () =>
+        bulkUpdateToExpectedVersions(dependencyCheckService, logger)
+    );
+
     context.subscriptions.push(
         codeLensDisposable,
         enableCommand,
@@ -357,6 +369,9 @@ export async function activate(context: vscode.ExtensionContext) {
         showQuickActionsCommandDisposable,
         showQuickActionsWithBackCommandDisposable,
         toggleStatusDecorationsCommand,
+        checkDependencyVersionCommand,
+        resetDependencyCheckCommand,
+        bulkUpdateDependenciesCommand,
         packageDecorationService,
         activeEditorChangeListener,
         configurationChangeListener

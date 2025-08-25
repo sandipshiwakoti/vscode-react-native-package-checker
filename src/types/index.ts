@@ -87,6 +87,9 @@ export enum COMMANDS {
     SHOW_QUICK_ACTIONS = 'reactNativePackageChecker.showQuickActions',
     SHOW_QUICK_ACTIONS_WITH_BACK = 'reactNativePackageChecker.showQuickActionsWithBack',
     TOGGLE_STATUS_DECORATIONS = 'reactNativePackageChecker.toggleStatusDecorations',
+    CHECK_DEPENDENCY_VERSION = 'reactNativePackageChecker.checkDependencyVersion',
+    RESET_DEPENDENCY_CHECK = 'reactNativePackageChecker.resetDependencyCheck',
+    BULK_UPDATE_DEPENDENCIES = 'reactNativePackageChecker.bulkUpdateDependencies',
 }
 
 export enum GITHUB_PATHS {

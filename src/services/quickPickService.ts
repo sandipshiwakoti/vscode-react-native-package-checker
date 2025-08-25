@@ -75,9 +75,7 @@ export class QuickPickService {
             const selectedItem = quickPick.selectedItems[0] as any;
             if (selectedItem && selectedItem.status) {
                 quickPick.dispose();
-                if (selectedItem.status === 'quick-actions') {
-                    vscode.commands.executeCommand('reactNativePackageChecker.showQuickActionsWithBack');
-                } else if (selectedItem.status === 'all') {
+                if (selectedItem.status === 'all') {
                     this.showAllPackages(true);
                 } else {
                     this.showFilteredPackages(selectedItem.status, true);
@@ -130,15 +128,9 @@ export class QuickPickService {
                 status: 'unmaintained' as PackageStatus,
                 count: statusCounts.unmaintained,
             },
-            {
-                label: `$(list-unordered) Quick Actions`,
-                description: 'Access quick actions menu',
-                status: 'quick-actions' as any,
-                count: 1,
-            },
         ];
 
-        return items.filter((item) => item.status === 'quick-actions' || item.count > 0);
+        return items.filter((item) => item.count > 0);
     }
 
     createQuickPickItems(packages: PackageInfoMap): PackageQuickPickItem[] {
