@@ -29,7 +29,8 @@ export class QuickPickService {
             return;
         }
 
-        await this.showQuickPick(packages, 'Browse All Packages', showBackButton);
+        const count = Object.keys(packages).length;
+        await this.showQuickPick(packages, `Browse All Packages (${count})`, showBackButton);
     }
 
     async showFilteredPackages(status: PackageStatus, showBackButton: boolean = false): Promise<void> {
@@ -47,7 +48,8 @@ export class QuickPickService {
             return;
         }
 
-        const title = `Browse ${this.getStatusLabel(status)} Packages`;
+        const count = Object.keys(filteredPackages).length;
+        const title = `Browse ${this.getStatusLabel(status)} Packages (${count})`;
         await this.showQuickPick(filteredPackages, title, showBackButton);
     }
 
