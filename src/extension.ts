@@ -28,11 +28,13 @@ import { DependencyCheckService } from './services/dependencyCheckService';
 import { FileChangeService } from './services/fileChangeService';
 import { LoggerService } from './services/loggerService';
 import { NpmRegistryService } from './services/npmRegistryService';
+import { PackageDecorationService } from './services/packageDecorationService';
 import { PackageDetailsService } from './services/packageDetailsService';
 import { PackageFilterService } from './services/packageFilterService';
 import { PackageService } from './services/packageService';
 import { QuickPickService } from './services/quickPickService';
 import { VersionUpdateService } from './services/versionUpdateService';
+import { extractPackageNames } from './utils/packageUtils';
 import { openPackageCheckerWebsite, openUpgradeHelper, refreshPackages, showPackageDetails } from './commands';
 import { COMMANDS, FileExtensions } from './types';
 import { PackageInfo } from './types';
@@ -50,7 +52,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const dependencyCheckService = new DependencyCheckService(context, logger);
     await dependencyCheckService.initialize();
 
-    const codeLensProviderService = new CodeLensProviderService(packageService, dependencyCheckService);
+    const packageDecorationService = new PackageDecorationService(context);
+
+    const codeLensProviderService = new CodeLensProviderService(
+        packageService,
+        dependencyCheckService,
+        packageDecorationService
+    );
     const versionUpdateService = new VersionUpdateService(codeLensProviderService, packageService);
 
     const fileChangeService = new FileChangeService(logger);
@@ -193,6 +201,32 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Listen for active editor changes to update decorations
+    const activeEditorChangeListener = vscode.window.onDidChangeActiveTextEditor((editor) => {
+        if (editor && editor.document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
+            // Get cached package data and update decorations
+            const packageWithVersions = extractPackageNames(editor.document.getText());
+            const cachedPackageInfos = packageService.getCachedResultsByVersions(packageWithVersions);
+            if (Object.keys(cachedPackageInfos).length > 0) {
+                packageDecorationService.updateDecorations(cachedPackageInfos);
+            }
+        }
+    });
+
+    // Listen for configuration changes to update decorations
+    const configurationChangeListener = vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('reactNativePackageChecker.showStatusDecorations')) {
+            const activeEditor = vscode.window.activeTextEditor;
+            if (activeEditor && activeEditor.document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
+                const packageWithVersions = extractPackageNames(activeEditor.document.getText());
+                const cachedPackageInfos = packageService.getCachedResultsByVersions(packageWithVersions);
+                if (Object.keys(cachedPackageInfos).length > 0) {
+                    packageDecorationService.updateDecorations(cachedPackageInfos);
+                }
+            }
+        }
+    });
+
     const showCacheStatsCommand = vscode.commands.registerCommand('reactNativePackageChecker.showCacheStats', () => {
         const stats = packageService.getCacheStats();
         logger.info('Cache Statistics', stats);
@@ -281,6 +315,10 @@ export async function activate(context: vscode.ExtensionContext) {
         () => showQuickActionsWithBackCommand(dependencyCheckService, logger)
     );
 
+    const toggleStatusDecorationsCommand = vscode.commands.registerCommand(COMMANDS.TOGGLE_STATUS_DECORATIONS, () =>
+        packageDecorationService.toggleDecorations()
+    );
+
     context.subscriptions.push(
         codeLensDisposable,
         enableCommand,
@@ -317,7 +355,11 @@ export async function activate(context: vscode.ExtensionContext) {
         showUnmaintainedPackagesCommandDisposable,
         browsePackagesCommandDisposable,
         showQuickActionsCommandDisposable,
-        showQuickActionsWithBackCommandDisposable
+        showQuickActionsWithBackCommandDisposable,
+        toggleStatusDecorationsCommand,
+        packageDecorationService,
+        activeEditorChangeListener,
+        configurationChangeListener
     );
 
     logger.info('React Native Package Checker activated');

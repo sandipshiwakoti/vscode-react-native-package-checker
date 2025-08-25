@@ -86,6 +86,7 @@ export enum COMMANDS {
     BROWSE_PACKAGES = 'reactNativePackageChecker.browsePackages',
     SHOW_QUICK_ACTIONS = 'reactNativePackageChecker.showQuickActions',
     SHOW_QUICK_ACTIONS_WITH_BACK = 'reactNativePackageChecker.showQuickActionsWithBack',
+    TOGGLE_STATUS_DECORATIONS = 'reactNativePackageChecker.toggleStatusDecorations',
 }
 
 export enum GITHUB_PATHS {

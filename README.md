@@ -29,6 +29,7 @@
 
 - 🎯 **New Architecture Compatibility** - See which packages support React Native's New Architecture directly in your package.json
 - 🔎 **Interactive CodeLens** - Clickable status segments that open filtered package browsers with real-time search
+- 🎨 **Visual Status Decorations** - Gutter icons show package compatibility status at a glance
 - 📊 **Smart Package Filtering** - Browse packages by compatibility status (Supported, Untested, Unlisted, Unmaintained)
 - 🔍 **Quick Pick Interface** - Searchable package browser with instant navigation to package.json lines
 - 🔧 **Maintenance Tracking** - Monitor package maintenance status and identify unmaintained dependencies
@@ -109,6 +110,22 @@ The dependencies section shows a comprehensive summary with clickable segments:
 **Toggle CodeLens:**
 
 - Use the toggle icon in the editor title bar for instant enable/disable
+
+### 🎨 Visual Status Decorations
+
+Package status decorations appear as icons in the editor gutter next to each dependency line:
+
+| Icon | Status          | Meaning                                           |
+| ---- | --------------- | ------------------------------------------------- |
+| ✅   | **Supported**   | Package fully supports New Architecture           |
+| ❌   | **Unsupported** | Package does not support New Architecture         |
+| ⚠️   | **Untested**    | Package has not been tested with New Architecture |
+| ❓   | **Unlisted**    | Package not found in the React Native directory   |
+
+**Configuration:**
+
+- Toggle decorations: Command Palette → "Toggle Status Decorations"
+- Setting: `reactNativePackageChecker.showStatusDecorations` (default: `true`)
 
 ### Package Browsing & Filtering
 
@@ -230,6 +247,7 @@ Customize the extension in your VS Code settings (`settings.json`):
 | Setting                         | Description                                                              | Default | Type      | Options                          |
 | ------------------------------- | ------------------------------------------------------------------------ | ------- | --------- | -------------------------------- |
 | `showLatestVersion`             | Show CodeLens for latest version information and fetch from NPM registry | `true`  | `boolean` | `true`, `false`                  |
+| `showStatusDecorations`         | Show gutter decorations for package New Architecture status              | `true`  | `boolean` | `true`, `false`                  |
 | `enableLogging`                 | Enable logging of API calls and cache operations to the output channel   | `true`  | `boolean` | `true`, `false`                  |
 | `logLevel`                      | Set the logging level for the extension                                  | `info`  | `string`  | `debug`, `info`, `warn`, `error` |
 | `dependencyCheck.cacheDuration` | Cache duration for dependency check diff data in hours                   | `24`    | `number`  | `1-168` hours                    |

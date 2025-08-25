@@ -8,6 +8,7 @@ import { extractPackageNames, isDevDependency } from '../utils/packageUtils';
 import { extractPackageNameFromVersionString, extractVersionFromLine, hasVersionUpdate } from '../utils/versionUtils';
 
 import { DependencyCheckService } from './dependencyCheckService';
+import { PackageDecorationService } from './packageDecorationService';
 import { PackageService } from './packageService';
 
 export class CodeLensProviderService implements vscode.CodeLensProvider {
@@ -23,7 +24,8 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
     constructor(
         private packageService: PackageService,
-        private dependencyCheckService?: DependencyCheckService
+        private dependencyCheckService?: DependencyCheckService,
+        private packageDecorationService?: PackageDecorationService
     ) {
         if (this.dependencyCheckService) {
             this.dependencyCheckService.onResultsChanged((results) => {
@@ -140,6 +142,11 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             this.isAnalyzing = false;
 
             const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion);
+
+            // Update decorations when we have package data
+            if (this.packageDecorationService && Object.keys(packageInfos).length > 0) {
+                this.packageDecorationService.updateDecorations(packageInfos);
+            }
 
             return codeLenses;
         } catch (error) {
@@ -681,6 +688,12 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     async disable(): Promise<void> {
         this.isEnabled = false;
         await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+
+        // Clear decorations when disabled
+        if (this.packageDecorationService) {
+            this.packageDecorationService.clearDecorations();
+        }
+
         this.refresh();
         vscode.window.showInformationMessage('React Native Package Checker disabled');
     }

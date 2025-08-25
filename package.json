@@ -56,6 +56,11 @@
                     "minimum": 1,
                     "maximum": 168,
                     "description": "Cache duration for diff data in hours (1-168 hours)"
+                },
+                "reactNativePackageChecker.showStatusDecorations": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show gutter decorations for package New Architecture status"
                 }
             }
         },
@@ -124,6 +129,11 @@
             {
                 "command": "reactNativePackageChecker.browsePackages",
                 "title": "Browse Packages",
+                "category": "Package Checker"
+            },
+            {
+                "command": "reactNativePackageChecker.toggleStatusDecorations",
+                "title": "Toggle Status Decorations",
                 "category": "Package Checker"
             }
         ],
