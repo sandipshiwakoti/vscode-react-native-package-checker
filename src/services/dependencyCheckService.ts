@@ -486,10 +486,6 @@ export class DependencyCheckService {
 
                     const success = await vscode.workspace.applyEdit(edit);
                     if (success) {
-                        vscode.window.showInformationMessage(
-                            SUCCESS_MESSAGES.PACKAGE_UPDATED(packageName, expectedVersion)
-                        );
-
                         await document.save();
 
                         setTimeout(async () => {
@@ -541,10 +537,6 @@ export class DependencyCheckService {
 
             const success = await vscode.workspace.applyEdit(edit);
             if (success) {
-                const sectionDisplayName = targetSection === 'devDependencies' ? 'devDependencies' : 'dependencies';
-                vscode.window.showInformationMessage(
-                    SUCCESS_MESSAGES.PACKAGE_ADDED(packageName, version, sectionDisplayName)
-                );
                 await document.save();
 
                 setTimeout(async () => {
@@ -591,7 +583,6 @@ export class DependencyCheckService {
 
             const success = await vscode.workspace.applyEdit(edit);
             if (success) {
-                vscode.window.showInformationMessage(`Removed ${packageName} from dependencies`);
                 await document.save();
 
                 setTimeout(async () => {

@@ -150,11 +150,9 @@ export class PackageDecorationService {
                 // Trigger a refresh to show decorations
                 vscode.commands.executeCommand('reactNativePackageChecker.refreshPackages');
             }
-            vscode.window.showInformationMessage('Package status decorations enabled');
         } else {
             // Decorations were just disabled, clear them
             this.clearDecorations();
-            vscode.window.showInformationMessage('Package status decorations disabled');
         }
     }
 

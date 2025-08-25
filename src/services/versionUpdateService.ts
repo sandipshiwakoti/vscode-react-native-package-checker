@@ -50,10 +50,6 @@ export class VersionUpdateService {
 
             this.packageService.updatePackageVersionInCache(packageName, latestVersion);
 
-            vscode.window.showInformationMessage(
-                `Updated ${packageName} to ${cleanVersion(latestVersion)}. Save file and run your package manager to install.`
-            );
-
             this.codeLensProviderService.refresh();
         } catch (error) {
             console.error('Error updating package version:', error);

@@ -662,7 +662,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             this.lastSummaryData = null;
             this.isApiCallInProgress = false;
             this.refresh();
-            vscode.window.showInformationMessage('Package data refreshed successfully');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`Failed to refresh package data: ${errorMessage}`);
@@ -673,8 +672,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         console.log('[CodeLens] Enable called');
         this.isEnabled = true;
         await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, true);
-
-        vscode.window.showInformationMessage('React Native Package Checker enabled');
 
         this._onDidChangeCodeLenses.fire();
     }
@@ -689,7 +686,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         }
 
         this.refresh();
-        vscode.window.showInformationMessage('React Native Package Checker disabled');
     }
 
     initialize(): void {
