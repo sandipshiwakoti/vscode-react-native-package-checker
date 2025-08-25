@@ -85,28 +85,41 @@ function generateWebviewContent(packageName: string, packageInfo: PackageInfo): 
                     height: 100vh;
                     overflow: hidden;
                     color: var(--vscode-foreground);
-                    background-color: var(--vscode-editor-background);
+                    background: linear-gradient(135deg, var(--vscode-editor-background) 0%, var(--vscode-sideBar-background) 100%);
                     font-size: 13px;
+                    line-height: 1.5;
+                    animation: fadeIn 0.3s ease-out;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
                 .header {
-                    background: var(--vscode-titleBar-activeBackground);
-                    padding: 16px 20px;
+                    background: linear-gradient(135deg, var(--vscode-titleBar-activeBackground) 0%, var(--vscode-sideBar-background) 100%);
+                    padding: 20px 24px;
                     border-bottom: 1px solid var(--vscode-panel-border);
                     flex-shrink: 0;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                 }
                 .header h1 { 
                     margin: 0;
                     color: var(--vscode-titleBar-activeForeground);
-                    font-size: 20px;
-                    font-weight: 600;
+                    font-size: 22px;
+                    font-weight: 700;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
                 }
                 .version {
-                    font-size: 14px;
-                    font-weight: 400;
-                    opacity: 0.8;
+                    font-size: 15px;
+                    font-weight: 500;
+                    opacity: 0.85;
+                    background: var(--vscode-badge-background);
+                    color: var(--vscode-badge-foreground);
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    font-family: var(--vscode-editor-font-family);
                 }
                 .container {
                     display: flex;
@@ -115,72 +128,94 @@ function generateWebviewContent(packageName: string, packageInfo: PackageInfo): 
                 }
                 .content {
                     flex: 1;
-                    padding: 16px;
+                    padding: 20px 24px 40px;
                     overflow-y: auto;
                     overflow-x: hidden;
+                    background: transparent;
+                    position: relative;
+                }
+                .content::-webkit-scrollbar {
+                    width: 8px;
+                }
+                .content::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .content::-webkit-scrollbar-thumb {
+                    background: var(--vscode-scrollbarSlider-background);
+                    border-radius: 4px;
+                }
+                .content::-webkit-scrollbar-thumb:hover {
+                    background: var(--vscode-scrollbarSlider-hoverBackground);
                 }
                 .single-column {
                     display: flex;
                     flex-direction: column;
-                    gap: 12px;
-                    max-width: 800px;
+                    gap: 16px;
+                    max-width: 900px;
                     margin: 0 auto;
                 }
                 .card {
-                    background: var(--vscode-textBlockQuote-background);
-                    border-radius: 6px;
-                    border-left: 3px solid var(--vscode-textLink-foreground);
-                    padding: 12px;
+                    background: var(--vscode-sideBar-background);
+                    border-radius: 8px;
+                    border: 1px solid var(--vscode-panel-border);
+                    padding: 16px 20px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                    transition: all 0.2s ease;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 4px;
+                    height: 100%;
+                    background: var(--vscode-textLink-foreground);
+                    transition: all 0.2s ease;
+                }
+                .card:hover {
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
                 }
                 .card-content {
                     color: var(--vscode-foreground);
-                    font-size: 13px;
-                    line-height: 1.4;
+                    font-size: 14px;
+                    line-height: 1.6;
                 }
                 .card-title {
                     font-weight: 600;
                     color: var(--vscode-textPreformat-foreground);
-                    margin-bottom: 6px;
-                    font-size: 12px;
+                    margin-bottom: 12px;
+                    font-size: 13px;
                     text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                }
-
-                .status-supported { border-left-color: #10b981; }
-                .status-unsupported { border-left-color: #ef4444; }
-                .status-untested { border-left-color: #f59e0b; }
-                .status-unlisted { border-left-color: #6b7280; }
-                .links-container {
+                    letter-spacing: 0.8px;
                     display: flex;
-                    flex-wrap: wrap;
+                    align-items: center;
                     gap: 8px;
                 }
-                .link-item {
-                    background: var(--vscode-button-secondaryBackground);
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    font-size: 11px;
-                    white-space: nowrap;
+                .card-title .tag-icon {
+                    opacity: 0.7;
+                    margin-right: 4px;
                 }
-                .link-item a {
-                    color: var(--vscode-textLink-foreground);
-                    text-decoration: none;
-                    font-weight: 500;
-                }
-                .link-item:hover {
-                    background: var(--vscode-button-secondaryHoverBackground);
-                }
+
+                .status-supported::before { background: #10b981; }
+                .status-unsupported::before { background: #ef4444; }
+                .status-untested::before { background: #f59e0b; }
+                .status-unlisted::before { background: #6b7280; }
+                
                 .description {
                     word-wrap: break-word;
                     white-space: pre-wrap;
                     color: var(--vscode-descriptionForeground);
-                    opacity: 0.9;
+                    opacity: 0.95;
+                    font-size: 14px;
+                    line-height: 1.6;
                 }
                 .platforms, .support-info, .platforms-support {
                     display: flex;
                     flex-wrap: wrap;
-                    gap: 8px;
-                    row-gap: 6px;
+                    gap: 10px;
+                    row-gap: 8px;
                 }
                 .status-row {
                     display: flex;
@@ -194,149 +229,192 @@ function generateWebviewContent(packageName: string, packageInfo: PackageInfo): 
                 .tag {
                     display: inline-flex;
                     align-items: center;
-                    gap: 4px;
-                    padding: 4px 8px;
-                    border-radius: 6px;
-                    font-size: 11px;
-                    font-weight: 500;
-                    transition: all 0.2s;
+                    gap: 6px;
+                    padding: 6px 12px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    transition: all 0.2s ease;
+                    text-decoration: none;
+                    border: 1px solid transparent;
+                    cursor: default;
                 }
                 .tag-icon {
-                    width: 12px;
-                    height: 12px;
+                    width: 14px;
+                    height: 14px;
                     flex-shrink: 0;
                 }
                 .tag-green {
-                    background: rgba(16, 185, 129, 0.15);
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
                     color: #059669;
-                    border: 1px solid rgba(16, 185, 129, 0.3);
+                    border: 1px solid rgba(16, 185, 129, 0.25);
                 }
                 .tag-red {
-                    background: rgba(239, 68, 68, 0.15);
+                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.08) 100%);
                     color: #dc2626;
-                    border: 1px solid rgba(239, 68, 68, 0.3);
+                    border: 1px solid rgba(239, 68, 68, 0.25);
                 }
                 .tag-yellow {
-                    background: rgba(245, 158, 11, 0.15);
+                    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
                     color: #d97706;
-                    border: 1px solid rgba(245, 158, 11, 0.3);
+                    border: 1px solid rgba(245, 158, 11, 0.25);
                 }
                 .tag-amber {
-                    background: rgba(245, 158, 11, 0.15);
+                    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
                     color: #d97706;
-                    border: 1px solid rgba(245, 158, 11, 0.3);
+                    border: 1px solid rgba(245, 158, 11, 0.25);
                 }
                 .tag-blue {
-                    background: rgba(59, 130, 246, 0.15);
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
                     color: #2563eb;
-                    border: 1px solid rgba(59, 130, 246, 0.3);
+                    border: 1px solid rgba(59, 130, 246, 0.25);
                 }
                 .tag-purple {
-                    background: rgba(147, 51, 234, 0.15);
+                    background: linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(147, 51, 234, 0.08) 100%);
                     color: #7c3aed;
-                    border: 1px solid rgba(147, 51, 234, 0.3);
+                    border: 1px solid rgba(147, 51, 234, 0.25);
                 }
                 .tag-slate {
-                    background: rgba(100, 116, 139, 0.15);
+                    background: linear-gradient(135deg, rgba(100, 116, 139, 0.15) 0%, rgba(100, 116, 139, 0.08) 100%);
                     color: #475569;
-                    border: 1px solid rgba(100, 116, 139, 0.3);
-                }
-                
-                /* Dark theme overrides */
-                body.vscode-dark .tag-green,
-                body.vscode-high-contrast .tag-green {
-                    background: #064e3b;
-                    color: #6ee7b7;
-                    border: 1px solid #065f46;
-                    box-shadow: 0 0 8px rgba(110, 231, 183, 0.2);
-                }
-                body.vscode-dark .tag-red,
-                body.vscode-high-contrast .tag-red {
-                    background: #7f1d1d;
-                    color: #fca5a5;
-                    border: 1px solid #991b1b;
-                    box-shadow: 0 0 8px rgba(252, 165, 165, 0.2);
-                }
-                body.vscode-dark .tag-yellow,
-                body.vscode-high-contrast .tag-yellow {
-                    background: #78350f;
-                    color: #fcd34d;
-                    border: 1px solid #92400e;
-                    box-shadow: 0 0 8px rgba(252, 211, 77, 0.2);
-                }
-                body.vscode-dark .tag-amber,
-                body.vscode-high-contrast .tag-amber {
-                    background: #78350f;
-                    color: #fcd34d;
-                    border: 1px solid #92400e;
-                    box-shadow: 0 0 8px rgba(252, 211, 77, 0.2);
-                }
-                body.vscode-dark .tag-blue,
-                body.vscode-high-contrast .tag-blue {
-                    background: #1e3a8a;
-                    color: #93c5fd;
-                    border: 1px solid #1d4ed8;
-                    box-shadow: 0 0 8px rgba(147, 197, 253, 0.2);
-                }
-                body.vscode-dark .tag-purple,
-                body.vscode-high-contrast .tag-purple {
-                    background: #581c87;
-                    color: #c4b5fd;
-                    border: 1px solid #6b21a8;
-                    box-shadow: 0 0 8px rgba(196, 181, 253, 0.2);
-                }
-                body.vscode-dark .tag-slate,
-                body.vscode-high-contrast .tag-slate {
-                    background: #334155;
-                    color: #e2e8f0;
-                    border: 1px solid #475569;
-                    box-shadow: 0 0 8px rgba(226, 232, 240, 0.15);
+                    border: 1px solid rgba(100, 116, 139, 0.25);
                 }
                 .tag-link {
                     color: inherit;
                     text-decoration: none;
                     display: flex;
                     align-items: center;
-                    gap: 4px;
+                    gap: 6px;
+                    transition: opacity 0.15s ease;
+                    cursor: pointer;
                 }
                 .tag-link:hover {
                     text-decoration: none;
+                    opacity: 0.8;
+                }
+                .tag-link:active {
+                    opacity: 0.6;
+                }
+                .tag:has(.tag-link) {
+                    cursor: pointer;
+                    transition: opacity 0.15s ease;
+                }
+                .tag:has(.tag-link):hover {
+                    opacity: 0.9;
+                }
+                .tag:has(.tag-link):active {
+                    opacity: 0.7;
+                }
+                /* Dark theme overrides */
+                body.vscode-dark .tag-green,
+                body.vscode-high-contrast .tag-green {
+                    background: linear-gradient(135deg, rgba(6, 78, 59, 0.4) 0%, rgba(6, 78, 59, 0.2) 100%);
+                    color: #6ee7b7;
+                    border: 1px solid rgba(6, 78, 59, 0.6);
+                }
+                body.vscode-dark .tag-red,
+                body.vscode-high-contrast .tag-red {
+                    background: linear-gradient(135deg, rgba(127, 29, 29, 0.4) 0%, rgba(127, 29, 29, 0.2) 100%);
+                    color: #fca5a5;
+                    border: 1px solid rgba(127, 29, 29, 0.6);
+                }
+                body.vscode-dark .tag-yellow,
+                body.vscode-high-contrast .tag-yellow {
+                    background: linear-gradient(135deg, rgba(120, 53, 15, 0.4) 0%, rgba(120, 53, 15, 0.2) 100%);
+                    color: #fcd34d;
+                    border: 1px solid rgba(120, 53, 15, 0.6);
+                }
+                body.vscode-dark .tag-amber,
+                body.vscode-high-contrast .tag-amber {
+                    background: linear-gradient(135deg, rgba(120, 53, 15, 0.4) 0%, rgba(120, 53, 15, 0.2) 100%);
+                    color: #fcd34d;
+                    border: 1px solid rgba(120, 53, 15, 0.6);
+                }
+                body.vscode-dark .tag-blue,
+                body.vscode-high-contrast .tag-blue {
+                    background: linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(30, 58, 138, 0.2) 100%);
+                    color: #93c5fd;
+                    border: 1px solid rgba(30, 58, 138, 0.6);
+                }
+                body.vscode-dark .tag-purple,
+                body.vscode-high-contrast .tag-purple {
+                    background: linear-gradient(135deg, rgba(88, 28, 135, 0.4) 0%, rgba(88, 28, 135, 0.2) 100%);
+                    color: #c4b5fd;
+                    border: 1px solid rgba(88, 28, 135, 0.6);
+                }
+                body.vscode-dark .tag-slate,
+                body.vscode-high-contrast .tag-slate {
+                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(30, 41, 59, 0.3) 100%);
+                    color: #e2e8f0;
+                    border: 1px solid rgba(30, 41, 59, 0.7);
                 }
                 @media (prefers-color-scheme: dark) {
                     .tag-green {
-                        background: rgba(6, 78, 59, 0.3);
+                        background: linear-gradient(135deg, rgba(6, 78, 59, 0.4) 0%, rgba(6, 78, 59, 0.2) 100%);
                         color: #34d399;
-                        border: 1px solid rgba(6, 78, 59, 0.5);
+                        border: 1px solid rgba(6, 78, 59, 0.6);
                     }
                     .tag-red {
-                        background: rgba(127, 29, 29, 0.3);
+                        background: linear-gradient(135deg, rgba(127, 29, 29, 0.4) 0%, rgba(127, 29, 29, 0.2) 100%);
                         color: #f87171;
-                        border: 1px solid rgba(127, 29, 29, 0.5);
+                        border: 1px solid rgba(127, 29, 29, 0.6);
                     }
                     .tag-yellow {
-                        background: rgba(120, 53, 15, 0.3);
+                        background: linear-gradient(135deg, rgba(120, 53, 15, 0.4) 0%, rgba(120, 53, 15, 0.2) 100%);
                         color: #fbbf24;
-                        border: 1px solid rgba(120, 53, 15, 0.5);
+                        border: 1px solid rgba(120, 53, 15, 0.6);
                     }
                     .tag-amber {
-                        background: rgba(120, 53, 15, 0.3);
+                        background: linear-gradient(135deg, rgba(120, 53, 15, 0.4) 0%, rgba(120, 53, 15, 0.2) 100%);
                         color: #fbbf24;
-                        border: 1px solid rgba(120, 53, 15, 0.5);
+                        border: 1px solid rgba(120, 53, 15, 0.6);
                     }
                     .tag-blue {
-                        background: rgba(30, 58, 138, 0.3);
+                        background: linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(30, 58, 138, 0.2) 100%);
                         color: #60a5fa;
-                        border: 1px solid rgba(30, 58, 138, 0.5);
+                        border: 1px solid rgba(30, 58, 138, 0.6);
                     }
                     .tag-purple {
-                        background: rgba(88, 28, 135, 0.3);
+                        background: linear-gradient(135deg, rgba(88, 28, 135, 0.4) 0%, rgba(88, 28, 135, 0.2) 100%);
                         color: #a78bfa;
-                        border: 1px solid rgba(88, 28, 135, 0.5);
+                        border: 1px solid rgba(88, 28, 135, 0.6);
                     }
                     .tag-slate {
-                        background: rgba(30, 41, 59, 0.5);
+                        background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(30, 41, 59, 0.3) 100%);
                         color: #cbd5e1;
                         border: 1px solid rgba(30, 41, 59, 0.7);
+                    }
+                }
+                @media (max-width: 600px) {
+                    .header {
+                        padding: 16px 20px;
+                    }
+                    .header h1 {
+                        font-size: 18px;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 8px;
+                    }
+                    .content {
+                        padding: 16px 20px;
+                    }
+                    .single-column {
+                        gap: 12px;
+                    }
+                    .card {
+                        padding: 12px 16px;
+                    }
+                    .platforms-support {
+                        gap: 6px;
+                        row-gap: 6px;
+                    }
+                    .tag {
+                        padding: 4px 8px;
+                        font-size: 11px;
+                    }
+                    .tag-icon {
+                        width: 12px;
+                        height: 12px;
                     }
                 }
                 .full-width {
@@ -440,17 +518,17 @@ function createPlatformBadge(platform: string): string {
         case 'windows':
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path><path d="M10 19v-3.96 3.15"></path><path d="M7 19h5"></path><rect width="6" height="10" x="16" y="12" rx="2"></rect></svg>';
-            variant = 'slate';
+            variant = 'amber';
             break;
         case 'macos':
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"></path></svg>';
-            variant = 'slate';
+            variant = 'red';
             break;
         case 'fire os':
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"></path></svg>';
-            variant = 'amber';
+            variant = 'yellow';
             break;
         case 'typescript':
             iconSvg =
@@ -460,12 +538,12 @@ function createPlatformBadge(platform: string): string {
         case 'expo go':
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
-            variant = 'slate';
+            variant = 'green';
             break;
         case 'development only':
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>';
-            variant = 'slate';
+            variant = 'amber';
             break;
         default:
             iconSvg =
@@ -511,18 +589,18 @@ function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | nul
         if (packageInfo.support.dev) {
             badges.push(createPlatformBadge('Development Only'));
         }
-        if (packageInfo.support.license) {
-            badges.push(createPlatformBadge(packageInfo.support.license));
-        }
+        // License is shown in Quick Links section instead
     }
 
     if (badges.length === 0) {
         return null;
     }
 
+    const platformsIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>';
     return `
         <div class="card">
-            <div class="card-title">Platforms & Support</div>
+            <div class="card-title">${platformsIcon}Platforms & Support</div>
             <div class="card-content platforms-support">${badges.join('')}</div>
         </div>
     `;
@@ -544,13 +622,15 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
             descriptionContent += '<br><br>';
         }
         descriptionContent +=
-            'Core dependency required by React Native. Not listed in the directory but fully compatible with the New Architecture.';
+            '<em>Core dependency required by React Native. Not listed in the directory but fully compatible with the New Architecture.</em>';
     }
 
     if (descriptionContent) {
+        const descriptionIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>';
         content += `
             <div class="card">
-                <div class="card-title">Description</div>
+                <div class="card-title">${descriptionIcon}Description</div>
                 <div class="card-content description">${descriptionContent}</div>
             </div>
         `;
@@ -569,9 +649,11 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
 
     statusContent += `</div>`;
 
+    const statusIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg>';
     content += `
         <div class="card ${statusClass}">
-            <div class="card-title">Status</div>
+            <div class="card-title">${statusIcon}Status</div>
             <div class="card-content">${statusContent}</div>
         </div>
     `;
@@ -582,10 +664,20 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
     }
 
     if (packageInfo.alternatives && packageInfo.alternatives.length > 0) {
+        const alternativesIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11c0 2.5-2.5 5-5 5s-5-2.5-5-5 2.5-5 5-5 5 2.5 5 5Z"></path><path d="m15.2 13.9 3 3 3-3"></path><path d="m2.8 10.1-3-3 3-3"></path><path d="m20.7 7-3 3 3 3"></path><path d="m6.3 17 3-3-3-3"></path></svg>';
+        const npmIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 5" fill="currentColor"><path d="M0,0v5h5V1h1v4h1V0H0z M10,0v5h2V1h1v4h1V1h1v4h1V0H10z"/></svg>';
+        const alternativesList = packageInfo.alternatives
+            .map(
+                (alt) =>
+                    `<span class="tag tag-blue"><a href="https://www.npmjs.com/package/${alt}" target="_blank" class="tag-link">${npmIcon}${alt}</a></span>`
+            )
+            .join('');
         content += `
             <div class="card">
-                <div class="card-title">Alternatives</div>
-                <div class="card-content">${packageInfo.alternatives.join(', ')}</div>
+                <div class="card-title">${alternativesIcon}Alternatives</div>
+                <div class="card-content platforms-support">${alternativesList}</div>
             </div>
         `;
     }
@@ -595,28 +687,30 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
         const npmIcon =
             '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 5" fill="currentColor"><path d="M0,0v5h5V1h1v4h1V0H0z M10,0v5h2V1h1v4h1V1h1v4h1V0H10z"/></svg>';
         basicLinks.push(
-            `<span class="tag tag-slate"><a href="${packageInfo.npmUrl}" target="_blank" class="tag-link">${npmIcon}NPM</a></span>`
+            `<span class="tag tag-red"><a href="${packageInfo.npmUrl}" target="_blank" class="tag-link">${npmIcon}NPM Registry</a></span>`
         );
     }
     if (packageInfo.githubUrl) {
         const githubIcon =
             '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
         basicLinks.push(
-            `<span class="tag tag-slate"><a href="${packageInfo.githubUrl}" target="_blank" class="tag-link">${githubIcon}GitHub</a></span>`
+            `<span class="tag tag-slate"><a href="${packageInfo.githubUrl}" target="_blank" class="tag-link">${githubIcon}Source Code</a></span>`
         );
     }
     if (packageInfo.support?.licenseUrl) {
         const licenseIcon =
             '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>';
         basicLinks.push(
-            `<span class="tag tag-slate"><a href="${packageInfo.support.licenseUrl}" target="_blank" class="tag-link">${licenseIcon}License</a></span>`
+            `<span class="tag tag-purple"><a href="${packageInfo.support.licenseUrl}" target="_blank" class="tag-link">${licenseIcon}License</a></span>`
         );
     }
 
     if (basicLinks.length > 0) {
+        const linksIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
         content += `
             <div class="card">
-                <div class="card-title">Links</div>
+                <div class="card-title">${linksIcon}Quick Links</div>
                 <div class="card-content platforms-support">${basicLinks.join('')}</div>
             </div>
         `;
@@ -624,9 +718,11 @@ function buildSingleColumnContent(packageName: string, packageInfo: PackageInfo)
 
     const exploreLinks = generateExploreLinks(packageName, packageInfo);
     if (exploreLinks.length > 0) {
+        const exploreIcon =
+            '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>';
         content += `
             <div class="card">
-                <div class="card-title">Explore More</div>
+                <div class="card-title">${exploreIcon}Explore & Research</div>
                 <div class="card-content platforms-support">${exploreLinks.join('')}</div>
             </div>
         `;
@@ -642,35 +738,37 @@ function generateExploreLinks(packageName: string, packageInfo: PackageInfo): st
         return links;
     }
 
-    const circleDotIcon =
+    const issueIcon =
         '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="1"></circle></svg>';
-    const gitPullRequestIcon =
+    const prIcon =
         '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line></svg>';
     const usersIcon =
         '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
-    const gitForkIcon =
+    const forkIcon =
         '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"></path><path d="M12 12v3"></path></svg>';
     const packageIcon =
         '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"></path><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29,7 12,12 20.71,7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>';
+    const docIcon =
+        '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>';
 
     if (packageInfo.unmaintained) {
         links.push(
-            `<span class="tag tag-slate"><a href="${getMaintenanceIssuesUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}Maintenance Open Issues</a></span>`
+            `<span class="tag tag-amber"><a href="${getMaintenanceIssuesUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${issueIcon}Maintenance Issues</a></span>`
         );
         links.push(
-            `<span class="tag tag-slate"><a href="${getMaintenancePRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}Stale PRs</a></span>`
+            `<span class="tag tag-yellow"><a href="${getMaintenancePRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${prIcon}Stale Pull Requests</a></span>`
         );
         links.push(
-            `<span class="tag tag-slate"><a href="${getContributorsActivityUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${usersIcon}Contributors Activity</a></span>`
+            `<span class="tag tag-blue"><a href="${getContributorsActivityUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${usersIcon}Contributor Activity</a></span>`
         );
         links.push(
-            `<span class="tag tag-slate"><a href="${getActiveForksUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitForkIcon}Most Active Forks</a></span>`
+            `<span class="tag tag-purple"><a href="${getActiveForksUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${forkIcon}Active Forks</a></span>`
         );
     }
 
     if (packageInfo.newArchitecture === NewArchSupportStatus.Supported) {
         links.push(
-            `<span class="tag tag-slate"><a href="${getNewArchMergedPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}New Arch Merged PRs</a></span>`
+            `<span class="tag tag-green"><a href="${getNewArchMergedPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${prIcon}New Architecture PRs</a></span>`
         );
     }
 
@@ -679,18 +777,18 @@ function generateExploreLinks(packageName: string, packageInfo: PackageInfo): st
         packageInfo.newArchitecture === NewArchSupportStatus.Unsupported
     ) {
         links.push(
-            `<span class="tag tag-slate"><a href="${getNewArchIssueSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}New Arch Open Issues</a></span>`
+            `<span class="tag tag-yellow"><a href="${getNewArchIssueSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${issueIcon}New Architecture Issues</a></span>`
         );
         links.push(
-            `<span class="tag tag-slate"><a href="${getNewArchPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${gitPullRequestIcon}New Arch Open PRs</a></span>`
+            `<span class="tag tag-blue"><a href="${getNewArchPRSearchUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${prIcon}New Architecture PRs</a></span>`
         );
     }
 
     links.push(
-        `<span class="tag tag-slate"><a href="${getBundlePhobiaUrl(packageName, packageInfo.version)}" target="_blank" class="tag-link">${packageIcon}Bundle Size Analysis</a></span>`
+        `<span class="tag tag-purple"><a href="${getBundlePhobiaUrl(packageName, packageInfo.version)}" target="_blank" class="tag-link">${packageIcon}Bundle Analysis</a></span>`
     );
     links.push(
-        `<span class="tag tag-slate"><a href="${getReadmeUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${circleDotIcon}Documentation</a></span>`
+        `<span class="tag tag-blue"><a href="${getReadmeUrl(packageInfo.githubUrl)}" target="_blank" class="tag-link">${docIcon}Documentation</a></span>`
     );
 
     return links;
