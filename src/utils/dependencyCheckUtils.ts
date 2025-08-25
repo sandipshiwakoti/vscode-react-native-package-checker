@@ -147,7 +147,11 @@ function parsePackageLine(line: string): { name: string; version: string } | nul
     return match ? { name: match[1], version: match[2] } : null;
 }
 
-export function createHoverMessage(result: ValidationResult, targetVersion: string): vscode.MarkdownString {
+export function createHoverMessage(
+    result: ValidationResult,
+    targetVersion: string,
+    currentRnVersion?: string
+): vscode.MarkdownString {
     let message = `**Dependency Version Check: ${result.packageName}**\n\n`;
 
     if (result.changeType === 'addition') {
@@ -162,6 +166,11 @@ export function createHoverMessage(result: ValidationResult, targetVersion: stri
         message += `Current: \`${result.currentVersion}\`\n\n`;
         message += `Expected for React Native ${targetVersion}: \`${result.expectedVersion}\`\n\n`;
         message += `[Update to Expected Version](command:reactNativePackageChecker.updateToExpected?${encodeURIComponent(JSON.stringify([result.packageName, result.expectedVersion]))})`;
+    }
+
+    if (currentRnVersion && currentRnVersion !== targetVersion) {
+        const diffUrl = `https://raw.githubusercontent.com/react-native-community/rn-diff-purge/release/${targetVersion}/RnDiffApp/package.json`;
+        message += `\n\n---\n\n[View React Native ${targetVersion} package.json reference](${diffUrl})`;
     }
 
     return new vscode.MarkdownString(message);

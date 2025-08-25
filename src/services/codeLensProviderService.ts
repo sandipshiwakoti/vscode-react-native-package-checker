@@ -312,19 +312,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         });
     }
 
-    private createUpgradeHelperCodeLens(
-        range: vscode.Range,
-        fromRnVersion: string,
-        toRnVersion?: string
-    ): vscode.CodeLens {
-        return new vscode.CodeLens(range, {
-            title: `${STATUS_SYMBOLS.UPGRADE_HELPER}\u2009Upgrade Helper`,
-            tooltip: `Visit Upgrade Helper for migration from React Native ${fromRnVersion} to ${toRnVersion || 'latest'}`,
-            command: COMMANDS.OPEN_UPGRADE_HELPER,
-            arguments: [fromRnVersion, toRnVersion],
-        });
-    }
-
     private createDependencyCheckCodeLens(range: vscode.Range, result: ValidationResult): vscode.CodeLens {
         return new vscode.CodeLens(range, {
             title: `$(edit-sparkle)\u2009Expected ${result.expectedVersion}`,
@@ -696,6 +683,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         this.isEnabled = false;
         await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
 
+        // Clear decorations when disabled
         if (this.packageDecorationService) {
             this.packageDecorationService.clearDecorations();
         }

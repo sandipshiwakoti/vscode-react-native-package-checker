@@ -139,6 +139,9 @@ export const SUCCESS_MESSAGES = {
         `Added ${packageName}@${version} to ${section}`,
     PACKAGE_REMOVED: (packageName: string) => `Removed ${packageName} from dependencies`,
     PACKAGE_UPDATED: (packageName: string, version: string) => `Updated ${packageName} to ${version}`,
-    DEPENDENCY_CHECK_ENABLED: (version: string) => `Dependency check enabled for React Native ${version}`,
-    DEPENDENCY_CHECK_DISABLED: 'Dependency check disabled',
+    DEPENDENCY_CHECK_ENABLED: (version: string) =>
+        `Dependency validation is now active for React Native ${version}. Package mismatches will be highlighted in your package.json file.`,
+    DEPENDENCY_CHECK_DISABLED: 'Dependency validation has been disabled. Package version checking is no longer active.',
+    BULK_UPDATE_COMPLETED: (count: number, version: string) =>
+        `Successfully updated ${count} package${count > 1 ? 's' : ''} for React Native ${version}. All requirements fulfilled!`,
 } as const;

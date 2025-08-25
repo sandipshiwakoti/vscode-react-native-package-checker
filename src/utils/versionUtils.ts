@@ -1,4 +1,6 @@
-import { REGEX_PATTERNS } from '../constants';
+import * as vscode from 'vscode';
+
+import { DEPENDENCY_CHECK_CONFIG, REGEX_PATTERNS } from '../constants';
 
 export function compareVersions(version1: string, version2: string): number {
     const v1Parts = version1.split(REGEX_PATTERNS.DOT_SEPARATOR).map(Number);
@@ -51,4 +53,44 @@ export function extractPackageNameFromVersionString(packageWithVersion: string):
 
 export function escapeRegExp(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export async function promptForTargetVersion(
+    currentRnVersion?: string,
+    cachedLatestRnVersion?: string
+): Promise<string | undefined> {
+    const latestRnVersion = cachedLatestRnVersion || '';
+
+    const defaultValue =
+        currentRnVersion && compareVersions(latestRnVersion, currentRnVersion) > 0
+            ? latestRnVersion
+            : currentRnVersion || latestRnVersion;
+
+    const version = await vscode.window.showInputBox({
+        prompt: `Enter target React Native version (e.g. ${latestRnVersion})`,
+        placeHolder: latestRnVersion,
+        value: defaultValue,
+        validateInput: (value: string) => {
+            if (!value) {
+                return 'Version is required';
+            }
+            if (!DEPENDENCY_CHECK_CONFIG.VERSION_FORMAT_REGEX.test(value)) {
+                return 'Version must be in format x.y.z (e.g., 0.76.1)';
+            }
+
+            if (currentRnVersion && isVersionDowngrade(currentRnVersion, value)) {
+                return `Target version ${value} is older than current version ${currentRnVersion}. Only upgrades are allowed.`;
+            }
+
+            return null;
+        },
+    });
+
+    return version?.trim();
+}
+
+export function isVersionDowngrade(currentVersion: string, targetVersion: string): boolean {
+    const cleanCurrent = cleanVersion(currentVersion);
+    const cleanTarget = cleanVersion(targetVersion);
+    return compareVersions(cleanTarget, cleanCurrent) < 0;
 }

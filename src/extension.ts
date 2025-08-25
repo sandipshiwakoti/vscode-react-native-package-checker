@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { performBulkUpdate } from './commands/bulkUpdateCommands';
 import {
     addPackage,
     bulkUpdateToExpectedVersions,
@@ -21,6 +22,7 @@ import {
 } from './commands/quickPickCommands';
 import { EXTENSION_CONFIG } from './constants/index';
 import { BrowserService } from './services/browserService';
+import { BulkUpdateService } from './services/bulkUpdateService';
 import { CacheManagerService } from './services/cacheManagerService';
 import { CodeLensProviderService } from './services/codeLensProviderService';
 import { DebouncedChangeService } from './services/debouncedChangeService';
@@ -49,7 +51,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const npmRegistryService = new NpmRegistryService();
     const packageService = new PackageService(npmRegistryService, cacheManager, logger);
 
-    const dependencyCheckService = new DependencyCheckService(context, logger);
+    const dependencyCheckService = new DependencyCheckService(context, logger, cacheManager);
     await dependencyCheckService.initialize();
 
     const packageDecorationService = new PackageDecorationService(context);
@@ -74,6 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const packageFilterService = new PackageFilterService();
     const quickPickService = new QuickPickService(packageService, packageFilterService, packageDetailsService);
+    const bulkUpdateService = new BulkUpdateService(cacheManager);
 
     const codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { language: EXTENSION_CONFIG.LANGUAGE_JSON, pattern: EXTENSION_CONFIG.PACKAGE_JSON_PATTERN },
@@ -201,10 +204,8 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // Listen for active editor changes to update decorations
     const activeEditorChangeListener = vscode.window.onDidChangeActiveTextEditor((editor) => {
         if (editor && editor.document.fileName.endsWith(FileExtensions.PACKAGE_JSON)) {
-            // Get cached package data and update decorations
             const packageWithVersions = extractPackageNames(editor.document.getText());
             const cachedPackageInfos = packageService.getCachedResultsByVersions(packageWithVersions);
             if (Object.keys(cachedPackageInfos).length > 0) {
@@ -213,7 +214,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // Listen for configuration changes to update decorations
     const configurationChangeListener = vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration('reactNativePackageChecker.showStatusDecorations')) {
             const activeEditor = vscode.window.activeTextEditor;
@@ -241,78 +241,76 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const enableDependencyCheckCommand = vscode.commands.registerCommand(
         'reactNativePackageChecker.enableDependencyCheck',
-        () => enableDependencyCheck(dependencyCheckService, logger)
+        () => enableDependencyCheck(dependencyCheckService)
     );
 
     const disableDependencyCheckCommand = vscode.commands.registerCommand(
         'reactNativePackageChecker.disableDependencyCheck',
-        () => disableDependencyCheck(dependencyCheckService, logger)
+        () => disableDependencyCheck(dependencyCheckService)
     );
 
     const updateToExpectedVersionCommand = vscode.commands.registerCommand(
         'reactNativePackageChecker.updateToExpected',
         (packageName: string, expectedVersion: string) =>
-            updateToExpectedVersion(packageName, expectedVersion, dependencyCheckService, logger)
+            updateToExpectedVersion(packageName, expectedVersion, dependencyCheckService)
     );
 
     const bulkUpdateToExpectedVersionsCommand = vscode.commands.registerCommand(
         COMMANDS.BULK_UPDATE_TO_EXPECTED_VERSIONS,
-        () => bulkUpdateToExpectedVersions(dependencyCheckService, logger)
+        () => bulkUpdateToExpectedVersions(dependencyCheckService)
     );
 
     const addPackageCommand = vscode.commands.registerCommand(
         COMMANDS.ADD_PACKAGE,
         (packageName: string, version: string, dependencyType?: 'dependencies' | 'devDependencies') =>
-            addPackage(packageName, version, dependencyType, dependencyCheckService, logger)
+            addPackage(packageName, version, dependencyType, dependencyCheckService)
     );
 
     const removePackageCommand = vscode.commands.registerCommand(COMMANDS.REMOVE_PACKAGE, (packageName: string) =>
-        removePackage(packageName, dependencyCheckService, logger)
+        removePackage(packageName, dependencyCheckService)
     );
 
-    // Keep individual commands for internal use (CodeLens)
     const browseAllPackagesCommandDisposable = vscode.commands.registerCommand(
         'reactNativePackageChecker.browseAllPackages',
-        () => browseAllPackagesCommand(quickPickService, logger)
+        () => browseAllPackagesCommand(quickPickService)
     );
 
     const showSupportedPackagesCommandDisposable = vscode.commands.registerCommand(
         'reactNativePackageChecker.showSupportedPackages',
-        () => showSupportedPackagesCommand(quickPickService, logger)
+        () => showSupportedPackagesCommand(quickPickService)
     );
 
     const showUnsupportedPackagesCommandDisposable = vscode.commands.registerCommand(
         'reactNativePackageChecker.showUnsupportedPackages',
-        () => showUnsupportedPackagesCommand(quickPickService, logger)
+        () => showUnsupportedPackagesCommand(quickPickService)
     );
 
     const showUntestedPackagesCommandDisposable = vscode.commands.registerCommand(
         'reactNativePackageChecker.showUntestedPackages',
-        () => showUntestedPackagesCommand(quickPickService, logger)
+        () => showUntestedPackagesCommand(quickPickService)
     );
 
     const showUnlistedPackagesCommandDisposable = vscode.commands.registerCommand(
         'reactNativePackageChecker.showUnlistedPackages',
-        () => showUnlistedPackagesCommand(quickPickService, logger)
+        () => showUnlistedPackagesCommand(quickPickService)
     );
 
     const showUnmaintainedPackagesCommandDisposable = vscode.commands.registerCommand(
         'reactNativePackageChecker.showUnmaintainedPackages',
-        () => showUnmaintainedPackagesCommand(quickPickService, logger)
+        () => showUnmaintainedPackagesCommand(quickPickService)
     );
 
-    // New consolidated command for command palette
     const browsePackagesCommandDisposable = vscode.commands.registerCommand(COMMANDS.BROWSE_PACKAGES, () =>
-        browsePackagesCommand(quickPickService, logger)
+        browsePackagesCommand(quickPickService)
     );
 
     const showQuickActionsCommandDisposable = vscode.commands.registerCommand(COMMANDS.SHOW_QUICK_ACTIONS, () =>
-        showQuickActionsCommand(dependencyCheckService, logger)
+        showQuickActionsCommand(dependencyCheckService)
     );
 
     const showQuickActionsWithBackCommandDisposable = vscode.commands.registerCommand(
         COMMANDS.SHOW_QUICK_ACTIONS_WITH_BACK,
-        () => showQuickActionsWithBackCommand(dependencyCheckService, logger)
+        () => showQuickActionsWithBackCommand(dependencyCheckService)
     );
 
     const toggleStatusDecorationsCommand = vscode.commands.registerCommand(COMMANDS.TOGGLE_STATUS_DECORATIONS, () =>
@@ -320,15 +318,19 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     const checkDependencyVersionCommand = vscode.commands.registerCommand(COMMANDS.CHECK_DEPENDENCY_VERSION, () =>
-        enableDependencyCheck(dependencyCheckService, logger)
+        enableDependencyCheck(dependencyCheckService)
     );
 
     const resetDependencyCheckCommand = vscode.commands.registerCommand(COMMANDS.RESET_DEPENDENCY_CHECK, () =>
-        disableDependencyCheck(dependencyCheckService, logger)
+        disableDependencyCheck(dependencyCheckService)
     );
 
     const bulkUpdateDependenciesCommand = vscode.commands.registerCommand(COMMANDS.BULK_UPDATE_DEPENDENCIES, () =>
-        bulkUpdateToExpectedVersions(dependencyCheckService, logger)
+        bulkUpdateToExpectedVersions(dependencyCheckService)
+    );
+
+    const performBulkUpdateCommand = vscode.commands.registerCommand(COMMANDS.PERFORM_BULK_UPDATE, () =>
+        performBulkUpdate(bulkUpdateService)
     );
 
     context.subscriptions.push(
@@ -372,6 +374,7 @@ export async function activate(context: vscode.ExtensionContext) {
         checkDependencyVersionCommand,
         resetDependencyCheckCommand,
         bulkUpdateDependenciesCommand,
+        performBulkUpdateCommand,
         packageDecorationService,
         activeEditorChangeListener,
         configurationChangeListener

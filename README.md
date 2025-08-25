@@ -177,12 +177,18 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 
 **Package Checker: Bulk Update Dependencies**
 
+- **Dependency Check Integration**: Works with active dependency validation to update mismatched packages
 - **Preview-First Approach**: Shows all required changes before applying them
-- **Comprehensive Updates**: Handles version updates, package additions, and removals
 - **User Confirmation**: Allows selective updates with checkboxes for each change
+
+**Package Checker: Perform Bulk Update**
+
+- **Independent Operation**: Standalone bulk update that prompts for React Native version
+- **Comprehensive Analysis**: Analyzes differences between current and target React Native versions
+- **Complete Package Management**: Handles version updates, package additions, and removals
 - **Smart Package Management**: Automatically sorts dependencies alphabetically
 - **Safe Operations**: Validates package.json structure before making changes
-- Useful when package data seems outdated
+- **Transparency**: Includes links to React Native diff references for verific
 
 **Package Checker: Show Logs**
 

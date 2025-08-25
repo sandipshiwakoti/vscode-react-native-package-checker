@@ -90,6 +90,7 @@ export enum COMMANDS {
     CHECK_DEPENDENCY_VERSION = 'reactNativePackageChecker.checkDependencyVersion',
     RESET_DEPENDENCY_CHECK = 'reactNativePackageChecker.resetDependencyCheck',
     BULK_UPDATE_DEPENDENCIES = 'reactNativePackageChecker.bulkUpdateDependencies',
+    PERFORM_BULK_UPDATE = 'reactNativePackageChecker.performBulkUpdate',
 }
 
 export enum GITHUB_PATHS {

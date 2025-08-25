@@ -9,8 +9,10 @@ import {
     parseDiff,
 } from '../utils/dependencyCheckUtils';
 import { parsePackageJson, removePackageFromJson, updatePackageJsonSection } from '../utils/packageUtils';
+import { promptForTargetVersion } from '../utils/versionUtils';
 import { cleanVersion, compareVersions } from '../utils/versionUtils';
 
+import { CacheManagerService } from './cacheManagerService';
 import { LoggerService } from './loggerService';
 
 export class DependencyCheckService {
@@ -26,7 +28,8 @@ export class DependencyCheckService {
 
     constructor(
         private context: vscode.ExtensionContext,
-        private logger: LoggerService
+        private logger: LoggerService,
+        private cacheManager: CacheManagerService
     ) {
         this.decorations = vscode.window.createTextEditorDecorationType({
             after: {
@@ -38,7 +41,20 @@ export class DependencyCheckService {
 
     async enable(): Promise<void> {
         try {
-            const version = await this.promptForTargetVersion();
+            const activeEditor = vscode.window.activeTextEditor;
+            let currentRnVersion: string | null = null;
+
+            if (activeEditor && activeEditor.document.fileName.endsWith('package.json')) {
+                const content = activeEditor.document.getText();
+                currentRnVersion = extractCurrentRnVersion(content);
+            }
+
+            const cachedLatestRnVersion = this.cacheManager.getLatestVersion('react-native');
+
+            const version = await promptForTargetVersion(
+                currentRnVersion || undefined,
+                cachedLatestRnVersion || undefined
+            );
             if (!version) {
                 return;
             }
@@ -377,6 +393,7 @@ export class DependencyCheckService {
                         contentText = ` Expected: ${result.expectedVersion}`;
                     }
 
+                    const currentRnVersion = extractCurrentRnVersion(content);
                     decorationOptions.push({
                         range,
                         renderOptions: {
@@ -385,7 +402,7 @@ export class DependencyCheckService {
                                 color: new vscode.ThemeColor('errorForeground'),
                             },
                         },
-                        hoverMessage: createHoverMessage(result, this.targetVersion!),
+                        hoverMessage: createHoverMessage(result, this.targetVersion!, currentRnVersion || undefined),
                     });
                     break;
                 }
@@ -431,6 +448,9 @@ export class DependencyCheckService {
 
         message += `\n[Add All Missing Packages](command:reactNativePackageChecker.bulkUpdateToExpectedVersions)`;
 
+        const diffUrl = `https://raw.githubusercontent.com/react-native-community/rn-diff-purge/release/${this.targetVersion}/RnDiffApp/package.json`;
+        message += `\n\n---\n\n[View React Native ${this.targetVersion} package.json reference](${diffUrl})`;
+
         return new vscode.MarkdownString(message);
     }
 
@@ -439,37 +459,6 @@ export class DependencyCheckService {
         if (activeEditor) {
             activeEditor.setDecorations(this.decorations, []);
         }
-    }
-
-    private async promptForTargetVersion(): Promise<string | undefined> {
-        const activeEditor = vscode.window.activeTextEditor;
-        let currentRnVersion: string | null = null;
-
-        if (activeEditor && activeEditor.document.fileName.endsWith('package.json')) {
-            const content = activeEditor.document.getText();
-            currentRnVersion = extractCurrentRnVersion(content);
-        }
-
-        const version = await vscode.window.showInputBox({
-            prompt: 'Enter target React Native version (e.g. 0.75.1)',
-            placeHolder: '0.75.1',
-            validateInput: (value: string) => {
-                if (!value) {
-                    return 'Version is required';
-                }
-                if (!DEPENDENCY_CHECK_CONFIG.VERSION_FORMAT_REGEX.test(value)) {
-                    return 'Version must be in format x.y.z (e.g., 0.75.1)';
-                }
-
-                if (currentRnVersion && this.isVersionDowngrade(currentRnVersion, value)) {
-                    return `Target version ${value} is older than current version ${currentRnVersion}. Only upgrades are allowed.`;
-                }
-
-                return null;
-            },
-        });
-
-        return version?.trim();
     }
 
     async updateToExpectedVersion(packageName: string, expectedVersion: string): Promise<void> {
@@ -727,7 +716,6 @@ export class DependencyCheckService {
                 }
             }
 
-            // Sort dependencies alphabetically
             if (packageJson.dependencies) {
                 const sortedDeps = Object.keys(packageJson.dependencies)
                     .sort()
