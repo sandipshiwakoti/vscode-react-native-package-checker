@@ -5,7 +5,12 @@ import { COMMANDS, FileExtensions, STATUS_DESCRIPTIONS, STATUS_LABELS } from '..
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
 import { CodeLensSegment, SummaryData, ValidationResult } from '../types';
 import { extractPackageNames, isDevDependency } from '../utils/packageUtils';
-import { extractPackageNameFromVersionString, extractVersionFromLine, hasVersionUpdate } from '../utils/versionUtils';
+import {
+    cleanVersion,
+    extractPackageNameFromVersionString,
+    extractVersionFromLine,
+    hasVersionUpdate,
+} from '../utils/versionUtils';
 
 import { DependencyCheckService } from './dependencyCheckService';
 import { PackageDecorationService } from './packageDecorationService';
@@ -143,7 +148,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
             const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion);
 
-            // Update decorations when we have package data
             if (this.packageDecorationService && Object.keys(packageInfos).length > 0) {
                 this.packageDecorationService.updateDecorations(packageInfos);
             }
@@ -293,9 +297,10 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     private createVersionCodeLens(range: vscode.Range, packageName: string, packageInfo: PackageInfo): vscode.CodeLens {
         const hasUpdate = packageInfo.hasUpdate;
         const latestVersion = packageInfo.latestVersion!;
+        const cleanLatestVersion = cleanVersion(latestVersion);
 
         const symbol = hasUpdate ? STATUS_SYMBOLS.UPDATE : STATUS_SYMBOLS.LATEST;
-        const text = hasUpdate ? `Latest ${latestVersion}` : `Latest ${latestVersion}`;
+        const text = hasUpdate ? `Latest ${cleanLatestVersion}` : `Latest ${cleanLatestVersion}`;
 
         const displayText = `${symbol}\u2009${text}`;
 
@@ -303,7 +308,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             title: displayText,
             tooltip: this.getVersionTooltip(packageInfo),
             command: hasUpdate ? COMMANDS.UPDATE_PACKAGE_VERSION : '',
-            arguments: hasUpdate ? [packageName, packageInfo.currentVersion, latestVersion] : [],
+            arguments: hasUpdate ? [packageName, packageInfo.currentVersion, cleanLatestVersion] : [],
         });
     }
 
@@ -634,12 +639,14 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
     private getVersionTooltip(packageInfo: PackageInfo): string {
         const parts = [];
+        const cleanCurrentVersion = packageInfo.currentVersion ? cleanVersion(packageInfo.currentVersion) : '';
+        const cleanLatestVersion = packageInfo.latestVersion ? cleanVersion(packageInfo.latestVersion) : '';
 
         if (packageInfo.hasUpdate) {
-            parts.push(`Update available: ${packageInfo.currentVersion} → ${packageInfo.latestVersion}`);
+            parts.push(`Update available: ${cleanCurrentVersion} → ${cleanLatestVersion}`);
             parts.push('Click to update package version');
         } else {
-            parts.push(`Already latest version (${packageInfo.latestVersion})`);
+            parts.push(`Already latest version (${cleanLatestVersion})`);
         }
 
         return parts.join(EXTENSION_CONFIG.TOOLTIP_SEPARATOR);
@@ -689,7 +696,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         this.isEnabled = false;
         await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
 
-        // Clear decorations when disabled
         if (this.packageDecorationService) {
             this.packageDecorationService.clearDecorations();
         }

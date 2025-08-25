@@ -1,4 +1,5 @@
 import { PackageChange } from '../types';
+import { hasVersionUpdate } from '../utils/versionUtils';
 
 import { LoggerService } from './loggerService';
 
@@ -96,7 +97,18 @@ export class CacheManagerService {
     handlePackageChanges(changes: PackageChange[]): void {
         changes.forEach((change) => {
             if (change.type === 'version_changed' && change.newVersion) {
-                this.setPackageVersion(change.packageName, change.newVersion);
+                const existingInfo = this.packageCache.get(change.packageName);
+                if (existingInfo && existingInfo.latestVersion) {
+                    const hasUpdate = hasVersionUpdate(change.newVersion, existingInfo.latestVersion);
+                    this.updatePackageInfo(change.packageName, {
+                        currentVersion: change.newVersion,
+                        hasUpdate: hasUpdate,
+                    });
+                } else {
+                    this.updatePackageInfo(change.packageName, {
+                        currentVersion: change.newVersion,
+                    });
+                }
             }
         });
     }

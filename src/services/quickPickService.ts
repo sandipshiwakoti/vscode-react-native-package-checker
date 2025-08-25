@@ -9,7 +9,7 @@ import {
     STATUS_LABELS,
 } from '../types';
 import { extractDependenciesOnly } from '../utils/packageUtils';
-import { extractPackageNameFromVersionString } from '../utils/versionUtils';
+import { cleanVersion, extractPackageNameFromVersionString } from '../utils/versionUtils';
 
 import { PackageDetailsService } from './packageDetailsService';
 import { PackageFilterService } from './packageFilterService';
@@ -353,10 +353,10 @@ export class QuickPickService {
 
     private getPackageDescription(packageInfo: PackageInfo): string {
         if (packageInfo.currentVersion) {
-            return `v${packageInfo.currentVersion}`;
+            return `v${cleanVersion(packageInfo.currentVersion)}`;
         }
         if (packageInfo.latestVersion) {
-            return `v${packageInfo.latestVersion} (latest)`;
+            return `v${cleanVersion(packageInfo.latestVersion)} (latest)`;
         }
         return '';
     }
@@ -368,7 +368,7 @@ export class QuickPickService {
         details.push(statusLabel);
 
         if (packageInfo.hasUpdate && packageInfo.latestVersion) {
-            details.push(`Update available: v${packageInfo.latestVersion}`);
+            details.push(`Update available: v${cleanVersion(packageInfo.latestVersion)}`);
         }
 
         const isUnlisted =

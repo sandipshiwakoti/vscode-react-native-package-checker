@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 import { COMMANDS } from '../types';
 import { FileExtensions } from '../types';
-import { escapeRegExp, extractVersionPrefix, hasVersionUpdate } from '../utils/versionUtils';
+import { cleanVersion, escapeRegExp, extractVersionPrefix, hasVersionUpdate } from '../utils/versionUtils';
 
 import { CodeLensProviderService } from './codeLensProviderService';
 import { PackageService } from './packageService';
@@ -41,7 +41,7 @@ export class VersionUpdateService {
 
             if (!this.canUpdateVersion(packageName, currentVersion, latestVersion)) {
                 vscode.window.showWarningMessage(
-                    `Cannot update ${packageName}: version ${currentVersion} is already up to date or newer than ${latestVersion}`
+                    `Cannot update ${packageName}: version ${cleanVersion(currentVersion)} is already up to date or newer than ${cleanVersion(latestVersion)}`
                 );
                 return;
             }
@@ -51,7 +51,7 @@ export class VersionUpdateService {
             this.packageService.updatePackageVersionInCache(packageName, latestVersion);
 
             vscode.window.showInformationMessage(
-                `Updated ${packageName} to ${latestVersion}. Save file and run your package manager to install.`
+                `Updated ${packageName} to ${cleanVersion(latestVersion)}. Save file and run your package manager to install.`
             );
 
             this.codeLensProviderService.refresh();
