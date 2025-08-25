@@ -386,21 +386,29 @@ export class QuickPickService {
     }
 
     private getPackageStatusLabel(packageInfo: PackageInfo): string {
-        if (packageInfo.unmaintained) {
-            return 'Unmaintained';
-        }
+        const statusLabels: string[] = [];
 
         switch (packageInfo.newArchitecture) {
             case NewArchSupportStatus.Supported:
-                return STATUS_LABELS.SUPPORTED;
+                statusLabels.push(STATUS_LABELS.SUPPORTED);
+                break;
             case NewArchSupportStatus.Unsupported:
-                return STATUS_LABELS.UNSUPPORTED;
+                statusLabels.push(STATUS_LABELS.UNSUPPORTED);
+                break;
             case NewArchSupportStatus.Untested:
-                return STATUS_LABELS.UNTESTED;
+                statusLabels.push(STATUS_LABELS.UNTESTED);
+                break;
             case NewArchSupportStatus.Unlisted:
             default:
-                return STATUS_LABELS.UNLISTED;
+                statusLabels.push(STATUS_LABELS.UNLISTED);
+                break;
         }
+
+        if (packageInfo.unmaintained) {
+            statusLabels.push('Unmaintained');
+        }
+
+        return statusLabels.join(' • ');
     }
 
     private getStatusLabel(status: PackageStatus): string {
