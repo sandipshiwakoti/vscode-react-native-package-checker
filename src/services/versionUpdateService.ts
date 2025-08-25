@@ -94,7 +94,10 @@ export class VersionUpdateService {
             const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
 
             edit.replace(document.uri, fullRange, updatedContent);
-            await vscode.workspace.applyEdit(edit);
+            const success = await vscode.workspace.applyEdit(edit);
+            if (success) {
+                await document.save();
+            }
         }
     }
 
