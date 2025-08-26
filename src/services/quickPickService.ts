@@ -198,8 +198,6 @@ export class QuickPickService {
         if (isPackageJsonOpen) {
             this.navigateToPackageInJson(item.packageName);
         }
-
-        this.packageDetailsService.showPackageDetails(item.packageName, item.packageInfo);
     }
 
     private async showQuickPick(
