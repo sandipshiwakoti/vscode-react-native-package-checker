@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { BASE_URL } from '../constants';
 import {
     NewArchSupportStatus,
     PackageInfo,
@@ -8,7 +9,8 @@ import {
     PackageStatus,
     STATUS_LABELS,
 } from '../types';
-import { extractDependenciesOnly } from '../utils/packageUtils';
+import { getCheckUrl } from '../utils/checkerUtils';
+import { extractDependenciesOnly, extractPackagesFromPackageJson } from '../utils/packageUtils';
 import { cleanVersion, extractPackageNameFromVersionString } from '../utils/versionUtils';
 
 import { PackageDetailsService } from './packageDetailsService';
@@ -30,7 +32,7 @@ export class QuickPickService {
         }
 
         const count = Object.keys(packages).length;
-        await this.showQuickPick(packages, `Browse All Packages (${count})`, showBackButton);
+        await this.showQuickPick(packages, `Browse All Packages (${count})`, showBackButton, 'all');
     }
 
     async showFilteredPackages(status: PackageStatus, showBackButton: boolean = false): Promise<void> {
@@ -50,7 +52,7 @@ export class QuickPickService {
 
         const count = Object.keys(filteredPackages).length;
         const title = `Browse ${this.getStatusLabel(status)} Packages (${count})`;
-        await this.showQuickPick(filteredPackages, title, showBackButton);
+        await this.showQuickPick(filteredPackages, title, showBackButton, status);
     }
 
     async showPackagesForTotalCount(): Promise<void> {
@@ -203,7 +205,8 @@ export class QuickPickService {
     private async showQuickPick(
         packages: PackageInfoMap,
         title: string,
-        showBackButton: boolean = false
+        showBackButton: boolean = false,
+        status?: PackageStatus
     ): Promise<void> {
         const quickPick = vscode.window.createQuickPick<PackageQuickPickItem>();
 
@@ -213,6 +216,13 @@ export class QuickPickService {
             quickPick.matchOnDescription = true;
             quickPick.matchOnDetail = true;
             quickPick.canSelectMany = false;
+
+            quickPick.buttons = [
+                {
+                    iconPath: new vscode.ThemeIcon('link-external'),
+                    tooltip: 'Open Package Checker Website',
+                },
+            ];
 
             const items = this.createQuickPickItems(packages);
 
@@ -231,6 +241,11 @@ export class QuickPickService {
             }
 
             this.setupQuickPickSearch(quickPick, packages, showBackButton);
+
+            quickPick.onDidTriggerButton(async () => {
+                const packageCheckerUrl = this.getPackageCheckerUrl(status);
+                await vscode.env.openExternal(vscode.Uri.parse(packageCheckerUrl));
+            });
 
             quickPick.onDidAccept(() => {
                 const selectedItem = quickPick.selectedItems[0];
@@ -495,5 +510,50 @@ export class QuickPickService {
         }
 
         return -1;
+    }
+
+    private getPackageCheckerUrl(status?: PackageStatus): string {
+        const packages = this.getPackagesFromCurrentDocument();
+        if (packages.length === 0) {
+            return BASE_URL;
+        }
+
+        let url = getCheckUrl(packages, true);
+
+        if (status && status !== 'all') {
+            if (status === 'supported' || status === 'unsupported' || status === 'untested') {
+                url += `&arch=${status}`;
+            } else if (status === 'unmaintained') {
+                url += '&maintenance=true';
+            }
+        }
+
+        return url;
+    }
+
+    private getPackagesFromCurrentDocument(): Array<{ name: string; version: string }> {
+        try {
+            const activeEditor = vscode.window.activeTextEditor;
+            if (activeEditor && activeEditor.document.fileName.endsWith('package.json')) {
+                const content = activeEditor.document.getText();
+                return extractPackagesFromPackageJson(content);
+            }
+
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (workspaceFolders && workspaceFolders.length > 0) {
+                const packageJsonDocs = vscode.workspace.textDocuments.filter((doc) =>
+                    doc.fileName.endsWith('package.json')
+                );
+                if (packageJsonDocs.length > 0) {
+                    const content = packageJsonDocs[0].getText();
+                    return extractPackagesFromPackageJson(content);
+                }
+            }
+
+            return [];
+        } catch (error) {
+            console.error('Failed to get packages from current document:', error);
+            return [];
+        }
     }
 }
