@@ -113,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     versionUpdateService.register(context);
-    codeLensProviderService.initialize();
+    await codeLensProviderService.initialize();
 
     const updateDependencyCheckContext = () => {
         vscode.commands.executeCommand(
@@ -323,6 +323,13 @@ export async function activate(context: vscode.ExtensionContext) {
         performBulkUpdate(bulkUpdateService)
     );
 
+    const toggleCodeLensAnalyzingCommand = vscode.commands.registerCommand(
+        'reactNativePackageChecker.toggleCodeLensAnalyzing',
+        () => {
+            // This command is disabled and does nothing - it's just for the UI state
+        }
+    );
+
     context.subscriptions.push(
         codeLensDisposable,
         enableCommand,
@@ -364,6 +371,7 @@ export async function activate(context: vscode.ExtensionContext) {
         checkDependencyVersionCommand,
         resetDependencyCheckCommand,
         performBulkUpdateCommand,
+        toggleCodeLensAnalyzingCommand,
         packageDecorationService,
         activeEditorChangeListener,
         configurationChangeListener

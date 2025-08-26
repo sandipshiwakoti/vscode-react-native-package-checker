@@ -95,19 +95,34 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
                 this.packageService
                     .checkPackages(packageWithVersions, undefined, showLatestVersion, document.getText())
-                    .then((packageInfos) => {
+                    .then(async (packageInfos) => {
                         console.log('[CodeLens] Background API call completed');
                         this.lastSummaryData = this.calculateSummaryData(packageInfos, document.getText());
                         this.isAnalyzing = false;
                         this.isApiCallInProgress = false;
+
+                        // Update analyzing context
+                        await vscode.commands.executeCommand(
+                            'setContext',
+                            'reactNativePackageChecker.analyzing',
+                            false
+                        );
+
                         if (Object.keys(packageInfos).length > 0) {
                             this.refresh();
                         }
                     })
-                    .catch((error) => {
+                    .catch(async (error) => {
                         console.error('Error in background package analysis:', error);
                         this.isAnalyzing = false;
                         this.isApiCallInProgress = false;
+
+                        // Update analyzing context
+                        await vscode.commands.executeCommand(
+                            'setContext',
+                            'reactNativePackageChecker.analyzing',
+                            false
+                        );
                     });
 
                 return this.createCodeLenses(document, {}, showLatestVersion);
@@ -121,14 +136,32 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
                 this.packageService
                     .checkPackages(packageWithVersions, undefined, showLatestVersion, document.getText())
-                    .then((fetchedPackageInfos) => {
+                    .then(async (fetchedPackageInfos) => {
                         console.log('[CodeLens] Background cached data API call completed');
                         this.lastSummaryData = this.calculateSummaryData(fetchedPackageInfos, document.getText());
                         this.isApiCallInProgress = false;
+
+                        // Update analyzing context if not analyzing anymore
+                        if (!this.isAnalyzing) {
+                            await vscode.commands.executeCommand(
+                                'setContext',
+                                'reactNativePackageChecker.analyzing',
+                                false
+                            );
+                        }
                     })
-                    .catch((error) => {
+                    .catch(async (error) => {
                         console.error('Error in background cached data API call:', error);
                         this.isApiCallInProgress = false;
+
+                        // Update analyzing context if not analyzing anymore
+                        if (!this.isAnalyzing) {
+                            await vscode.commands.executeCommand(
+                                'setContext',
+                                'reactNativePackageChecker.analyzing',
+                                false
+                            );
+                        }
                     });
 
                 packageInfos = this.packageService.getCachedResultsByVersions(packageWithVersions);
@@ -150,6 +183,9 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
             this.isAnalyzing = false;
 
+            // Update analyzing context when analysis is complete
+            vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', false);
+
             const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion);
 
             if (this.packageDecorationService && Object.keys(packageInfos).length > 0) {
@@ -160,6 +196,9 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         } catch (error) {
             console.error('Error providing code lenses:', error);
             this.isAnalyzing = false;
+
+            // Update analyzing context on error
+            vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', false);
 
             try {
                 const cachedResults = this.packageService.getCachedResultsByVersions(packageWithVersions);
@@ -672,6 +711,9 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             this.lastSummaryData = null;
             this.isApiCallInProgress = false;
 
+            // Set analyzing context
+            await vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', true);
+
             if (this.packageDecorationService) {
                 this.packageDecorationService.clearDecorations();
             }
@@ -680,20 +722,43 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`Failed to refresh package data: ${errorMessage}`);
+
+            // Reset analyzing state on error
+            this.isAnalyzing = false;
+            await vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', false);
         }
     }
 
     async enable(): Promise<void> {
         console.log('[CodeLens] Enable called');
         this.isEnabled = true;
+
+        // Set context immediately for instant UI feedback
         await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, true);
 
+        // Only show analyzing state if we don't have cached data
+        const cacheStats = this.packageService.getCacheStats();
+        const hasCachedData = this.lastSummaryData !== null || cacheStats.packageCount > 0;
+
+        if (!hasCachedData) {
+            this.isAnalyzing = true;
+            await vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', true);
+        } else {
+            this.isAnalyzing = false;
+            await vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', false);
+        }
+
+        // Fire change event to trigger analysis
         this._onDidChangeCodeLenses.fire();
     }
 
     async disable(): Promise<void> {
         this.isEnabled = false;
+        this.isAnalyzing = false;
+
+        // Set context immediately for instant UI feedback
         await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+        await vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', false);
 
         if (this.packageDecorationService) {
             this.packageDecorationService.clearDecorations();
@@ -702,14 +767,14 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         this.refresh();
     }
 
-    initialize(): void {
+    async initialize(): Promise<void> {
         this.isEnabled = false;
-
         this.lastSummaryData = null;
         this.isAnalyzing = false;
         this.isApiCallInProgress = false;
 
-        vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+        await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
+        await vscode.commands.executeCommand('setContext', 'reactNativePackageChecker.analyzing', false);
     }
 
     dispose() {

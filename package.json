@@ -66,16 +66,6 @@
         },
         "commands": [
             {
-                "command": "reactNativePackageChecker.openPackageCheckerWebsite",
-                "title": "Open Package Checker Website",
-                "category": "Package Checker"
-            },
-            {
-                "command": "reactNativePackageChecker.refreshPackages",
-                "title": "Refresh Package Data",
-                "category": "Package Checker"
-            },
-            {
                 "command": "reactNativePackageChecker.enableCodeLens",
                 "title": "Enable CodeLens",
                 "category": "Package Checker",
@@ -92,6 +82,25 @@
                     "light": "./assets/light/toggle-enabled.svg",
                     "dark": "./assets/dark/toggle-enabled.svg"
                 }
+            },
+            {
+                "command": "reactNativePackageChecker.toggleCodeLensAnalyzing",
+                "title": "Analyzing packages...",
+                "category": "Package Checker",
+                "icon": {
+                    "light": "./assets/light/analyzing.svg",
+                    "dark": "./assets/dark/analyzing.svg"
+                }
+            },
+            {
+                "command": "reactNativePackageChecker.openPackageCheckerWebsite",
+                "title": "Open Package Checker Website",
+                "category": "Package Checker"
+            },
+            {
+                "command": "reactNativePackageChecker.refreshPackages",
+                "title": "Refresh Package Data",
+                "category": "Package Checker"
             },
             {
                 "command": "reactNativePackageChecker.showPackageDetails",
@@ -156,13 +165,18 @@
             "editor/title": [
                 {
                     "command": "reactNativePackageChecker.enableCodeLens",
-                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && !reactNativePackageChecker.enabled",
-                    "group": "navigation"
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && !reactNativePackageChecker.enabled && !reactNativePackageChecker.analyzing",
+                    "group": "navigation@1"
                 },
                 {
                     "command": "reactNativePackageChecker.disableCodeLens",
-                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && reactNativePackageChecker.enabled",
-                    "group": "navigation"
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && reactNativePackageChecker.enabled && !reactNativePackageChecker.analyzing",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "reactNativePackageChecker.toggleCodeLensAnalyzing",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/ && reactNativePackageChecker.analyzing",
+                    "group": "navigation@1"
                 }
             ],
             "commandPalette": [
@@ -201,6 +215,10 @@
                 {
                     "command": "reactNativePackageChecker.performBulkUpdate",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.toggleCodeLensAnalyzing",
+                    "when": "false"
                 }
             ]
         }
