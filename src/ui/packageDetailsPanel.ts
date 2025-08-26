@@ -280,30 +280,40 @@ function generateWebviewContent(packageName: string, packageInfo: PackageInfo): 
                     border: 1px solid rgba(100, 116, 139, 0.25);
                 }
                 .tag-link {
-                    color: inherit;
-                    text-decoration: none;
+                    color: inherit !important;
+                    text-decoration: none !important;
                     display: flex;
                     align-items: center;
                     gap: 6px;
-                    transition: opacity 0.15s ease;
+                    transition: none !important;
                     cursor: pointer;
+                    outline: none !important;
+                    -webkit-tap-highlight-color: transparent !important;
                 }
                 .tag-link:hover {
-                    text-decoration: none;
-                    opacity: 0.8;
+                    text-decoration: none !important;
+                    color: inherit !important;
                 }
                 .tag-link:active {
-                    opacity: 0.6;
+                    color: inherit !important;
+                    text-decoration: none !important;
+                }
+                .tag-link:focus {
+                    outline: none !important;
+                    color: inherit !important;
+                    text-decoration: none !important;
                 }
                 .tag:has(.tag-link) {
                     cursor: pointer;
-                    transition: opacity 0.15s ease;
+                    transition: all 0.15s ease;
                 }
                 .tag:has(.tag-link):hover {
-                    opacity: 0.9;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                 }
                 .tag:has(.tag-link):active {
-                    opacity: 0.7;
+                    transform: translateY(0px);
+                    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
                 }
                 /* Dark theme overrides */
                 body.vscode-dark .tag-green,
