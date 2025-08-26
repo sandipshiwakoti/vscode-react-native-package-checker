@@ -65,7 +65,7 @@ export class PackageDecorationService {
         });
     }
 
-    public updateDecorations(packageInfos: PackageInfoMap): void {
+    public updateDecorations(packageInfos: PackageInfoMap, isAnalyzing: boolean = false): void {
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
             return;
@@ -76,7 +76,7 @@ export class PackageDecorationService {
             .getConfiguration('reactNativePackageChecker')
             .get('showStatusDecorations', true);
 
-        if (!showDecorations) {
+        if (!showDecorations || isAnalyzing) {
             this.clearDecorations();
             return;
         }

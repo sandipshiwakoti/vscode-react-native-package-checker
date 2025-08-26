@@ -89,6 +89,10 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                 this.isAnalyzing = true;
                 this.isApiCallInProgress = true;
 
+                if (this.packageDecorationService) {
+                    this.packageDecorationService.clearDecorations();
+                }
+
                 this.packageService
                     .checkPackages(packageWithVersions, undefined, showLatestVersion, document.getText())
                     .then((packageInfos) => {
@@ -149,7 +153,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             const codeLenses = this.createCodeLenses(document, packageInfos, showLatestVersion);
 
             if (this.packageDecorationService && Object.keys(packageInfos).length > 0) {
-                this.packageDecorationService.updateDecorations(packageInfos);
+                this.packageDecorationService.updateDecorations(packageInfos, this.isAnalyzing);
             }
 
             return codeLenses;
@@ -658,9 +662,14 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     async refreshPackages(): Promise<void> {
         try {
             this.packageService.clearCache();
-            this.isAnalyzing = false;
+            this.isAnalyzing = true;
             this.lastSummaryData = null;
             this.isApiCallInProgress = false;
+
+            if (this.packageDecorationService) {
+                this.packageDecorationService.clearDecorations();
+            }
+
             this.refresh();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -680,7 +689,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         this.isEnabled = false;
         await vscode.commands.executeCommand('setContext', EXTENSION_CONFIG.CODE_LENS_CONTEXT_KEY, false);
 
-        // Clear decorations when disabled
         if (this.packageDecorationService) {
             this.packageDecorationService.clearDecorations();
         }
