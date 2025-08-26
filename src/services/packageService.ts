@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 import { API_BASE_URL, API_CONFIG } from '../constants';
 import { NewArchSupportStatus, PackageChange, PackageInfo, PackageInfoMap, PackageResponse } from '../types';
 import { parsePackageJson } from '../utils/packageUtils';
@@ -91,7 +93,10 @@ export class PackageService {
                 this.populateCurrentVersions(packageInfos, packageWithVersions);
             } catch (error: any) {
                 this.logger.error('Failed to fetch package info', { error: error.message, packages: uncachedPackages });
-                console.error('Failed to check packages:', error);
+
+                vscode.window.showErrorMessage(
+                    `Package Checker server is unavailable. Could not fetch package information from server.`
+                );
 
                 if (Object.keys(packageInfos).length === 0) {
                     throw error;
@@ -183,6 +188,11 @@ export class PackageService {
                     packages: uncachedVersionPackages,
                 });
                 console.error('Failed to fetch version information:', error);
+
+                // Show error notification for npm registry failures when all packages fail
+                vscode.window.showErrorMessage(
+                    `NPM registry is unavailable. Could not fetch version information for ${uncachedVersionPackages.length} package${uncachedVersionPackages.length === 1 ? '' : 's'}.`
+                );
 
                 uncachedVersionPackages.forEach((packageName) => {
                     if (packageInfos[packageName]) {
@@ -298,6 +308,12 @@ export class PackageService {
             }
         } catch (error: any) {
             this.logger.debug(`Failed to fetch versions for devDependencies: ${error.message}`);
+
+            // Show error notification for npm registry failures
+            vscode.window.showErrorMessage(
+                `NPM registry is unavailable. Could not fetch version information for ${packageNames.length} devDependenc${packageNames.length === 1 ? 'y' : 'ies'}.`
+            );
+
             packageNames.forEach((packageName) => {
                 this.cacheManager.setPackageInfo(packageName, {
                     npmUrl: '',
@@ -390,6 +406,12 @@ export class PackageService {
                     }
                 } catch (versionError) {
                     this.logger.debug(`Failed to fetch versions for bulk packages: ${versionError}`);
+
+                    // Show error notification for npm registry failures
+                    vscode.window.showErrorMessage(
+                        `NPM registry is unavailable. Could not fetch version information for ${packagesNeedingVersions.length} package${packagesNeedingVersions.length === 1 ? '' : 's'}.`
+                    );
+
                     packagesNeedingVersions.forEach((packageName) => {
                         this.cacheManager.updatePackageInfo(packageName, {
                             versionFetchError: 'Failed to fetch version information',
@@ -399,6 +421,11 @@ export class PackageService {
             }
         } catch (error: any) {
             this.logger.debug(`Failed to fetch bulk packages: ${error.message}`);
+
+            // Show error notification for package.json fetch failures
+            vscode.window.showErrorMessage(
+                `Package Checker server is unavailable. Could not fetch package information from server for ${packageNames.length} package${packageNames.length === 1 ? '' : 's'}.`
+            );
 
             const packagesNeedingVersions = packageNames.filter((packageName) => {
                 return !this.cacheManager.getPackageVersion(packageName);
@@ -429,8 +456,18 @@ export class PackageService {
                         );
                     } else {
                         this.logger.debug(`Fallback: no versions found for ${packagesNeedingVersions.length} packages`);
+
+                        // Show error notification when fallback also fails
+                        vscode.window.showErrorMessage(
+                            `NPM registry is unavailable. Could not fetch version information for ${packagesNeedingVersions.length} package${packagesNeedingVersions.length === 1 ? '' : 's'}.`
+                        );
                     }
-                } catch {
+                } catch (npmError: any) {
+                    // Show error notification when both package API and npm registry fail
+                    vscode.window.showErrorMessage(
+                        `Failed to fetch both package information and version data. Package API and npm registry are both unavailable.`
+                    );
+
                     packageNames.forEach((packageName) => {
                         this.cacheManager.setPackageInfo(packageName, {
                             npmUrl: '',

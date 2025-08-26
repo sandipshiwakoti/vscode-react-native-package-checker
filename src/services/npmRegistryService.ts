@@ -59,24 +59,35 @@ export class NpmRegistryService {
 
     async fetchLatestVersions(packageNames: string[]): Promise<Record<string, string>> {
         const results: Record<string, string> = {};
+        let lastError: Error | null = null;
 
         const fetchPromises = packageNames.map(async (packageName) => {
             try {
                 const version = await this.fetchLatestVersion(packageName);
-                return { packageName, version };
+                return { packageName, version, error: null };
             } catch (error) {
                 console.error(`Failed to fetch version for ${packageName}:`, error);
-                return { packageName, version: null };
+                return { packageName, version: null, error: error as Error };
             }
         });
 
         const fetchResults = await Promise.allSettled(fetchPromises);
 
         fetchResults.forEach((result) => {
-            if (result.status === 'fulfilled' && result.value.version) {
-                results[result.value.packageName] = result.value.version;
+            if (result.status === 'fulfilled') {
+                if (result.value.version) {
+                    results[result.value.packageName] = result.value.version;
+                }
+                if (result.value.error) {
+                    lastError = result.value.error;
+                }
             }
         });
+
+        // If no packages were successfully fetched and we have errors, throw the last error
+        if (Object.keys(results).length === 0 && lastError) {
+            throw lastError;
+        }
 
         return results;
     }
