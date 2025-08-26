@@ -69,6 +69,10 @@ export class DependencyCheckService {
                 SUCCESS_MESSAGES.DEPENDENCY_CHECK_ENABLED(version, currentRnVersion || undefined)
             );
             await this.refresh();
+
+            setTimeout(() => {
+                this.scrollToFirstPackageWithIssues();
+            }, 1000);
         } catch {
             vscode.window.showErrorMessage('Failed to enable dependency check');
         }
@@ -625,6 +629,37 @@ export class DependencyCheckService {
         this.targetVersion = null;
         await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.ENABLED, false);
         await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.TARGET_VERSION, undefined);
+    }
+
+    private scrollToFirstPackageWithIssues(): void {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (
+            !activeEditor ||
+            !activeEditor.document.fileName.endsWith('package.json') ||
+            this.currentResults.length === 0
+        ) {
+            return;
+        }
+
+        const content = activeEditor.document.getText();
+        const lines = content.split('\n');
+
+        const firstResult = this.currentResults[0];
+        if (!firstResult) {
+            return;
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.includes(`"${firstResult.packageName}"`) && line.includes(':')) {
+                const position = new vscode.Position(i, 0);
+                const range = new vscode.Range(position, position.with(undefined, line.length));
+
+                activeEditor.selection = new vscode.Selection(position, range.end);
+                activeEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+                break;
+            }
+        }
     }
 
     dispose(): void {
