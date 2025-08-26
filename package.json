@@ -201,7 +201,27 @@
                     "when": "false"
                 },
                 {
+                    "command": "reactNativePackageChecker.openPackageCheckerWebsite",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.refreshPackages",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.showLogs",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.openUpgradeHelper",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
                     "command": "reactNativePackageChecker.browsePackages",
+                    "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
+                },
+                {
+                    "command": "reactNativePackageChecker.toggleStatusDecorations",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 },
                 {
