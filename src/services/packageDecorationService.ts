@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { NewArchSupportStatus, PackageInfoMap } from '../types';
-import { isDevDependency } from '../utils/packageUtils';
+import { isDevDependency, isInUnwantedSection } from '../utils/packageUtils';
 
 export class PackageDecorationService {
     private supportedDecoration!: vscode.TextEditorDecorationType;
@@ -95,6 +95,12 @@ export class PackageDecorationService {
 
             if (packageMatch) {
                 const packageName = packageMatch[1];
+
+                // Skip packages in unwanted sections like resolutions, overrides, etc.
+                if (isInUnwantedSection(lines, i)) {
+                    continue;
+                }
+
                 const packageInfo = packageInfos[packageName];
 
                 if (packageInfo && !isDevDependency(content, packageName)) {

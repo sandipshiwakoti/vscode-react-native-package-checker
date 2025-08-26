@@ -116,3 +116,30 @@ export function extractDependenciesOnly(content: string): string[] {
         return `${name}@${cleanVersion}`;
     });
 }
+
+export function isInUnwantedSection(lines: string[], lineIndex: number): boolean {
+    for (let i = lineIndex; i >= 0; i--) {
+        const line = lines[i].trim();
+
+        if (
+            line.includes('"resolutions"') ||
+            line.includes('"overrides"') ||
+            line.includes('"peerDependencies"') ||
+            line.includes('"optionalDependencies"') ||
+            line.includes('"bundledDependencies"') ||
+            line.includes('"bundleDependencies"')
+        ) {
+            return true;
+        }
+
+        if (line.includes('"dependencies"') || line.includes('"devDependencies"')) {
+            return false;
+        }
+
+        if (line === '}' || line === '},') {
+            continue;
+        }
+    }
+
+    return false;
+}

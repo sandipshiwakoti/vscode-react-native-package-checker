@@ -4,7 +4,7 @@ import { EXTENSION_CONFIG, INTERNAL_PACKAGES, STATUS_SYMBOLS } from '../constant
 import { COMMANDS, FileExtensions, STATUS_DESCRIPTIONS, STATUS_LABELS } from '../types';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
 import { CodeLensSegment, SummaryData, ValidationResult } from '../types';
-import { extractPackageNames, isDevDependency } from '../utils/packageUtils';
+import { extractPackageNames, isDevDependency, isInUnwantedSection } from '../utils/packageUtils';
 import {
     cleanVersion,
     extractPackageNameFromVersionString,
@@ -219,6 +219,12 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
             if (packageMatch) {
                 const packageName = packageMatch[1];
+
+                // Skip packages in unwanted sections like resolutions, overrides, etc.
+                if (isInUnwantedSection(lines, i)) {
+                    continue;
+                }
+
                 const packageInfo = packageInfos[packageName];
                 const range = new vscode.Range(i, 0, i, line.length);
 
