@@ -12,6 +12,7 @@ import {
     showUntestedPackagesCommand,
 } from './commands/quickPickCommands';
 import {
+    addAllMissingPackages,
     addPackage,
     applyRequirements,
     disableRequirements,
@@ -34,6 +35,7 @@ import { PackageFilterService } from './services/packageFilterService';
 import { PackageService } from './services/packageService';
 import { QuickPickService } from './services/quickPickService';
 import { RequirementsService } from './services/requirementsService';
+import { SuccessModalService } from './services/successModalService';
 import { VersionUpdateService } from './services/versionUpdateService';
 import { extractPackageNames } from './utils/packageUtils';
 import { openPackageCheckerWebsite, openUpgradeHelper, refreshPackages, showPackageDetails } from './commands';
@@ -75,7 +77,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const packageFilterService = new PackageFilterService();
     const quickPickService = new QuickPickService(packageService, packageFilterService, packageDetailsService);
-    const applyRequirementsService = new ApplyRequirementsService(cacheManager);
+    const applyRequirementsService = new ApplyRequirementsService(cacheManager, context);
+    applyRequirementsService.setRequirementsService(requirementsService);
 
     const codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { language: EXTENSION_CONFIG.LANGUAGE_JSON, pattern: EXTENSION_CONFIG.PACKAGE_JSON_PATTERN },
@@ -262,6 +265,16 @@ export async function activate(context: vscode.ExtensionContext) {
         removePackage(packageName, requirementsService)
     );
 
+    const addAllMissingDependenciesCommand = vscode.commands.registerCommand(
+        'reactNativePackageChecker.addAllMissingDependencies',
+        () => addAllMissingPackages('dependencies', requirementsService)
+    );
+
+    const addAllMissingDevPackagesCommand = vscode.commands.registerCommand(
+        'reactNativePackageChecker.addAllMissingDevPackages',
+        () => addAllMissingPackages('devDependencies', requirementsService)
+    );
+
     const browseAllPackagesCommandDisposable = vscode.commands.registerCommand(
         'reactNativePackageChecker.browseAllPackages',
         () => browseAllPackagesCommand(quickPickService)
@@ -310,7 +323,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     const applyRequirementsCommand = vscode.commands.registerCommand(COMMANDS.APPLY_REQUIREMENTS, () =>
-        applyRequirements(applyRequirementsService)
+        applyRequirements(applyRequirementsService, requirementsService)
     );
 
     const toggleCodeLensAnalyzingCommand = vscode.commands.registerCommand(
@@ -347,6 +360,8 @@ export async function activate(context: vscode.ExtensionContext) {
         updateToRequiredVersionCommand,
         addPackageCommand,
         removePackageCommand,
+        addAllMissingDependenciesCommand,
+        addAllMissingDevPackagesCommand,
         browseAllPackagesCommandDisposable,
         showSupportedPackagesCommandDisposable,
         showUnsupportedPackagesCommandDisposable,
@@ -369,4 +384,5 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     documentContentCache.clear();
+    SuccessModalService.dispose();
 }

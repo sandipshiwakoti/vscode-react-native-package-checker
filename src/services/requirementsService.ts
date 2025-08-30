@@ -14,6 +14,7 @@ import { cleanVersion, compareVersions } from '../utils/versionUtils';
 
 import { CacheManagerService } from './cacheManagerService';
 import { LoggerService } from './loggerService';
+import { SuccessModalService } from './successModalService';
 
 export class RequirementsService {
     private _onResultsChanged: vscode.EventEmitter<RequirementResult[]> = new vscode.EventEmitter<
@@ -23,8 +24,10 @@ export class RequirementsService {
 
     private enabled = false;
     private targetVersion: string | null = null;
+    private originalRnVersion: string | null = null;
     private decorations: vscode.TextEditorDecorationType;
     private cache = new Map<string, DiffData>();
+    private suppressSuccessModal = false;
 
     private currentResults: RequirementResult[] = [];
 
@@ -41,7 +44,7 @@ export class RequirementsService {
         });
     }
 
-    async enable(): Promise<void> {
+    async enable(suppressSuccessModal: boolean = false): Promise<void> {
         try {
             const activeEditor = vscode.window.activeTextEditor;
             let currentRnVersion: string | null = null;
@@ -62,15 +65,17 @@ export class RequirementsService {
             }
 
             this.targetVersion = version;
+            this.originalRnVersion = currentRnVersion;
             this.enabled = true;
 
             await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, true);
             await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.TARGET_VERSION, version);
+            await this.context.globalState.update('requirementsOriginalRnVersion', currentRnVersion);
 
             vscode.window.showInformationMessage(
                 SUCCESS_MESSAGES.REQUIREMENTS_ENABLED(version, currentRnVersion || undefined)
             );
-            await this.refresh();
+            await this.refresh(suppressSuccessModal);
 
             setTimeout(() => {
                 this.scrollToFirstPackageWithIssues();
@@ -83,8 +88,10 @@ export class RequirementsService {
     async disable(): Promise<void> {
         this.enabled = false;
         this.targetVersion = null;
+        this.originalRnVersion = null;
 
         await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, false);
+        await this.context.globalState.update('requirementsOriginalRnVersion', undefined);
         this.clearDecorations();
         this._onResultsChanged.fire([]);
 
@@ -111,7 +118,11 @@ export class RequirementsService {
         return this.currentResults;
     }
 
-    async refresh(): Promise<void> {
+    setSuppressSuccessModal(suppress: boolean): void {
+        this.suppressSuccessModal = suppress;
+    }
+
+    async refresh(suppressSuccessModal: boolean = false): Promise<void> {
         if (!this.enabled || !this.targetVersion) {
             this._onResultsChanged.fire([]);
             return;
@@ -131,45 +142,30 @@ export class RequirementsService {
                 return;
             }
 
-            if (currentRnVersion === this.targetVersion) {
-                const olderVersion = this.getSlightlyOlderVersion(this.targetVersion);
-                if (olderVersion) {
-                    try {
-                        const diffData = await this.fetchDiff(olderVersion, this.targetVersion);
-                        const currentPackages = this.parsePackageJson(content);
-                        const results = this.generateResults(currentPackages, diffData);
-
-                        this.currentResults = results;
-                        this._onResultsChanged.fire(results);
-                        this.updateDecorations(results);
-
-                        if (results.length === 0) {
-                            vscode.window.showInformationMessage(
-                                `All dependencies meet React Native ${this.targetVersion} requirements! Requirements have been automatically hidden.`
-                            );
-                            await this.disable();
-                        }
-                        return;
-                    } catch {}
-                }
-
-                this.currentResults = [];
-                this._onResultsChanged.fire([]);
-                this.clearDecorations();
-                vscode.window.showInformationMessage(
-                    `All dependencies meet React Native ${this.targetVersion} requirements! Requirements have been automatically hidden.`
-                );
-                await this.disable();
-                return;
-            }
-
-            const diffData = await this.fetchDiff(currentRnVersion, this.targetVersion);
+            // Always use the original React Native version for diff to ensure all packages are checked
+            // This prevents issues when RN version is updated but other packages still need updates
+            const fromVersion = this.originalRnVersion || currentRnVersion;
+            const diffData = await this.fetchDiff(fromVersion, this.targetVersion);
             const currentPackages = this.parsePackageJson(content);
             const results = this.generateResults(currentPackages, diffData);
 
             this.currentResults = results;
             this._onResultsChanged.fire(results);
             this.updateDecorations(results);
+
+            // Check if all requirements are fulfilled
+            if (results.length === 0) {
+                const shouldSuppressModal = suppressSuccessModal || this.suppressSuccessModal;
+
+                if (!shouldSuppressModal) {
+                    await SuccessModalService.showRequirementsFulfilledModal(this.targetVersion);
+                }
+
+                // Reset the suppress flag after use
+                this.suppressSuccessModal = false;
+
+                await this.disable();
+            }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`Failed to check requirements: ${errorMessage}`);
@@ -469,7 +465,17 @@ export class RequirementsService {
             message += `• **${pkg.packageName}**: \`${pkg.requiredVersion}\`\n`;
         }
 
-        message += `\n[Add All Missing Packages](command:reactNativePackageChecker.applyRequirements)`;
+        // Determine the dependency type for the command
+        const dependencyType = missingPackages[0]?.dependencyType || 'dependencies';
+        const sectionName = dependencyType === 'devDependencies' ? 'dev packages' : 'packages';
+
+        // Use specific commands for each dependency type to avoid argument issues
+        const commandName =
+            dependencyType === 'devDependencies'
+                ? 'reactNativePackageChecker.addAllMissingDevPackages'
+                : 'reactNativePackageChecker.addAllMissingDependencies';
+
+        message += `\n[Add All Missing ${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}](command:${commandName})`;
 
         const currentEditor = vscode.window.activeTextEditor;
         let currentRnVersion: string | null = null;
@@ -483,7 +489,10 @@ export class RequirementsService {
             message += `\n\n---\n\n[View React Native ${this.targetVersion} upgrade guide](${diffUrl})`;
         }
 
-        return new vscode.MarkdownString(message);
+        const markdownString = new vscode.MarkdownString(message);
+        markdownString.isTrusted = true;
+        markdownString.supportHtml = true;
+        return markdownString;
     }
 
     private clearDecorations(): void {
@@ -630,11 +639,87 @@ export class RequirementsService {
         }
     }
 
+    async addAllMissingPackages(dependencyType: 'dependencies' | 'devDependencies'): Promise<void> {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
+            vscode.window.showErrorMessage('No package.json file is currently open');
+            return;
+        }
+
+        const document = activeEditor.document;
+        const content = document.getText();
+
+        const packageJson = parsePackageJson(content);
+        if (!packageJson) {
+            vscode.window.showErrorMessage(ERROR_MESSAGES.PACKAGE_JSON_PARSE_FAILED);
+            return;
+        }
+
+        // Get missing packages for the specified dependency type
+        const missingPackages = this.currentResults.filter(
+            (r) => r.changeType === 'addition' && r.dependencyType === dependencyType
+        );
+
+        if (missingPackages.length === 0) {
+            vscode.window.showInformationMessage(`No missing ${dependencyType} to add`);
+            return;
+        }
+
+        try {
+            // Sort packages alphabetically (like yarn add does)
+            const sortedPackages = missingPackages.sort((a, b) => a.packageName.localeCompare(b.packageName));
+
+            // Add all packages to the appropriate section
+            for (const pkg of sortedPackages) {
+                updatePackageJsonSection(packageJson, dependencyType, pkg.packageName, pkg.requiredVersion);
+            }
+
+            // Ensure the section is sorted alphabetically
+            if (packageJson[dependencyType]) {
+                const sortedSection = Object.keys(packageJson[dependencyType])
+                    .sort()
+                    .reduce((result: Record<string, string>, key: string) => {
+                        result[key] = packageJson[dependencyType][key];
+                        return result;
+                    }, {});
+                packageJson[dependencyType] = sortedSection;
+            }
+
+            const updatedContent = JSON.stringify(packageJson, null, 2);
+            const edit = new vscode.WorkspaceEdit();
+            const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
+            edit.replace(document.uri, fullRange, updatedContent);
+
+            const success = await vscode.workspace.applyEdit(edit);
+            if (success) {
+                await document.save();
+
+                const packageNames = sortedPackages.map((p) => p.packageName).join(', ');
+                vscode.window.showInformationMessage(
+                    `Added ${sortedPackages.length} missing ${dependencyType === 'devDependencies' ? 'dev ' : ''}package${sortedPackages.length > 1 ? 's' : ''}: ${packageNames}`
+                );
+
+                setTimeout(async () => {
+                    if (this.targetVersion && this.enabled) {
+                        await this.refresh();
+                    }
+                }, 1000);
+            } else {
+                vscode.window.showErrorMessage(`Failed to add missing ${dependencyType}`);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to parse package.json: ${error}`);
+        }
+    }
+
     async initialize(): Promise<void> {
+        // Always initialize as disabled by default
         this.enabled = false;
         this.targetVersion = null;
+        this.originalRnVersion = null;
         await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, false);
         await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.TARGET_VERSION, undefined);
+        await this.context.globalState.update('requirementsOriginalRnVersion', undefined);
     }
 
     private scrollToFirstPackageWithIssues(): void {

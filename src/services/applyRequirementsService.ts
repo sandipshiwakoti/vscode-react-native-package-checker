@@ -7,11 +7,21 @@ import { extractCurrentRnVersion, parseDiff } from '../utils/requirementsUtils';
 import { promptForTargetVersion } from '../utils/versionUtils';
 
 import { CacheManagerService } from './cacheManagerService';
+import { SuccessModalService } from './successModalService';
 
 export class ApplyRequirementsService {
     private cache = new Map<string, DiffData>();
 
-    constructor(private cacheManager: CacheManagerService) {}
+    constructor(
+        private cacheManager: CacheManagerService,
+        private context?: vscode.ExtensionContext
+    ) {}
+
+    setRequirementsService(requirementsService: any): void {
+        this.requirementsService = requirementsService;
+    }
+
+    private requirementsService?: any;
 
     async applyRequirements(): Promise<void> {
         try {
@@ -31,9 +41,17 @@ export class ApplyRequirementsService {
 
             const cachedLatestRnVersion = this.cacheManager.getLatestVersion('react-native');
 
-            const targetVersion = await promptForTargetVersion(currentRnVersion, cachedLatestRnVersion || undefined);
+            // Check if requirements are already enabled and use the same target version
+            let targetVersion: string | undefined;
+            if (this.requirementsService && this.requirementsService.isEnabled()) {
+                targetVersion = this.requirementsService.getTargetVersion();
+            }
+
             if (!targetVersion) {
-                return;
+                targetVersion = await promptForTargetVersion(currentRnVersion, cachedLatestRnVersion || undefined);
+                if (!targetVersion) {
+                    return;
+                }
             }
 
             const diffData = await this.fetchDiff(currentRnVersion, targetVersion);
@@ -41,9 +59,7 @@ export class ApplyRequirementsService {
             const requirementResults = this.generateRequirementResults(currentPackages, diffData);
 
             if (requirementResults.length === 0) {
-                vscode.window.showInformationMessage(
-                    `All dependencies already meet React Native ${targetVersion} requirements!`
-                );
+                await SuccessModalService.showRequirementsFulfilledModal(targetVersion);
                 return;
             }
 
@@ -226,16 +242,21 @@ export class ApplyRequirementsService {
 
                 const success = await vscode.workspace.applyEdit(edit);
                 if (success) {
-                    await document.save();
+                    // Suppress success modal from requirements service since we'll show our own
+                    if (this.requirementsService) {
+                        this.requirementsService.setSuppressSuccessModal(true);
+                    }
 
-                    const message = `Successfully applied ${appliedCount} requirement${appliedCount > 1 ? 's' : ''} for React Native ${targetVersion}. All requirements fulfilled!`;
-                    vscode.window.showInformationMessage(message);
+                    await document.save();
 
                     if (failedApplications.length > 0) {
                         vscode.window.showWarningMessage(
                             `Some requirements could not be applied: ${failedApplications.join(', ')}`
                         );
                     }
+
+                    // Show success modal for applied requirements
+                    await SuccessModalService.showRequirementsAppliedModal(appliedCount, targetVersion);
                 } else {
                     vscode.window.showErrorMessage('Failed to apply requirements');
                 }

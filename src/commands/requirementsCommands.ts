@@ -17,8 +17,18 @@ export async function disableRequirements(service: RequirementsService): Promise
     await service.disable();
 }
 
-export async function applyRequirements(service: ApplyRequirementsService): Promise<void> {
+export async function applyRequirements(
+    service: ApplyRequirementsService,
+    requirementsService?: RequirementsService
+): Promise<void> {
     await service.applyRequirements();
+
+    // Auto-hide requirements after successful application
+    if (requirementsService && requirementsService.isEnabled()) {
+        setTimeout(async () => {
+            await requirementsService.disable();
+        }, 1000);
+    }
 }
 
 export async function updateToRequiredVersion(
@@ -40,4 +50,11 @@ export async function addPackage(
 
 export async function removePackage(packageName: string, service: RequirementsService): Promise<void> {
     await service.removePackage(packageName);
+}
+
+export async function addAllMissingPackages(
+    dependencyType: 'dependencies' | 'devDependencies',
+    service: RequirementsService
+): Promise<void> {
+    await service.addAllMissingPackages(dependencyType);
 }
