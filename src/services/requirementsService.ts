@@ -153,26 +153,30 @@ export class RequirementsService {
             // Validate version compatibility before making API call
             const versionComparison = compareVersions(this.targetVersion, fromVersion);
 
-            if (versionComparison <= 0) {
-                let errorMessage: string;
-                if (versionComparison === 0) {
-                    errorMessage = `React Native is already at version ${this.targetVersion}. All requirements are fulfilled.`;
-                    // Show success modal and disable requirements
-                    if (!suppressSuccessModal) {
-                        await SuccessModalService.showRequirementsFulfilledModal(this.targetVersion);
-                    }
-                    await this.disable();
-                    return;
-                } else {
-                    errorMessage = `Target version ${this.targetVersion} is older than current version ${fromVersion}. Only upgrades are supported. Please choose a newer version.`;
-                    vscode.window.showErrorMessage(errorMessage);
-                    // Disable requirements since the target version is invalid
-                    await this.disable();
-                    return;
-                }
+            if (versionComparison < 0) {
+                // Only prevent API call for downgrades, not same versions
+                const errorMessage = `Target version ${this.targetVersion} is older than current version ${fromVersion}. Only upgrades are supported. Please choose a newer version.`;
+                vscode.window.showErrorMessage(errorMessage);
+                // Disable requirements since the target version is invalid
+                await this.disable();
+                return;
             }
 
-            const diffData = await this.fetchDiff(fromVersion, this.targetVersion);
+            // If versions are the same, we still need to check other packages
+            // Don't return early, let the normal flow handle it
+            let diffData: DiffData;
+
+            if (versionComparison === 0) {
+                // When versions are the same, create empty diff data to avoid API call
+                diffData = {
+                    fromVersion,
+                    toVersion: this.targetVersion,
+                    packageChanges: [],
+                    rawDiff: '',
+                };
+            } else {
+                diffData = await this.fetchDiff(fromVersion, this.targetVersion);
+            }
             const currentPackages = this.parsePackageJson(content);
             const results = this.generateResults(currentPackages, diffData);
 

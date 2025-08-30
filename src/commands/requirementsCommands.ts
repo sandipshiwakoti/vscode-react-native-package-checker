@@ -1,13 +1,10 @@
-import * as vscode from 'vscode';
-
 import { ApplyRequirementsService } from '../services/applyRequirementsService';
 import { RequirementsService } from '../services/requirementsService';
 
 export async function enableRequirements(service: RequirementsService): Promise<void> {
     if (service.isEnabled()) {
-        vscode.window.showWarningMessage(
-            'Requirements are already enabled. Use "Hide requirements" to change the target version.'
-        );
+        // If requirements are already enabled, refresh to check if all requirements are now fulfilled
+        await service.refresh();
         return;
     }
     await service.enable();
