@@ -1,7 +1,7 @@
 {
     "name": "vscode-react-native-package-checker",
     "displayName": "React Native Package Checker",
-    "description": "Simplify Your New Architecture Migration",
+    "description": "New Architecture compatibility checks and React Native version upgrade requirements",
     "icon": "assets/logo.png",
     "version": "0.0.1",
     "publisher": "sandipshiwakoti",
@@ -20,7 +20,17 @@
     "categories": [
         "Other"
     ],
-    "keywords": [],
+    "keywords": [
+        "react-native",
+        "new-architecture",
+        "package-checker",
+        "compatibility",
+        "migration",
+        "upgrade",
+        "requirements",
+        "dependencies",
+        "codelens"
+    ],
     "activationEvents": [
         "onLanguage:json"
     ],

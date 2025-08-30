@@ -20,24 +20,23 @@
 </p>
 
 <p align="center">
-  <strong>Check React Native packages for New Architecture compatibility directly in VS Code ⚡️</strong><br>
+  <strong>New Architecture compatibility checks and React Native version upgrade requirements - all in VS Code ⚡️</strong><br>
 </p>
 
 ---
 
 ## ✨ Features
 
-- 🎯 **New Architecture Compatibility** - See which packages support React Native's New Architecture directly in your package.json
-- 🔎 **Interactive CodeLens** - Clickable status segments that open filtered package browsers with real-time search
-- 🎨 **Visual Status Decorations** - Gutter icons show package compatibility status at a glance
-- 📊 **Smart Package Filtering** - Browse packages by compatibility status (Supported, Untested, Unlisted, Unmaintained)
-- 🔍 **Quick Pick Interface** - Searchable package browser with instant navigation to package.json lines
-- 🔧 **Maintenance Tracking** - Monitor package maintenance status and identify unmaintained dependencies
-- 🔗 **Package Details** - Access NPM, GitHub, documentation, and New Architecture migration resources
-- 🌐 **Migration Support** - Direct links to upgrade helpers, merged PRs, issues etc.
-- 🔄 **Data Caching** - Always get the latest package information with intelligent data refresh
-- ⚡ **Requirements Check** - Compare your current dependencies against React Native upgrade requirements using rn-diff-purge data
-- 🎛️ **Quick Actions Menu** - Centralized access to common tasks like requirements checking and data refresh
+- 🎯 **New Architecture Status** - See which packages work with React Native's New Architecture right in your package.json
+- 📊 **Package Summary** - Get instant overview of all dependencies with status counts and quick actions
+- 🎨 **Visual Indicators** - Gutter icons and CodeLens overlays show compatibility at a glance
+- 🔍 **Smart Filtering** - Browse packages by status (Supported, Untested, Unlisted, Unmaintained) with search
+- ⚡ **Version Requirements** - Check what package versions you need for any React Native version
+- 🔧 **Bulk Updates** - Apply all required version changes with preview and confirmation
+- 📂 **Maintenance Status** - Spot unmaintained packages that might cause issues
+- 🔗 **External Resources** - Quick access to NPM, GitHub, docs, and migration guides
+- 🌐 **Upgrade Helper** - Direct links to React Native upgrade tools and community resources
+- 📦 **Package Checker Website** - Open your project dependencies in the web-based package analyzer
 
 ## 🚀 Installation
 
@@ -69,45 +68,40 @@ code --install-extension sandipshiwakoti.vscode-react-native-package-checker
 ## 🚀 Quick Start
 
 1. **Open** your React Native project in VS Code
-2. **Open** your `package.json` file
-3. **View** interactive CodeLens overlays showing compatibility info above each package
-4. **Click** any status segment (e.g., "47 New Arch Supported") to browse filtered packages
-5. **Search** and navigate packages using the Quick Pick interface
-6. **Access** additional tools via `Ctrl+Shift+P` → "Package Checker: Browse Packages by Filter"
+2. **Open** your `package.json` file - CodeLens overlays appear automatically
+3. **Check New Architecture compatibility** - See status icons and clickable segments above each dependency
+4. **Browse packages by status** - Click summary segments like "✓23 Supported" to filter and search
+5. **Check version requirements** - Use `Ctrl+Shift+P` → "Show Requirements" to see what versions you need for target React Native version
+6. **Apply bulk updates** - Use "Apply Requirements" to update all packages with preview and confirmation
+
+**Key Actions:**
+
+- Click any CodeLens segment to browse filtered packages
+- Use Command Palette (`Ctrl+Shift+P`) for "Package Checker" commands
+- Toggle CodeLens display with the title bar icon
 
 ## 📋 Usage
 
-### CodeLens Integration
+### 🔎 CodeLens Integration
 
 Open your `package.json` to see interactive overlays above each dependency:
 
-| CodeLens Display           | Meaning                                                   | Action                                      |
-| -------------------------- | --------------------------------------------------------- | ------------------------------------------- |
-| ✓ **New Arch Supported**   | Package supports New Architecture                         | Click for detailed package info             |
-| ⅹ **New Arch Unsupported** | Package doesn't support New Architecture                  | Click to see alternatives or migration info |
-| ⚠ **New Arch Untested**   | Package has not been tested with New Architecture         | Click to check latest information           |
-| ? **Unlisted**             | Package not found in the official React Native directory  | Click to check latest information           |
-| 📂 **Unmaintained**        | Package is unmaintained                                   | See maintenance status                      |
-| ✓ **Latest X.X.X**         | Package is up to date                                     | View package details                        |
-| ↑ **Latest X.X.X**         | Update available                                          | Click to see upgrade options                |
-| 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                      | Open upgrade helper with current RN version |
-| ✎ **Required: X.X.X**      | Version mismatch detected for target React Native version | Click to update to required version         |
+| CodeLens Display                                                                                     | Meaning                                                   | Action                                                    |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
+| ✓ **New Arch Supported**                                                                             | Package supports New Architecture                         | Click for detailed package info                           |
+| ⅹ **New Arch Unsupported**                                                                           | Package doesn't support New Architecture                  | Click to see alternatives or migration info               |
+| ⚠ **New Arch Untested**                                                                             | Package has not been tested with New Architecture         | Click to check latest information                         |
+| ? **Unlisted**                                                                                       | Package not found in the official React Native directory  | Click to check latest information                         |
+| 📂 **Unmaintained**                                                                                  | Package is unmaintained                                   | See maintenance status                                    |
+| ✓ **Latest X.X.X**                                                                                   | Package is up to date                                     | View package details                                      |
+| ↑ **Latest X.X.X**                                                                                   | Update available                                          | Click to see upgrade options                              |
+| ✎ **Required: X.X.X**                                                                                | Version mismatch detected for target React Native version | Click to update to required version                       |
+| 📦 **X packages** \| **✓X Supported** \| **⚠X Untested** \| **?X Unlisted** \| **📂X Unmaintained** | Summary of all dependencies with clickable status counts  | Click any segment to browse packages by that status       |
+| 🎛️ **Quick Actions**                                                                                 | Access common tasks and tools                             | Show/Apply Requirements, Refresh Data, Open Website, etc. |
 
-**Interactive Summary CodeLens:**
+### 🎛️ Title Bar
 
-The dependencies section shows a comprehensive summary with clickable segments:
-
-| CodeLens Segment           | Meaning                                                        | Action                                     |
-| -------------------------- | -------------------------------------------------------------- | ------------------------------------------ |
-| 📦 **X packages**          | Total production dependencies count (excludes devDependencies) | Click to browse all packages in Quick Pick |
-| ✓ **X New Arch Supported** | Count of packages supporting New Architecture                  | Click to browse only supported packages    |
-| ⚠ **X Untested**          | Count of packages not tested with New Architecture             | Click to browse only untested packages     |
-| ? **X Unlisted**           | Count of packages not in React Native directory                | Click to browse only unlisted packages     |
-| 📂 **X Unmaintained**      | Count of unmaintained packages                                 | Click to browse only unmaintained packages |
-| ⚙️ **Check deps version**  | Requirements validation                                        | Enable/disable requirements checking       |
-| 📋 **Quick actions**       | Access to common actions                                       | Open Quick Actions menu                    |
-
-**Toggle CodeLens:**
+**Toggle CodeLens display on/off:**
 
 - Use the toggle icon in the editor title bar for instant enable/disable
 
@@ -115,116 +109,33 @@ The dependencies section shows a comprehensive summary with clickable segments:
 
 Package status decorations appear as icons in the editor gutter next to each dependency line:
 
-| Icon | Status          | Meaning                                           |
-| ---- | --------------- | ------------------------------------------------- |
-| ✅   | **Supported**   | Package fully supports New Architecture           |
-| ❌   | **Unsupported** | Package does not support New Architecture         |
-| ⚠️   | **Untested**    | Package has not been tested with New Architecture |
-| ❓   | **Unlisted**    | Package not found in the React Native directory   |
+| Icon                                                          | Status          | Meaning                                           |
+| ------------------------------------------------------------- | --------------- | ------------------------------------------------- |
+| ![circle-check-big](assets/dark/circle-check-big.svg)         | **Supported**   | Package fully supports New Architecture           |
+| ![circle-x](assets/dark/circle-x.svg)                         | **Unsupported** | Package does not support New Architecture         |
+| ![circle-alert](assets/dark/circle-alert.svg)                 | **Untested**    | Package has not been tested with New Architecture |
+| ![circle-question-mark](assets/dark/circle-question-mark.svg) | **Unlisted**    | Package not found in the React Native directory   |
 
 **Configuration:**
 
 - Toggle decorations: Command Palette → "Toggle Status Decorations"
 - Setting: `reactNativePackageChecker.showStatusDecorations` (default: `true`)
 
-### Package Browsing & Filtering
-
-**Quick Pick Interface:**
-
-The extension provides a powerful Quick Pick interface for browsing and filtering packages:
-
-- **Search Functionality**: Type to filter packages by name, version, or status in real-time
-- **Status-Based Filtering**: Browse packages by specific compatibility status (Supported, Untested, Unlisted, Unmaintained)
-- **Package Navigation**: Select any package to view detailed information and automatically navigate to its line in package.json
-- **Comprehensive Information**: Each package shows name, current version, and compatibility status
-
-**Access Methods:**
-
-1. **From CodeLens**: Click any status segment in the dependencies summary (e.g., "47 New Arch Supported")
-2. **From Command Palette**: Use "Browse All Packages" or "Browse Packages by Filter" commands
-3. **Quick Actions Menu**: Access via the "Quick actions" CodeLens segment for additional tools
-
-**Filter Categories:**
-
-- **New Arch Supported**: Packages confirmed to work with React Native's New Architecture
-- **Untested**: Packages that haven't been tested with the New Architecture yet
-- **Unlisted**: Packages not found in the official React Native directory
-- **Unmaintained**: Packages that are no longer actively maintained
-- **All Packages**: Complete list of all project dependencies
-
-### Command Palette
+### ⌨️ Command Palette
 
 Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 
-**Package Checker: Open Package Checker Website**
-
-- Analyze all project dependencies in your browser
-- Opens the React Native Package Checker website with your project's packages
-- Also accessible via the package summary CodeLens
-
-**Package Checker: Browse Packages**
-
-- Opens a filter selection menu to browse packages by specific status or access Quick Actions
-- Choose from: All Packages, New Arch Supported, New Arch Unsupported, Untested, Unlisted, Unmaintained, or Quick Actions
-- Each filter shows the count of matching packages (e.g., "New Arch Supported (47)")
-- Provides focused views for different package categories with searchable Quick Pick interface
-- Click any package to view detailed information and navigate to its line in package.json
-- Access Quick Actions menu for common tasks like dependency checking and data refresh
-
-**Package Checker: Refresh Package Data**
-
-- Clear cache and fetch the latest package information
-
-**Package Checker: Apply Requirements**
-
-- **Requirements Check Integration**: Works with active requirements validation to update mismatched packages
-- **Preview-First Approach**: Shows all required changes before applying them
-- **User Confirmation**: Allows selective updates with checkboxes for each change
-
-**Package Checker: Apply Requirements**
-
-- **Independent Operation**: Standalone requirements application that prompts for React Native version
-- **Comprehensive Analysis**: Analyzes differences between current and target React Native versions
-- **Complete Package Management**: Handles version updates, package additions, and removals
-- **Smart Package Management**: Automatically sorts dependencies alphabetically
-- **Safe Operations**: Validates package.json structure before making changes
-- **Transparency**: Includes links to React Native diff references for verification
-
-**Package Checker: Show Logs**
-
-- Open the extension's output channel to view detailed logs
-- Useful for debugging and monitoring API calls
-
-**Package Checker: Open Upgrade Helper**
-
-- Opens the React Native Upgrade Helper website with intelligent version detection
-- **From Command Palette**: Automatically reads React Native version from your currently open package.json
-- **From CodeLens**: Uses the specific version from the package context
-- **Smart Version Parsing**: Handles version prefixes (^, ~, >=) and extracts clean version numbers
-- Perfect for planning React Native version upgrades and migrations
-
-**Package Checker: Show Requirements**
-
-- Enables requirements checking against a target React Native version
-- Prompts you to enter the target React Native version (e.g., 0.75.1)
-- **Version Validation**: Only allows upgrades - prevents downgrading to older React Native versions
-- Uses rn-diff-purge data to compare your current dependencies with required versions
-- **Comprehensive Change Detection**: Identifies version updates, package additions, and removals
-- Shows inline decorations for packages that need version updates, additions, or removals
-- **Smart Package Management**: Excludes @react-native/new-app-screen from additions (used for scratch projects)
-- **Auto-Disable**: Automatically disables when all dependencies meet the target React Native version requirements
-
-**Package Checker: Hide Requirements**
-
-- Disables requirements checking and clears all version mismatch indicators
-- Removes inline decorations from package.json
-- **Note**: Requirements check also auto-disables when all requirements are satisfied
-
-### Title Bar
-
-**Toggle Icon:**
-
-- Toggle CodeLens display on/off
+| Command                                           | Description                                     |
+| ------------------------------------------------- | ----------------------------------------------- |
+| **Package Checker: Open Package Checker Website** | Analyze dependencies in browser                 |
+| **Package Checker: Browse Packages**              | Filter and search packages by status            |
+| **Package Checker: Refresh Package Data**         | Clear cache and fetch latest information        |
+| **Package Checker: Apply Requirements**           | Bulk update dependencies with preview           |
+| **Package Checker: Show Requirements**            | Display required versions for target RN version |
+| **Package Checker: Hide Requirements**            | Clear requirements display                      |
+| **Package Checker: Open Upgrade Helper**          | Access React Native upgrade guidance            |
+| **Package Checker: Toggle Status Decorations**    | Show/hide gutter icons                          |
+| **Package Checker: Show Logs**                    | View detailed extension logs                    |
 
 ## 📊 Data Sources
 
@@ -234,6 +145,7 @@ This extension leverages data from trusted sources:
 - **[NPM Registry](https://www.npmjs.com)** - Package version and metadata information
 - **[React Native Upgrade Helper](https://react-native-community.github.io/upgrade-helper)** - Official upgrade guidance for React Native versions
 - **[rn-diff-purge](https://github.com/react-native-community/rn-diff-purge)** - Community-maintained diffs between React Native versions for requirements checking
+- **[Bundlephobia](https://bundlephobia.com)** - Package size analysis and bundle impact information
 
 _Special thanks to the React Native Directory team and rn-diff-purge maintainers for providing the comprehensive data that powers this extension._
 
@@ -244,6 +156,7 @@ Customize the extension in your VS Code settings (`settings.json`):
 ```json
 {
     "reactNativePackageChecker.showLatestVersion": true,
+    "reactNativePackageChecker.showStatusDecorations": true,
     "reactNativePackageChecker.enableLogging": true,
     "reactNativePackageChecker.logLevel": "info",
     "reactNativePackageChecker.requirements.cacheDuration": 24
