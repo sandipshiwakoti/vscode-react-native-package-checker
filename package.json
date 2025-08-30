@@ -50,12 +50,12 @@
                     "default": "info",
                     "description": "Set the logging level for the extension"
                 },
-                "reactNativePackageChecker.dependencyCheck.cacheDuration": {
+                "reactNativePackageChecker.requirements.cacheDuration": {
                     "type": "number",
                     "default": 24,
                     "minimum": 1,
                     "maximum": 168,
-                    "description": "Cache duration for diff data in hours (1-168 hours)"
+                    "description": "Cache duration for requirements data in hours (1-168 hours)"
                 },
                 "reactNativePackageChecker.showStatusDecorations": {
                     "type": "boolean",
@@ -118,8 +118,8 @@
                 "category": "Package Checker"
             },
             {
-                "command": "reactNativePackageChecker.enableDependencyCheck",
-                "title": "Check dependencies version",
+                "command": "reactNativePackageChecker.enableRequirements",
+                "title": "Enable Requirements",
                 "category": "Package Checker",
                 "icon": {
                     "light": "./assets/light/toggle-disabled.svg",
@@ -127,8 +127,8 @@
                 }
             },
             {
-                "command": "reactNativePackageChecker.disableDependencyCheck",
-                "title": "Disable Dependency Check",
+                "command": "reactNativePackageChecker.disableRequirements",
+                "title": "Disable Requirements",
                 "category": "Package Checker",
                 "icon": {
                     "light": "./assets/light/toggle-enabled.svg",
@@ -146,18 +146,18 @@
                 "category": "Package Checker"
             },
             {
-                "command": "reactNativePackageChecker.checkDependencyVersion",
-                "title": "Check Dependencies Version",
+                "command": "reactNativePackageChecker.showRequirements",
+                "title": "Show Requirements",
                 "category": "Package Checker"
             },
             {
-                "command": "reactNativePackageChecker.resetDependencyCheck",
-                "title": "Reset Dependencies Check",
+                "command": "reactNativePackageChecker.hideRequirements",
+                "title": "Hide Requirements",
                 "category": "Package Checker"
             },
             {
-                "command": "reactNativePackageChecker.performBulkUpdate",
-                "title": "Bulk Update Dependencies",
+                "command": "reactNativePackageChecker.applyRequirements",
+                "title": "Apply Requirements",
                 "category": "Package Checker"
             }
         ],
@@ -193,11 +193,11 @@
                     "when": "false"
                 },
                 {
-                    "command": "reactNativePackageChecker.enableDependencyCheck",
+                    "command": "reactNativePackageChecker.enableRequirements",
                     "when": "false"
                 },
                 {
-                    "command": "reactNativePackageChecker.disableDependencyCheck",
+                    "command": "reactNativePackageChecker.disableRequirements",
                     "when": "false"
                 },
                 {
@@ -225,15 +225,15 @@
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 },
                 {
-                    "command": "reactNativePackageChecker.checkDependencyVersion",
+                    "command": "reactNativePackageChecker.showRequirements",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 },
                 {
-                    "command": "reactNativePackageChecker.resetDependencyCheck",
+                    "command": "reactNativePackageChecker.hideRequirements",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 },
                 {
-                    "command": "reactNativePackageChecker.performBulkUpdate",
+                    "command": "reactNativePackageChecker.applyRequirements",
                     "when": "resourceExtname == .json && resourceFilename =~ /package\\.json$/"
                 },
                 {

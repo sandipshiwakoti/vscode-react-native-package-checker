@@ -1,19 +1,19 @@
 import * as vscode from 'vscode';
 
-import { DEPENDENCY_CHECK_CONFIG, ERROR_MESSAGES, EXTERNAL_URLS, STATUS_SYMBOLS } from '../constants';
-import { DiffData, ValidationResult } from '../types';
-import { extractCurrentRnVersion, parseDiff } from '../utils/dependencyCheckUtils';
+import { ERROR_MESSAGES, EXTERNAL_URLS, REQUIREMENTS_CONFIG, STATUS_SYMBOLS } from '../constants';
+import { DiffData, RequirementResult } from '../types';
 import { parsePackageJson, removePackageFromJson, updatePackageJsonSection } from '../utils/packageUtils';
+import { extractCurrentRnVersion, parseDiff } from '../utils/requirementsUtils';
 import { promptForTargetVersion } from '../utils/versionUtils';
 
 import { CacheManagerService } from './cacheManagerService';
 
-export class BulkUpdateService {
+export class ApplyRequirementsService {
     private cache = new Map<string, DiffData>();
 
     constructor(private cacheManager: CacheManagerService) {}
 
-    async performBulkUpdate(): Promise<void> {
+    async applyRequirements(): Promise<void> {
         try {
             const activeEditor = vscode.window.activeTextEditor;
             if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
@@ -38,26 +38,29 @@ export class BulkUpdateService {
 
             const diffData = await this.fetchDiff(currentRnVersion, targetVersion);
             const currentPackages = this.parsePackageJson(content);
-            const results = this.generateResults(currentPackages, diffData);
+            const requirementResults = this.generateRequirementResults(currentPackages, diffData);
 
-            if (results.length === 0) {
+            if (requirementResults.length === 0) {
                 vscode.window.showInformationMessage(
                     `All dependencies already meet React Native ${targetVersion} requirements!`
                 );
                 return;
             }
 
-            await this.showBulkUpdatePreview(results, targetVersion);
+            await this.showRequirementsPreview(requirementResults, targetVersion);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Bulk update error:', error);
-            vscode.window.showErrorMessage(`Failed to perform bulk update: ${errorMessage}`);
+            console.error('Apply requirements error:', error);
+            vscode.window.showErrorMessage(`Failed to apply requirements: ${errorMessage}`);
         }
     }
 
-    private async showBulkUpdatePreview(results: ValidationResult[], targetVersion: string): Promise<void> {
+    private async showRequirementsPreview(
+        requirementResults: RequirementResult[],
+        targetVersion: string
+    ): Promise<void> {
         const quickPick = vscode.window.createQuickPick();
-        quickPick.title = `Bulk Update Dependencies for React Native ${targetVersion}`;
+        quickPick.title = `Apply Requirements for React Native ${targetVersion}`;
         quickPick.placeholder = 'Select packages to update (uncheck to skip)';
         quickPick.canSelectMany = true;
         quickPick.ignoreFocusOut = true;
@@ -74,21 +77,21 @@ export class BulkUpdateService {
             },
         ];
 
-        const sortedResults = this.sortResultsForPackageJson(results);
+        const sortedResults = this.sortResultsForPackageJson(requirementResults);
 
         const packageItems = sortedResults.map((result) => {
             let description = '';
             let detail = '';
 
             if (result.changeType === 'addition') {
-                description = `Add ${result.expectedVersion}`;
+                description = `Add ${result.requiredVersion}`;
                 detail = `${STATUS_SYMBOLS.ADD} Add new package required for React Native ${targetVersion}`;
             } else if (result.changeType === 'removal') {
                 description = `Remove ${result.currentVersion}`;
                 detail = `${STATUS_SYMBOLS.REMOVE} Remove package no longer needed for React Native ${targetVersion}`;
             } else {
-                description = `${result.currentVersion} → ${result.expectedVersion}`;
-                detail = `${STATUS_SYMBOLS.UPDATE} Update to React Native ${targetVersion} expected version`;
+                description = `${result.currentVersion} → ${result.requiredVersion}`;
+                detail = `${STATUS_SYMBOLS.UPDATE} Update to React Native ${targetVersion} required version`;
             }
 
             return {
@@ -112,7 +115,7 @@ export class BulkUpdateService {
                 quickPick.hide();
 
                 if (selectedItems.length > 0) {
-                    await this.applyBulkUpdates([...selectedItems], results, targetVersion);
+                    await this.applySelectedRequirements([...selectedItems], requirementResults, targetVersion);
                 }
                 resolve();
             });
@@ -126,9 +129,9 @@ export class BulkUpdateService {
         });
     }
 
-    private async applyBulkUpdates(
+    private async applySelectedRequirements(
         selectedItems: vscode.QuickPickItem[],
-        results: ValidationResult[],
+        requirementResults: RequirementResult[],
         targetVersion: string
     ): Promise<void> {
         const activeEditor = vscode.window.activeTextEditor;
@@ -146,51 +149,52 @@ export class BulkUpdateService {
         }
 
         try {
-            let updatedCount = 0;
-            const failedUpdates: string[] = [];
+            let appliedCount = 0;
+            const failedApplications: string[] = [];
 
             for (const item of selectedItems) {
                 const packageName = item.label.replace(/^\$\([^)]+\)\s+/, '');
-                const result = results.find((r) => r.packageName === packageName);
-                if (!result) {
+                const requirementResult = requirementResults.find((r) => r.packageName === packageName);
+                if (!requirementResult) {
                     continue;
                 }
 
                 try {
-                    if (result.changeType === 'addition') {
-                        const targetSection = result.dependencyType || 'dependencies';
+                    if (requirementResult.changeType === 'addition') {
+                        const targetSection = requirementResult.dependencyType || 'dependencies';
                         updatePackageJsonSection(
                             packageJson,
                             targetSection,
-                            result.packageName,
-                            result.expectedVersion
+                            requirementResult.packageName,
+                            requirementResult.requiredVersion
                         );
-                        updatedCount++;
-                    } else if (result.changeType === 'removal') {
-                        const removed = removePackageFromJson(packageJson, result.packageName);
+                        appliedCount++;
+                    } else if (requirementResult.changeType === 'removal') {
+                        const removed = removePackageFromJson(packageJson, requirementResult.packageName);
                         if (removed) {
-                            updatedCount++;
+                            appliedCount++;
                         } else {
-                            failedUpdates.push(result.packageName);
+                            failedApplications.push(requirementResult.packageName);
                         }
                     } else {
-                        let updated = false;
-                        if (packageJson.dependencies && packageJson.dependencies[result.packageName]) {
-                            packageJson.dependencies[result.packageName] = result.expectedVersion;
-                            updated = true;
+                        let applied = false;
+                        if (packageJson.dependencies && packageJson.dependencies[requirementResult.packageName]) {
+                            packageJson.dependencies[requirementResult.packageName] = requirementResult.requiredVersion;
+                            applied = true;
                         }
-                        if (packageJson.devDependencies && packageJson.devDependencies[result.packageName]) {
-                            packageJson.devDependencies[result.packageName] = result.expectedVersion;
-                            updated = true;
+                        if (packageJson.devDependencies && packageJson.devDependencies[requirementResult.packageName]) {
+                            packageJson.devDependencies[requirementResult.packageName] =
+                                requirementResult.requiredVersion;
+                            applied = true;
                         }
-                        if (updated) {
-                            updatedCount++;
+                        if (applied) {
+                            appliedCount++;
                         } else {
-                            failedUpdates.push(result.packageName);
+                            failedApplications.push(requirementResult.packageName);
                         }
                     }
                 } catch {
-                    failedUpdates.push(result.packageName);
+                    failedApplications.push(requirementResult.packageName);
                 }
             }
 
@@ -214,7 +218,7 @@ export class BulkUpdateService {
                 packageJson.devDependencies = sortedDevDeps;
             }
 
-            if (updatedCount > 0) {
+            if (appliedCount > 0) {
                 const updatedContent = JSON.stringify(packageJson, null, 2);
                 const edit = new vscode.WorkspaceEdit();
                 const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
@@ -224,19 +228,19 @@ export class BulkUpdateService {
                 if (success) {
                     await document.save();
 
-                    const message = `Successfully updated ${updatedCount} package${updatedCount > 1 ? 's' : ''} for React Native ${targetVersion}. All requirements fulfilled!`;
+                    const message = `Successfully applied ${appliedCount} requirement${appliedCount > 1 ? 's' : ''} for React Native ${targetVersion}. All requirements fulfilled!`;
                     vscode.window.showInformationMessage(message);
 
-                    if (failedUpdates.length > 0) {
+                    if (failedApplications.length > 0) {
                         vscode.window.showWarningMessage(
-                            `Some packages could not be updated: ${failedUpdates.join(', ')}`
+                            `Some requirements could not be applied: ${failedApplications.join(', ')}`
                         );
                     }
                 } else {
-                    vscode.window.showErrorMessage('Failed to apply bulk updates');
+                    vscode.window.showErrorMessage('Failed to apply requirements');
                 }
             } else {
-                vscode.window.showWarningMessage('No packages were updated');
+                vscode.window.showWarningMessage('No requirements were applied');
             }
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to parse package.json: ${error}`);
@@ -251,7 +255,7 @@ export class BulkUpdateService {
             return cached;
         }
 
-        const url = `${DEPENDENCY_CHECK_CONFIG.RN_DIFF_BASE_URL}/${cacheKey}.diff`;
+        const url = `${REQUIREMENTS_CONFIG.RN_DIFF_BASE_URL}/${cacheKey}.diff`;
 
         try {
             const response = await fetch(url);
@@ -291,19 +295,22 @@ export class BulkUpdateService {
         return { ...dependencies, ...devDependencies };
     }
 
-    private generateResults(currentPackages: Record<string, string>, diffData: DiffData): ValidationResult[] {
-        const results: ValidationResult[] = [];
+    private generateRequirementResults(
+        currentPackages: Record<string, string>,
+        diffData: DiffData
+    ): RequirementResult[] {
+        const requirementResults: RequirementResult[] = [];
 
         for (const change of diffData.packageChanges) {
             if (change.changeType === 'version_change') {
                 const currentVersion = currentPackages[change.packageName];
-                if (currentVersion && this.hasVersionDifference(currentVersion, change.toVersion)) {
+                if (currentVersion && this.hasRequirementMismatch(currentVersion, change.toVersion)) {
                     const cleanCurrentVersion = currentVersion.replace(/^[\^~]/, '');
-                    results.push({
+                    requirementResults.push({
                         packageName: change.packageName,
                         currentVersion: cleanCurrentVersion,
-                        expectedVersion: change.toVersion,
-                        hasVersionMismatch: true,
+                        requiredVersion: change.toVersion,
+                        hasRequirementMismatch: true,
                         changeType: 'version_change',
                         dependencyType: change.dependencyType,
                     });
@@ -311,21 +318,21 @@ export class BulkUpdateService {
             } else if (change.changeType === 'addition') {
                 const currentVersion = currentPackages[change.packageName];
                 if (!currentVersion) {
-                    results.push({
+                    requirementResults.push({
                         packageName: change.packageName,
                         currentVersion: '',
-                        expectedVersion: change.toVersion,
-                        hasVersionMismatch: true,
+                        requiredVersion: change.toVersion,
+                        hasRequirementMismatch: true,
                         changeType: 'addition',
                         dependencyType: change.dependencyType,
                     });
-                } else if (this.hasVersionDifference(currentVersion, change.toVersion)) {
+                } else if (this.hasRequirementMismatch(currentVersion, change.toVersion)) {
                     const cleanCurrentVersion = currentVersion.replace(/^[\^~]/, '');
-                    results.push({
+                    requirementResults.push({
                         packageName: change.packageName,
                         currentVersion: cleanCurrentVersion,
-                        expectedVersion: change.toVersion,
-                        hasVersionMismatch: true,
+                        requiredVersion: change.toVersion,
+                        hasRequirementMismatch: true,
                         changeType: 'version_change',
                         dependencyType: change.dependencyType,
                     });
@@ -333,11 +340,11 @@ export class BulkUpdateService {
             } else if (change.changeType === 'removal') {
                 if (currentPackages[change.packageName]) {
                     const cleanCurrentVersion = currentPackages[change.packageName].replace(/^[\^~]/, '');
-                    results.push({
+                    requirementResults.push({
                         packageName: change.packageName,
                         currentVersion: cleanCurrentVersion,
-                        expectedVersion: '',
-                        hasVersionMismatch: true,
+                        requiredVersion: '',
+                        hasRequirementMismatch: true,
                         changeType: 'removal',
                         dependencyType: change.dependencyType,
                     });
@@ -345,13 +352,13 @@ export class BulkUpdateService {
             }
         }
 
-        return results;
+        return requirementResults;
     }
 
-    private hasVersionDifference(currentVersion: string, expectedVersion: string): boolean {
+    private hasRequirementMismatch(currentVersion: string, requiredVersion: string): boolean {
         const cleanCurrent = currentVersion.replace(/^[\^~]/, '');
-        const cleanExpected = expectedVersion.replace(/^[\^~]/, '');
-        return cleanCurrent !== cleanExpected;
+        const cleanRequired = requiredVersion.replace(/^[\^~]/, '');
+        return cleanCurrent !== cleanRequired;
     }
 
     private getCurrentRnVersion(): string | null {
@@ -363,12 +370,12 @@ export class BulkUpdateService {
         return extractCurrentRnVersion(content);
     }
 
-    private sortResultsForPackageJson(results: ValidationResult[]): ValidationResult[] {
-        const dependencies = results
+    private sortResultsForPackageJson(requirementResults: RequirementResult[]): RequirementResult[] {
+        const dependencies = requirementResults
             .filter((r) => r.dependencyType === 'dependencies' || !r.dependencyType)
             .sort((a, b) => a.packageName.localeCompare(b.packageName));
 
-        const devDependencies = results
+        const devDependencies = requirementResults
             .filter((r) => r.dependencyType === 'devDependencies')
             .sort((a, b) => a.packageName.localeCompare(b.packageName));
 

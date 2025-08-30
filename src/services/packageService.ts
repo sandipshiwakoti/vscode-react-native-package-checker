@@ -462,7 +462,7 @@ export class PackageService {
                             `NPM registry is unavailable. Could not fetch version information for ${packagesNeedingVersions.length} package${packagesNeedingVersions.length === 1 ? '' : 's'}.`
                         );
                     }
-                } catch (npmError: any) {
+                } catch {
                     // Show error notification when both package API and npm registry fail
                     vscode.window.showErrorMessage(
                         `Failed to fetch both package information and version data. Package API and npm registry are both unavailable.`

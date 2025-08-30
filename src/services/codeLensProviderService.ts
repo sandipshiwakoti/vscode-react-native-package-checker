@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { EXTENSION_CONFIG, INTERNAL_PACKAGES, STATUS_SYMBOLS } from '../constants';
 import { COMMANDS, FileExtensions, STATUS_DESCRIPTIONS, STATUS_LABELS } from '../types';
 import { NewArchSupportStatus, PackageInfo, PackageInfoMap, StatusInfo } from '../types';
-import { CodeLensSegment, SummaryData, ValidationResult } from '../types';
+import { CodeLensSegment, RequirementResult, SummaryData } from '../types';
 import { extractPackageNames, isDevDependency, isInUnwantedSection } from '../utils/packageUtils';
 import {
     cleanVersion,
@@ -12,16 +12,16 @@ import {
     hasVersionUpdate,
 } from '../utils/versionUtils';
 
-import { DependencyCheckService } from './dependencyCheckService';
 import { PackageDecorationService } from './packageDecorationService';
 import { PackageService } from './packageService';
+import { RequirementsService } from './requirementsService';
 
 export class CodeLensProviderService implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
     private isProcessingLenses = false;
     private refreshTimeout: NodeJS.Timeout | null = null;
-    private dependencyCheckResults: ValidationResult[] = [];
+    private requirementsResults: RequirementResult[] = [];
     private isAnalyzing = false;
     private lastSummaryData: SummaryData | null = null;
     private isEnabled = false;
@@ -29,16 +29,16 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
 
     constructor(
         private packageService: PackageService,
-        private dependencyCheckService?: DependencyCheckService,
+        private RequirementsService?: RequirementsService,
         private packageDecorationService?: PackageDecorationService
     ) {
-        if (this.dependencyCheckService) {
-            this.dependencyCheckService.onResultsChanged((results) => {
-                console.log(`[CodeLens] Dependency check results changed: ${results.length} mismatches`);
+        if (this.RequirementsService) {
+            this.RequirementsService.onResultsChanged((results) => {
+                console.log(`[CodeLens] Requirements results changed: ${results.length} mismatches`);
                 results.forEach((r) =>
-                    console.log(`[CodeLens] - ${r.packageName}: ${r.currentVersion} -> ${r.expectedVersion}`)
+                    console.log(`[CodeLens] - ${r.packageName}: ${r.currentVersion} -> ${r.requiredVersion}`)
                 );
-                this.dependencyCheckResults = results;
+                this.requirementsResults = results;
 
                 setTimeout(() => {
                     console.log(`[CodeLens] Triggering refresh after results change`);
@@ -237,7 +237,7 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         const lines = document.getText().split(EXTENSION_CONFIG.LINE_SEPARATOR);
         const documentContent = document.getText();
 
-        const dependencyCheckResults = this.getDependencyCheckResults();
+        const requirementsResults = this.getRequirementsResults();
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -250,8 +250,8 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                     codeLenses.push(...summaryCodeLenses);
                 }
 
-                const dependencyHeaderCodeLenses = this.createDependencyHeaderCodeLenses(range, dependencyCheckResults);
-                codeLenses.push(...dependencyHeaderCodeLenses);
+                const requirementsHeaderCodeLenses = this.createRequirementsHeaderCodeLenses(range);
+                codeLenses.push(...requirementsHeaderCodeLenses);
             }
 
             const packageMatch = line.match(EXTENSION_CONFIG.PACKAGE_LINE_REGEX);
@@ -300,20 +300,16 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                     }
                 }
 
-                const dependencyResult = dependencyCheckResults?.find((r) => r.packageName === packageName);
-                console.log(`[CodeLens] Checking dependency result for ${packageName}:`, dependencyResult);
-                if (dependencyResult && dependencyResult.hasVersionMismatch) {
+                const requirementResult = requirementsResults?.find((r) => r.packageName === packageName);
+                console.log(`[CodeLens] Checking requirement result for ${packageName}:`, requirementResult);
+                if (requirementResult) {
                     console.log(
-                        `[CodeLens] Adding dependency CodeLens for ${packageName}: ${dependencyResult.currentVersion} -> ${dependencyResult.expectedVersion}`
+                        `[CodeLens] Adding requirements CodeLens for ${packageName}: ${requirementResult.currentVersion} -> ${requirementResult.requiredVersion}`
                     );
-                    const dependencyCodeLens = this.createDependencyCheckCodeLens(range, dependencyResult);
-                    codeLenses.push(dependencyCodeLens);
-                } else if (dependencyResult) {
-                    console.log(
-                        `[CodeLens] Dependency result found for ${packageName} but no mismatch (${dependencyResult.hasVersionMismatch})`
-                    );
+                    const requirementsCodeLens = this.createRequirementsCodeLens(range, requirementResult);
+                    codeLenses.push(requirementsCodeLens);
                 } else {
-                    console.log(`[CodeLens] No dependency result found for ${packageName}`);
+                    console.log(`[CodeLens] No requirement result found for ${packageName}`);
                 }
             }
         }
@@ -361,12 +357,12 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         });
     }
 
-    private createDependencyCheckCodeLens(range: vscode.Range, result: ValidationResult): vscode.CodeLens {
+    private createRequirementsCodeLens(range: vscode.Range, result: RequirementResult): vscode.CodeLens {
         return new vscode.CodeLens(range, {
-            title: `$(edit-sparkle)\u2009Expected ${result.expectedVersion}`,
-            tooltip: `Current: ${result.currentVersion}, Expected: ${result.expectedVersion}. Click to update.`,
-            command: 'reactNativePackageChecker.updateToExpected',
-            arguments: [result.packageName, result.expectedVersion],
+            title: `$(edit)\u2009Required ${result.requiredVersion}`,
+            tooltip: `Current: ${result.currentVersion}, Required: ${result.requiredVersion}. Click to update.`,
+            command: COMMANDS.UPDATE_TO_REQUIRED_VERSION,
+            arguments: [result.packageName, result.requiredVersion],
         });
     }
 
@@ -571,36 +567,19 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         return parts.join('\n');
     }
 
-    private createDependencyHeaderCodeLenses(
-        range: vscode.Range,
-        dependencyCheckResults: ValidationResult[] | null
-    ): vscode.CodeLens[] {
+    private createRequirementsHeaderCodeLenses(range: vscode.Range): vscode.CodeLens[] {
         const codeLenses: vscode.CodeLens[] = [];
 
-        if (!this.dependencyCheckService) {
+        if (!this.RequirementsService) {
             return codeLenses;
         }
 
-        if (this.dependencyCheckService.isEnabled()) {
-            const targetVersion = this.dependencyCheckService.getTargetVersion();
-            const hasAnyMismatches = dependencyCheckResults && dependencyCheckResults.some((r) => r.hasVersionMismatch);
-
-            if (!hasAnyMismatches && dependencyCheckResults && dependencyCheckResults.length > 0) {
-                codeLenses.push(
-                    new vscode.CodeLens(range, {
-                        title: `✅\u2009Meets RN ${targetVersion} version`,
-                        tooltip: `All dependencies match expected versions for React Native ${targetVersion}`,
-                        command: '',
-                        arguments: [],
-                    })
-                );
-            }
-
+        if (this.RequirementsService.isEnabled()) {
             codeLenses.push(
                 new vscode.CodeLens(range, {
-                    title: `$(refresh)\u2009Reset deps version`,
-                    tooltip: 'Disable dependency checking or check for a different React Native version',
-                    command: 'reactNativePackageChecker.disableDependencyCheck',
+                    title: `$(eye-closed)\u2009Hide requirements`,
+                    tooltip: 'Hide requirements or check for a different React Native version',
+                    command: 'reactNativePackageChecker.hideRequirements',
                     arguments: [],
                 })
             );
@@ -609,19 +588,19 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         return codeLenses;
     }
 
-    private getDependencyCheckResults(): ValidationResult[] | null {
-        if (!this.dependencyCheckService || !this.dependencyCheckService.isEnabled()) {
-            console.log(`[CodeLens] Dependency check not enabled or service not available`);
+    private getRequirementsResults(): RequirementResult[] | null {
+        if (!this.RequirementsService || !this.RequirementsService.isEnabled()) {
+            console.log(`[CodeLens] Requirements not enabled or service not available`);
             return null;
         }
 
-        console.log(`[CodeLens] Getting dependency check results: ${this.dependencyCheckResults.length} items`);
-        this.dependencyCheckResults.forEach((r) => {
+        console.log(`[CodeLens] Getting requirements results: ${this.requirementsResults.length} items`);
+        this.requirementsResults.forEach((r) => {
             console.log(
-                `[CodeLens] - Result: ${r.packageName} (${r.currentVersion} -> ${r.expectedVersion}, mismatch: ${r.hasVersionMismatch})`
+                `[CodeLens] - Result: ${r.packageName} (${r.currentVersion} -> ${r.requiredVersion}, mismatch: ${r.hasRequirementMismatch})`
             );
         });
-        return this.dependencyCheckResults;
+        return this.requirementsResults;
     }
 
     private getStatusSymbol(status?: NewArchSupportStatus): string {

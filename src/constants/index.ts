@@ -63,13 +63,13 @@ export const STATUS_SYMBOLS = {
     REMOVE: '$(remove)',
 } as const;
 
-export const DEPENDENCY_CHECK_CONFIG = {
+export const REQUIREMENTS_CONFIG = {
     RN_DIFF_BASE_URL: 'https://raw.githubusercontent.com/react-native-community/rn-diff-purge/diffs/diffs',
     VERSION_FORMAT_REGEX: /^\d+\.\d+\.\d+$/,
     REQUEST_TIMEOUT: 10000,
     STATE_KEYS: {
-        ENABLED: 'dependencyCheckEnabled',
-        TARGET_VERSION: 'dependencyCheckTargetVersion',
+        ENABLED: 'requirementsEnabled',
+        TARGET_VERSION: 'requirementsTargetVersion',
     },
 } as const;
 
@@ -141,15 +141,15 @@ export const SUCCESS_MESSAGES = {
         `Added ${packageName}@${version} to ${section}`,
     PACKAGE_REMOVED: (packageName: string) => `Removed ${packageName} from dependencies`,
     PACKAGE_UPDATED: (packageName: string, version: string) => `Updated ${packageName} to ${version}`,
-    DEPENDENCY_CHECK_ENABLED: (version: string, currentVersion?: string) => {
-        const baseMessage = `Dependency check enabled for React Native ${version}. Mismatched versions will be highlighted with update suggestions.`;
+    REQUIREMENTS_ENABLED: (version: string, currentVersion?: string) => {
+        const baseMessage = `Requirements displayed for React Native ${version}. Mismatched versions will be highlighted with update suggestions.`;
         if (currentVersion && currentVersion !== version) {
             const upgradeUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentVersion}&to=${version}#RnDiffApp-package.json`;
             return `${baseMessage} [View upgrade guide](${upgradeUrl})`;
         }
         return baseMessage;
     },
-    DEPENDENCY_CHECK_DISABLED: 'Dependency check disabled. Version validation is no longer active.',
-    BULK_UPDATE_COMPLETED: (count: number, version: string) =>
-        `Successfully updated ${count} package${count > 1 ? 's' : ''} for React Native ${version}. All requirements fulfilled!`,
+    REQUIREMENTS_DISABLED: 'Requirements are now hidden.',
+    REQUIREMENTS_APPLIED: (count: number, version: string) =>
+        `Successfully applied ${count} requirement${count > 1 ? 's' : ''} for React Native ${version}. All requirements fulfilled!`,
 } as const;

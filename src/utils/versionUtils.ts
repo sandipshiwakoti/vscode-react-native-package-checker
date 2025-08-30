@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { DEPENDENCY_CHECK_CONFIG, REGEX_PATTERNS } from '../constants';
+import { REGEX_PATTERNS, REQUIREMENTS_CONFIG } from '../constants';
 
 export function compareVersions(version1: string, version2: string): number {
     const v1Parts = version1.split(REGEX_PATTERNS.DOT_SEPARATOR).map(Number);
@@ -74,7 +74,7 @@ export async function promptForTargetVersion(
             if (!value) {
                 return 'Version is required';
             }
-            if (!DEPENDENCY_CHECK_CONFIG.VERSION_FORMAT_REGEX.test(value)) {
+            if (!REQUIREMENTS_CONFIG.VERSION_FORMAT_REGEX.test(value)) {
                 return 'Version must be in format x.y.z (e.g., 0.76.1)';
             }
 

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { EXTERNAL_URLS } from '../constants';
-import { PackageChange, ValidationResult } from '../types';
+import { PackageChange, RequirementResult } from '../types';
 
 import { parsePackageJson } from './packageUtils';
 
@@ -22,8 +22,8 @@ export function extractCurrentRnVersion(packageJsonContent: string): string | nu
     return rnVersion ? cleanVersion(rnVersion) : null;
 }
 
-export function hasVersionDifference(currentVersion: string, expectedVersion: string): boolean {
-    return cleanVersion(currentVersion) !== cleanVersion(expectedVersion);
+export function hasRequirementMismatch(currentVersion: string, requiredVersion: string): boolean {
+    return cleanVersion(currentVersion) !== cleanVersion(requiredVersion);
 }
 
 export function parseDiff(diffContent: string): PackageChange[] {
@@ -148,25 +148,25 @@ function parsePackageLine(line: string): { name: string; version: string } | nul
     return match ? { name: match[1], version: match[2] } : null;
 }
 
-export function createHoverMessage(
-    result: ValidationResult,
+export function createRequirementsHoverMessage(
+    result: RequirementResult,
     targetVersion: string,
     currentRnVersion?: string
 ): vscode.MarkdownString {
-    let message = `**Dependency Version Check: ${result.packageName}**\n\n`;
+    let message = `**Requirements Check: ${result.packageName}**\n\n`;
 
     if (result.changeType === 'addition') {
         message += `${result.packageName} should be added for React Native ${targetVersion}\n\n`;
-        message += `Expected version: \`${result.expectedVersion}\`\n\n`;
-        message += `[Add Package](command:reactNativePackageChecker.addPackage?${encodeURIComponent(JSON.stringify([result.packageName, result.expectedVersion, result.dependencyType]))})`;
+        message += `Required version: \`${result.requiredVersion}\`\n\n`;
+        message += `[Add Package](command:reactNativePackageChecker.addPackage?${encodeURIComponent(JSON.stringify([result.packageName, result.requiredVersion, result.dependencyType]))})`;
     } else if (result.changeType === 'removal') {
         message += `${result.packageName} should be removed for React Native ${targetVersion}\n\n`;
         message += `Current version: \`${result.currentVersion}\`\n\n`;
         message += `[Remove Package](command:reactNativePackageChecker.removePackage?${encodeURIComponent(JSON.stringify([result.packageName]))})`;
     } else {
         message += `Current: \`${result.currentVersion}\`\n\n`;
-        message += `Expected for React Native ${targetVersion}: \`${result.expectedVersion}\`\n\n`;
-        message += `[Update to Expected Version](command:reactNativePackageChecker.updateToExpected?${encodeURIComponent(JSON.stringify([result.packageName, result.expectedVersion]))})`;
+        message += `Required for React Native ${targetVersion}: \`${result.requiredVersion}\`\n\n`;
+        message += `[Update to Required Version](command:reactNativePackageChecker.updateToRequiredVersion?${encodeURIComponent(JSON.stringify([result.packageName, result.requiredVersion]))})`;
     }
 
     if (currentRnVersion && currentRnVersion !== targetVersion) {

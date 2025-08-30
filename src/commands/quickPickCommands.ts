@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
-import { DependencyCheckService } from '../services/dependencyCheckService';
 import { QuickPickService } from '../services/quickPickService';
+import { RequirementsService } from '../services/requirementsService';
 import { COMMANDS } from '../types';
 
 export async function browseAllPackagesCommand(quickPickService: QuickPickService): Promise<void> {
@@ -32,12 +32,12 @@ export async function browsePackagesCommand(quickPickService: QuickPickService):
     await quickPickService.showFilterSelection();
 }
 
-export async function showQuickActionsWithBackCommand(dependencyCheckService: DependencyCheckService): Promise<void> {
-    return showQuickActionsCommand(dependencyCheckService, true);
+export async function showQuickActionsWithBackCommand(requirementsService: RequirementsService): Promise<void> {
+    return showQuickActionsCommand(requirementsService, true);
 }
 
 export async function showQuickActionsCommand(
-    dependencyCheckService: DependencyCheckService,
+    requirementsService: RequirementsService,
     showBackButton: boolean = false
 ): Promise<void> {
     const quickPick = vscode.window.createQuickPick();
@@ -54,23 +54,23 @@ export async function showQuickActionsCommand(
         });
     }
 
-    if (dependencyCheckService.isEnabled()) {
+    if (requirementsService.isEnabled()) {
         items.push({
-            label: '$(refresh) Reset Dependency Check',
-            description: 'Disable dependency checking or check for a different React Native version',
-            detail: `Currently checking for React Native ${dependencyCheckService.getTargetVersion()}`,
+            label: '$(eye-closed) Hide Requirements',
+            description: 'Hide requirements or check for a different React Native version',
+            detail: `Currently checking for React Native ${requirementsService.getTargetVersion()}`,
         });
     } else {
         items.push({
-            label: '$(gear) Check Dependency Version',
-            description: 'Check if dependencies match expected versions for a React Native version',
-            detail: 'Enable dependency version validation',
+            label: '$(eye) Show Requirements',
+            description: 'Check if dependencies match required versions for a React Native version',
+            detail: 'Enable requirements display',
         });
     }
 
     items.push({
-        label: '$(edit-sparkle) Bulk Update Dependencies',
-        description: 'Update dependencies to a React Native version',
+        label: '$(edit) Apply Requirements',
+        description: 'Apply requirements for a React Native version',
         detail: 'Analyze and update packages for any React Native version',
     });
 
@@ -101,12 +101,12 @@ export async function showQuickActionsCommand(
 
             if (selectedItem.label.includes('Back to Filter Selection')) {
                 await vscode.commands.executeCommand(COMMANDS.BROWSE_PACKAGES);
-            } else if (selectedItem.label.includes('Reset Dependency Check')) {
-                await vscode.commands.executeCommand('reactNativePackageChecker.disableDependencyCheck');
-            } else if (selectedItem.label.includes('Check Dependency Version')) {
-                await vscode.commands.executeCommand('reactNativePackageChecker.enableDependencyCheck');
-            } else if (selectedItem.label.includes('Bulk Update Dependencies')) {
-                await vscode.commands.executeCommand(COMMANDS.PERFORM_BULK_UPDATE);
+            } else if (selectedItem.label.includes('Hide Requirements')) {
+                await vscode.commands.executeCommand('reactNativePackageChecker.hideRequirements');
+            } else if (selectedItem.label.includes('Show Requirements')) {
+                await vscode.commands.executeCommand('reactNativePackageChecker.showRequirements');
+            } else if (selectedItem.label.includes('Apply Requirements')) {
+                await vscode.commands.executeCommand(COMMANDS.APPLY_REQUIREMENTS);
             } else if (selectedItem.label.includes('Refresh Package Data')) {
                 await vscode.commands.executeCommand(COMMANDS.REFRESH_PACKAGES);
             } else if (selectedItem.label.includes('Open Package Checker Website')) {

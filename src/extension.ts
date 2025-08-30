@@ -1,13 +1,5 @@
 import * as vscode from 'vscode';
 
-import { performBulkUpdate } from './commands/bulkUpdateCommands';
-import {
-    addPackage,
-    disableDependencyCheck,
-    enableDependencyCheck,
-    removePackage,
-    updateToExpectedVersion,
-} from './commands/dependencyCheckCommands';
 import {
     browseAllPackagesCommand,
     browsePackagesCommand,
@@ -19,13 +11,20 @@ import {
     showUnsupportedPackagesCommand,
     showUntestedPackagesCommand,
 } from './commands/quickPickCommands';
+import {
+    addPackage,
+    applyRequirements,
+    disableRequirements,
+    enableRequirements,
+    removePackage,
+    updateToRequiredVersion,
+} from './commands/requirementsCommands';
 import { EXTENSION_CONFIG } from './constants/index';
+import { ApplyRequirementsService } from './services/applyRequirementsService';
 import { BrowserService } from './services/browserService';
-import { BulkUpdateService } from './services/bulkUpdateService';
 import { CacheManagerService } from './services/cacheManagerService';
 import { CodeLensProviderService } from './services/codeLensProviderService';
 import { DebouncedChangeService } from './services/debouncedChangeService';
-import { DependencyCheckService } from './services/dependencyCheckService';
 import { FileChangeService } from './services/fileChangeService';
 import { LoggerService } from './services/loggerService';
 import { NpmRegistryService } from './services/npmRegistryService';
@@ -34,6 +33,7 @@ import { PackageDetailsService } from './services/packageDetailsService';
 import { PackageFilterService } from './services/packageFilterService';
 import { PackageService } from './services/packageService';
 import { QuickPickService } from './services/quickPickService';
+import { RequirementsService } from './services/requirementsService';
 import { VersionUpdateService } from './services/versionUpdateService';
 import { extractPackageNames } from './utils/packageUtils';
 import { openPackageCheckerWebsite, openUpgradeHelper, refreshPackages, showPackageDetails } from './commands';
@@ -50,14 +50,14 @@ export async function activate(context: vscode.ExtensionContext) {
     const npmRegistryService = new NpmRegistryService(logger);
     const packageService = new PackageService(npmRegistryService, cacheManager, logger);
 
-    const dependencyCheckService = new DependencyCheckService(context, logger, cacheManager);
-    await dependencyCheckService.initialize();
+    const requirementsService = new RequirementsService(context, logger, cacheManager);
+    await requirementsService.initialize();
 
     const packageDecorationService = new PackageDecorationService(context);
 
     const codeLensProviderService = new CodeLensProviderService(
         packageService,
-        dependencyCheckService,
+        requirementsService,
         packageDecorationService
     );
     const versionUpdateService = new VersionUpdateService(codeLensProviderService, packageService);
@@ -65,8 +65,8 @@ export async function activate(context: vscode.ExtensionContext) {
     const fileChangeService = new FileChangeService(logger);
     const debouncedChangeService = new DebouncedChangeService(packageService, fileChangeService, logger, () => {
         codeLensProviderService.refresh();
-        if (dependencyCheckService.isEnabled()) {
-            dependencyCheckService.refresh();
+        if (requirementsService.isEnabled()) {
+            requirementsService.refresh();
         }
     });
 
@@ -75,7 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const packageFilterService = new PackageFilterService();
     const quickPickService = new QuickPickService(packageService, packageFilterService, packageDetailsService);
-    const bulkUpdateService = new BulkUpdateService(cacheManager);
+    const applyRequirementsService = new ApplyRequirementsService(cacheManager);
 
     const codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { language: EXTENSION_CONFIG.LANGUAGE_JSON, pattern: EXTENSION_CONFIG.PACKAGE_JSON_PATTERN },
@@ -115,18 +115,18 @@ export async function activate(context: vscode.ExtensionContext) {
     versionUpdateService.register(context);
     await codeLensProviderService.initialize();
 
-    const updateDependencyCheckContext = () => {
+    const updateRequirementsContext = () => {
         vscode.commands.executeCommand(
             'setContext',
-            'reactNativePackageChecker.dependencyCheckEnabled',
-            dependencyCheckService.isEnabled()
+            'reactNativePackageChecker.requirementsEnabled',
+            requirementsService.isEnabled()
         );
     };
 
-    updateDependencyCheckContext();
+    updateRequirementsContext();
 
-    dependencyCheckService.onResultsChanged(() => {
-        updateDependencyCheckContext();
+    requirementsService.onResultsChanged(() => {
+        updateRequirementsContext();
         codeLensProviderService.refresh();
     });
 
@@ -140,8 +140,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 documentContentCache.set(filePath, newContent);
                 debouncedChangeService.handleFileChange(event.document, oldContent);
 
-                if (dependencyCheckService.isEnabled()) {
-                    dependencyCheckService.refresh();
+                if (requirementsService.isEnabled()) {
+                    requirementsService.refresh();
                 }
             }
         }
@@ -238,30 +238,28 @@ export async function activate(context: vscode.ExtensionContext) {
         logger.show();
     });
 
-    const enableDependencyCheckCommand = vscode.commands.registerCommand(
-        'reactNativePackageChecker.enableDependencyCheck',
-        () => enableDependencyCheck(dependencyCheckService)
+    const showRequirementsCommand = vscode.commands.registerCommand(COMMANDS.SHOW_REQUIREMENTS, () =>
+        enableRequirements(requirementsService)
     );
 
-    const disableDependencyCheckCommand = vscode.commands.registerCommand(
-        'reactNativePackageChecker.disableDependencyCheck',
-        () => disableDependencyCheck(dependencyCheckService)
+    const hideRequirementsCommand = vscode.commands.registerCommand(COMMANDS.HIDE_REQUIREMENTS, () =>
+        disableRequirements(requirementsService)
     );
 
-    const updateToExpectedVersionCommand = vscode.commands.registerCommand(
-        'reactNativePackageChecker.updateToExpected',
-        (packageName: string, expectedVersion: string) =>
-            updateToExpectedVersion(packageName, expectedVersion, dependencyCheckService)
+    const updateToRequiredVersionCommand = vscode.commands.registerCommand(
+        COMMANDS.UPDATE_TO_REQUIRED_VERSION,
+        (packageName: string, requiredVersion: string) =>
+            updateToRequiredVersion(packageName, requiredVersion, requirementsService)
     );
 
     const addPackageCommand = vscode.commands.registerCommand(
         COMMANDS.ADD_PACKAGE,
         (packageName: string, version: string, dependencyType?: 'dependencies' | 'devDependencies') =>
-            addPackage(packageName, version, dependencyType, dependencyCheckService)
+            addPackage(packageName, version, dependencyType, requirementsService)
     );
 
     const removePackageCommand = vscode.commands.registerCommand(COMMANDS.REMOVE_PACKAGE, (packageName: string) =>
-        removePackage(packageName, dependencyCheckService)
+        removePackage(packageName, requirementsService)
     );
 
     const browseAllPackagesCommandDisposable = vscode.commands.registerCommand(
@@ -299,28 +297,20 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     const showQuickActionsCommandDisposable = vscode.commands.registerCommand(COMMANDS.SHOW_QUICK_ACTIONS, () =>
-        showQuickActionsCommand(dependencyCheckService)
+        showQuickActionsCommand(requirementsService)
     );
 
     const showQuickActionsWithBackCommandDisposable = vscode.commands.registerCommand(
         COMMANDS.SHOW_QUICK_ACTIONS_WITH_BACK,
-        () => showQuickActionsWithBackCommand(dependencyCheckService)
+        () => showQuickActionsWithBackCommand(requirementsService)
     );
 
     const toggleStatusDecorationsCommand = vscode.commands.registerCommand(COMMANDS.TOGGLE_STATUS_DECORATIONS, () =>
         packageDecorationService.toggleDecorations()
     );
 
-    const checkDependencyVersionCommand = vscode.commands.registerCommand(COMMANDS.CHECK_DEPENDENCY_VERSION, () =>
-        enableDependencyCheck(dependencyCheckService)
-    );
-
-    const resetDependencyCheckCommand = vscode.commands.registerCommand(COMMANDS.RESET_DEPENDENCY_CHECK, () =>
-        disableDependencyCheck(dependencyCheckService)
-    );
-
-    const performBulkUpdateCommand = vscode.commands.registerCommand(COMMANDS.PERFORM_BULK_UPDATE, () =>
-        performBulkUpdate(bulkUpdateService)
+    const applyRequirementsCommand = vscode.commands.registerCommand(COMMANDS.APPLY_REQUIREMENTS, () =>
+        applyRequirements(applyRequirementsService)
     );
 
     const toggleCodeLensAnalyzingCommand = vscode.commands.registerCommand(
@@ -351,11 +341,10 @@ export async function activate(context: vscode.ExtensionContext) {
         fileChangeListener,
         fileCreateListener,
         fileDeleteListener,
-        dependencyCheckService,
-        enableDependencyCheckCommand,
-        disableDependencyCheckCommand,
-        updateToExpectedVersionCommand,
-
+        requirementsService,
+        showRequirementsCommand,
+        hideRequirementsCommand,
+        updateToRequiredVersionCommand,
         addPackageCommand,
         removePackageCommand,
         browseAllPackagesCommandDisposable,
@@ -368,9 +357,7 @@ export async function activate(context: vscode.ExtensionContext) {
         showQuickActionsCommandDisposable,
         showQuickActionsWithBackCommandDisposable,
         toggleStatusDecorationsCommand,
-        checkDependencyVersionCommand,
-        resetDependencyCheckCommand,
-        performBulkUpdateCommand,
+        applyRequirementsCommand,
         toggleCodeLensAnalyzingCommand,
         packageDecorationService,
         activeEditorChangeListener,

@@ -36,8 +36,8 @@
 - 🔗 **Package Details** - Access NPM, GitHub, documentation, and New Architecture migration resources
 - 🌐 **Migration Support** - Direct links to upgrade helpers, merged PRs, issues etc.
 - 🔄 **Data Caching** - Always get the latest package information with intelligent data refresh
-- ⚡ **Dependency Version Check** - Compare your current dependencies against React Native upgrade requirements using rn-diff-purge data
-- 🎛️ **Quick Actions Menu** - Centralized access to common tasks like dependency checking and data refresh
+- ⚡ **Requirements Check** - Compare your current dependencies against React Native upgrade requirements using rn-diff-purge data
+- 🎛️ **Quick Actions Menu** - Centralized access to common tasks like requirements checking and data refresh
 
 ## 🚀 Installation
 
@@ -91,7 +91,7 @@ Open your `package.json` to see interactive overlays above each dependency:
 | ✓ **Latest X.X.X**         | Package is up to date                                     | View package details                        |
 | ↑ **Latest X.X.X**         | Update available                                          | Click to see upgrade options                |
 | 🌐 **Upgrade Helper**      | Access React Native upgrade guidance                      | Open upgrade helper with current RN version |
-| ✎ **Expected: X.X.X**      | Version mismatch detected for target React Native version | Click to update to expected version         |
+| ✎ **Required: X.X.X**      | Version mismatch detected for target React Native version | Click to update to required version         |
 
 **Interactive Summary CodeLens:**
 
@@ -104,7 +104,7 @@ The dependencies section shows a comprehensive summary with clickable segments:
 | ⚠ **X Untested**          | Count of packages not tested with New Architecture             | Click to browse only untested packages     |
 | ? **X Unlisted**           | Count of packages not in React Native directory                | Click to browse only unlisted packages     |
 | 📂 **X Unmaintained**      | Count of unmaintained packages                                 | Click to browse only unmaintained packages |
-| ⚙️ **Check deps version**  | Dependency version validation                                  | Enable/disable dependency checking         |
+| ⚙️ **Check deps version**  | Requirements validation                                        | Enable/disable requirements checking       |
 | 📋 **Quick actions**       | Access to common actions                                       | Open Quick Actions menu                    |
 
 **Toggle CodeLens:**
@@ -175,20 +175,20 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 
 - Clear cache and fetch the latest package information
 
-**Package Checker: Bulk Update Dependencies**
+**Package Checker: Apply Requirements**
 
-- **Dependency Check Integration**: Works with active dependency validation to update mismatched packages
+- **Requirements Check Integration**: Works with active requirements validation to update mismatched packages
 - **Preview-First Approach**: Shows all required changes before applying them
 - **User Confirmation**: Allows selective updates with checkboxes for each change
 
-**Package Checker: Perform Bulk Update**
+**Package Checker: Apply Requirements**
 
-- **Independent Operation**: Standalone bulk update that prompts for React Native version
+- **Independent Operation**: Standalone requirements application that prompts for React Native version
 - **Comprehensive Analysis**: Analyzes differences between current and target React Native versions
 - **Complete Package Management**: Handles version updates, package additions, and removals
 - **Smart Package Management**: Automatically sorts dependencies alphabetically
 - **Safe Operations**: Validates package.json structure before making changes
-- **Transparency**: Includes links to React Native diff references for verific
+- **Transparency**: Includes links to React Native diff references for verification
 
 **Package Checker: Show Logs**
 
@@ -203,22 +203,22 @@ Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac):
 - **Smart Version Parsing**: Handles version prefixes (^, ~, >=) and extracts clean version numbers
 - Perfect for planning React Native version upgrades and migrations
 
-**Package Checker: Enable Dependency Check**
+**Package Checker: Show Requirements**
 
-- Enables dependency version checking against a target React Native version
+- Enables requirements checking against a target React Native version
 - Prompts you to enter the target React Native version (e.g., 0.75.1)
 - **Version Validation**: Only allows upgrades - prevents downgrading to older React Native versions
-- Uses rn-diff-purge data to compare your current dependencies with expected versions
+- Uses rn-diff-purge data to compare your current dependencies with required versions
 - **Comprehensive Change Detection**: Identifies version updates, package additions, and removals
 - Shows inline decorations for packages that need version updates, additions, or removals
 - **Smart Package Management**: Excludes @react-native/new-app-screen from additions (used for scratch projects)
 - **Auto-Disable**: Automatically disables when all dependencies meet the target React Native version requirements
 
-**Package Checker: Disable Dependency Check**
+**Package Checker: Hide Requirements**
 
-- Disables dependency version checking and clears all version mismatch indicators
+- Disables requirements checking and clears all version mismatch indicators
 - Removes inline decorations from package.json
-- **Note**: Dependency check also auto-disables when all requirements are satisfied
+- **Note**: Requirements check also auto-disables when all requirements are satisfied
 
 ### Title Bar
 
@@ -233,7 +233,7 @@ This extension leverages data from trusted sources:
 - **[React Native Directory](https://reactnative.directory)** - Official React Native package directory with comprehensive compatibility data
 - **[NPM Registry](https://www.npmjs.com)** - Package version and metadata information
 - **[React Native Upgrade Helper](https://react-native-community.github.io/upgrade-helper)** - Official upgrade guidance for React Native versions
-- **[rn-diff-purge](https://github.com/react-native-community/rn-diff-purge)** - Community-maintained diffs between React Native versions for dependency version checking
+- **[rn-diff-purge](https://github.com/react-native-community/rn-diff-purge)** - Community-maintained diffs between React Native versions for requirements checking
 
 _Special thanks to the React Native Directory team and rn-diff-purge maintainers for providing the comprehensive data that powers this extension._
 
@@ -246,17 +246,17 @@ Customize the extension in your VS Code settings (`settings.json`):
     "reactNativePackageChecker.showLatestVersion": true,
     "reactNativePackageChecker.enableLogging": true,
     "reactNativePackageChecker.logLevel": "info",
-    "reactNativePackageChecker.dependencyCheck.cacheDuration": 24
+    "reactNativePackageChecker.requirements.cacheDuration": 24
 }
 ```
 
-| Setting                         | Description                                                              | Default | Type      | Options                          |
-| ------------------------------- | ------------------------------------------------------------------------ | ------- | --------- | -------------------------------- |
-| `showLatestVersion`             | Show CodeLens for latest version information and fetch from NPM registry | `true`  | `boolean` | `true`, `false`                  |
-| `showStatusDecorations`         | Show gutter decorations for package New Architecture status              | `true`  | `boolean` | `true`, `false`                  |
-| `enableLogging`                 | Enable logging of API calls and cache operations to the output channel   | `true`  | `boolean` | `true`, `false`                  |
-| `logLevel`                      | Set the logging level for the extension                                  | `info`  | `string`  | `debug`, `info`, `warn`, `error` |
-| `dependencyCheck.cacheDuration` | Cache duration for dependency check diff data in hours                   | `24`    | `number`  | `1-168` hours                    |
+| Setting                      | Description                                                              | Default | Type      | Options                          |
+| ---------------------------- | ------------------------------------------------------------------------ | ------- | --------- | -------------------------------- |
+| `showLatestVersion`          | Show CodeLens for latest version information and fetch from NPM registry | `true`  | `boolean` | `true`, `false`                  |
+| `showStatusDecorations`      | Show gutter decorations for package New Architecture status              | `true`  | `boolean` | `true`, `false`                  |
+| `enableLogging`              | Enable logging of API calls and cache operations to the output channel   | `true`  | `boolean` | `true`, `false`                  |
+| `logLevel`                   | Set the logging level for the extension                                  | `info`  | `string`  | `debug`, `info`, `warn`, `error` |
+| `requirements.cacheDuration` | Cache duration for requirements data in hours                            | `24`    | `number`  | `1-168` hours                    |
 
 **To access settings:**
 
@@ -277,7 +277,7 @@ Customize the extension in your VS Code settings (`settings.json`):
 - Use "Package Checker: Refresh Package Data" command to clear cache
 - This fetches the latest information from all data sources
 
-### Dependency check not working?
+### Requirements check not working?
 
 - Ensure you have a valid `package.json` with React Native as a dependency
 - Verify the target React Native version exists in rn-diff-purge repository

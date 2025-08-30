@@ -76,19 +76,17 @@ export enum COMMANDS {
     UPDATE_PACKAGE_VERSION = 'reactNativePackageChecker.updatePackageVersion',
     OPEN_UPGRADE_HELPER = 'reactNativePackageChecker.openUpgradeHelper',
     SHOW_LOGS = 'reactNativePackageChecker.showLogs',
-    ENABLE_DEPENDENCY_VALIDATION = 'reactNativePackageChecker.enableDependencyValidation',
-    DISABLE_DEPENDENCY_VALIDATION = 'reactNativePackageChecker.disableDependencyValidation',
-    CHECK_DEPENDENCIES_FOR_RN_VERSION = 'reactNativePackageChecker.checkDependenciesForRnVersion',
-    UPDATE_TO_EXPECTED_VERSION = 'reactNativePackageChecker.updateToExpectedVersion',
+    CHECK_REQUIREMENTS_FOR_RN_VERSION = 'reactNativePackageChecker.checkRequirementsForRnVersion',
+    UPDATE_TO_REQUIRED_VERSION = 'reactNativePackageChecker.updateToRequiredVersion',
     ADD_PACKAGE = 'reactNativePackageChecker.addPackage',
     REMOVE_PACKAGE = 'reactNativePackageChecker.removePackage',
     BROWSE_PACKAGES = 'reactNativePackageChecker.browsePackages',
     SHOW_QUICK_ACTIONS = 'reactNativePackageChecker.showQuickActions',
     SHOW_QUICK_ACTIONS_WITH_BACK = 'reactNativePackageChecker.showQuickActionsWithBack',
     TOGGLE_STATUS_DECORATIONS = 'reactNativePackageChecker.toggleStatusDecorations',
-    CHECK_DEPENDENCY_VERSION = 'reactNativePackageChecker.checkDependencyVersion',
-    RESET_DEPENDENCY_CHECK = 'reactNativePackageChecker.resetDependencyCheck',
-    PERFORM_BULK_UPDATE = 'reactNativePackageChecker.performBulkUpdate',
+    SHOW_REQUIREMENTS = 'reactNativePackageChecker.showRequirements',
+    HIDE_REQUIREMENTS = 'reactNativePackageChecker.hideRequirements',
+    APPLY_REQUIREMENTS = 'reactNativePackageChecker.applyRequirements',
 }
 
 export enum GITHUB_PATHS {
@@ -168,11 +166,11 @@ export interface PackageJsonDiff {
     updated: Record<string, { from: string; to: string }>;
     versionChanged: Record<string, { from: string; to: string }>;
 }
-export interface ValidationResult {
+export interface RequirementResult {
     packageName: string;
     currentVersion: string;
-    expectedVersion: string;
-    hasVersionMismatch: boolean;
+    requiredVersion: string;
+    hasRequirementMismatch: boolean;
     changeType?: 'version_change' | 'addition' | 'removal';
     dependencyType?: 'dependencies' | 'devDependencies';
 }

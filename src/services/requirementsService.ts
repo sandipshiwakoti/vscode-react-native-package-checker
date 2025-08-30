@@ -1,30 +1,32 @@
 import * as vscode from 'vscode';
 
-import { DEPENDENCY_CHECK_CONFIG, ERROR_MESSAGES, EXTERNAL_URLS, SUCCESS_MESSAGES } from '../constants';
-import { DiffData, ValidationResult } from '../types';
-import {
-    createHoverMessage,
-    extractCurrentRnVersion,
-    hasVersionDifference,
-    parseDiff,
-} from '../utils/dependencyCheckUtils';
+import { ERROR_MESSAGES, EXTERNAL_URLS, REQUIREMENTS_CONFIG, SUCCESS_MESSAGES } from '../constants';
+import { DiffData, RequirementResult } from '../types';
 import { parsePackageJson, removePackageFromJson, updatePackageJsonSection } from '../utils/packageUtils';
+import {
+    createRequirementsHoverMessage,
+    extractCurrentRnVersion,
+    hasRequirementMismatch,
+    parseDiff,
+} from '../utils/requirementsUtils';
 import { promptForTargetVersion } from '../utils/versionUtils';
 import { cleanVersion, compareVersions } from '../utils/versionUtils';
 
 import { CacheManagerService } from './cacheManagerService';
 import { LoggerService } from './loggerService';
 
-export class DependencyCheckService {
-    private _onResultsChanged: vscode.EventEmitter<ValidationResult[]> = new vscode.EventEmitter<ValidationResult[]>();
-    public readonly onResultsChanged: vscode.Event<ValidationResult[]> = this._onResultsChanged.event;
+export class RequirementsService {
+    private _onResultsChanged: vscode.EventEmitter<RequirementResult[]> = new vscode.EventEmitter<
+        RequirementResult[]
+    >();
+    public readonly onResultsChanged: vscode.Event<RequirementResult[]> = this._onResultsChanged.event;
 
     private enabled = false;
     private targetVersion: string | null = null;
     private decorations: vscode.TextEditorDecorationType;
     private cache = new Map<string, DiffData>();
 
-    private currentResults: ValidationResult[] = [];
+    private currentResults: RequirementResult[] = [];
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -62,11 +64,11 @@ export class DependencyCheckService {
             this.targetVersion = version;
             this.enabled = true;
 
-            await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.ENABLED, true);
-            await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.TARGET_VERSION, version);
+            await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, true);
+            await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.TARGET_VERSION, version);
 
             vscode.window.showInformationMessage(
-                SUCCESS_MESSAGES.DEPENDENCY_CHECK_ENABLED(version, currentRnVersion || undefined)
+                SUCCESS_MESSAGES.REQUIREMENTS_ENABLED(version, currentRnVersion || undefined)
             );
             await this.refresh();
 
@@ -74,7 +76,7 @@ export class DependencyCheckService {
                 this.scrollToFirstPackageWithIssues();
             }, 1000);
         } catch {
-            vscode.window.showErrorMessage('Failed to enable dependency check');
+            vscode.window.showErrorMessage('Failed to enable requirements');
         }
     }
 
@@ -82,11 +84,11 @@ export class DependencyCheckService {
         this.enabled = false;
         this.targetVersion = null;
 
-        await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.ENABLED, false);
+        await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, false);
         this.clearDecorations();
         this._onResultsChanged.fire([]);
 
-        vscode.window.showInformationMessage(SUCCESS_MESSAGES.DEPENDENCY_CHECK_DISABLED);
+        vscode.window.showInformationMessage(SUCCESS_MESSAGES.REQUIREMENTS_DISABLED);
     }
 
     async toggle(): Promise<void> {
@@ -105,7 +107,7 @@ export class DependencyCheckService {
         return this.targetVersion;
     }
 
-    getCurrentResults(): ValidationResult[] {
+    getCurrentResults(): RequirementResult[] {
         return this.currentResults;
     }
 
@@ -143,7 +145,7 @@ export class DependencyCheckService {
 
                         if (results.length === 0) {
                             vscode.window.showInformationMessage(
-                                `All dependencies meet React Native ${this.targetVersion} requirements! Dependency check has been automatically disabled.`
+                                `All dependencies meet React Native ${this.targetVersion} requirements! Requirements have been automatically hidden.`
                             );
                             await this.disable();
                         }
@@ -155,7 +157,7 @@ export class DependencyCheckService {
                 this._onResultsChanged.fire([]);
                 this.clearDecorations();
                 vscode.window.showInformationMessage(
-                    `All dependencies meet React Native ${this.targetVersion} requirements! Dependency check has been automatically disabled.`
+                    `All dependencies meet React Native ${this.targetVersion} requirements! Requirements have been automatically hidden.`
                 );
                 await this.disable();
                 return;
@@ -170,12 +172,12 @@ export class DependencyCheckService {
             this.updateDecorations(results);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Failed to check dependencies: ${errorMessage}`);
+            vscode.window.showErrorMessage(`Failed to check requirements: ${errorMessage}`);
 
             if (errorMessage.includes('not found in rn-diff-purge')) {
                 this.enabled = false;
                 this.targetVersion = null;
-                await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.ENABLED, false);
+                await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, false);
                 this.clearDecorations();
                 this._onResultsChanged.fire([]);
             }
@@ -190,7 +192,7 @@ export class DependencyCheckService {
             return cached;
         }
 
-        const url = `${DEPENDENCY_CHECK_CONFIG.RN_DIFF_BASE_URL}/${cacheKey}.diff`;
+        const url = `${REQUIREMENTS_CONFIG.RN_DIFF_BASE_URL}/${cacheKey}.diff`;
 
         try {
             const response = await fetch(url);
@@ -261,19 +263,19 @@ export class DependencyCheckService {
         return { ...dependencies, ...devDependencies };
     }
 
-    private generateResults(currentPackages: Record<string, string>, diffData: DiffData): ValidationResult[] {
-        const results: ValidationResult[] = [];
+    private generateResults(currentPackages: Record<string, string>, diffData: DiffData): RequirementResult[] {
+        const results: RequirementResult[] = [];
 
         for (const change of diffData.packageChanges) {
             if (change.changeType === 'version_change') {
                 const currentVersion = currentPackages[change.packageName];
-                if (currentVersion && hasVersionDifference(currentVersion, change.toVersion)) {
+                if (currentVersion && hasRequirementMismatch(currentVersion, change.toVersion)) {
                     const cleanCurrentVersion = currentVersion.replace(/^[\^~]/, '');
                     results.push({
                         packageName: change.packageName,
                         currentVersion: cleanCurrentVersion,
-                        expectedVersion: change.toVersion,
-                        hasVersionMismatch: true,
+                        requiredVersion: change.toVersion,
+                        hasRequirementMismatch: true,
                         changeType: 'version_change',
                         dependencyType: change.dependencyType,
                     });
@@ -284,18 +286,18 @@ export class DependencyCheckService {
                     results.push({
                         packageName: change.packageName,
                         currentVersion: '',
-                        expectedVersion: change.toVersion,
-                        hasVersionMismatch: true,
+                        requiredVersion: change.toVersion,
+                        hasRequirementMismatch: true,
                         changeType: 'addition',
                         dependencyType: change.dependencyType,
                     });
-                } else if (hasVersionDifference(currentVersion, change.toVersion)) {
+                } else if (hasRequirementMismatch(currentVersion, change.toVersion)) {
                     const cleanCurrentVersion = currentVersion.replace(/^[\^~]/, '');
                     results.push({
                         packageName: change.packageName,
                         currentVersion: cleanCurrentVersion,
-                        expectedVersion: change.toVersion,
-                        hasVersionMismatch: true,
+                        requiredVersion: change.toVersion,
+                        hasRequirementMismatch: true,
                         changeType: 'version_change',
                         dependencyType: change.dependencyType,
                     });
@@ -306,8 +308,8 @@ export class DependencyCheckService {
                     results.push({
                         packageName: change.packageName,
                         currentVersion: cleanCurrentVersion,
-                        expectedVersion: '',
-                        hasVersionMismatch: true,
+                        requiredVersion: '',
+                        hasRequirementMismatch: true,
                         changeType: 'removal',
                         dependencyType: change.dependencyType,
                     });
@@ -318,7 +320,7 @@ export class DependencyCheckService {
         return results;
     }
 
-    private updateDecorations(results: ValidationResult[]): void {
+    private updateDecorations(results: RequirementResult[]): void {
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
             return;
@@ -328,8 +330,8 @@ export class DependencyCheckService {
         const content = activeEditor.document.getText();
         const lines = content.split('\n');
 
-        const missingPackages = results.filter((r) => r.hasVersionMismatch && r.changeType === 'addition');
-        const otherResults = results.filter((r) => r.hasVersionMismatch && r.changeType !== 'addition');
+        const missingPackages = results.filter((r) => r.hasRequirementMismatch && r.changeType === 'addition');
+        const otherResults = results.filter((r) => r.hasRequirementMismatch && r.changeType !== 'addition');
 
         const missingDependencies = missingPackages.filter((r) => r.dependencyType === 'dependencies');
         const missingDevDependencies = missingPackages.filter((r) => r.dependencyType === 'devDependencies');
@@ -345,7 +347,7 @@ export class DependencyCheckService {
 
                 let contentText = '';
                 if (missingDependencies.length === 1) {
-                    contentText = ` Missing: ${missingDependencies[0].packageName}@${missingDependencies[0].expectedVersion}`;
+                    contentText = ` Missing: ${missingDependencies[0].packageName}@${missingDependencies[0].requiredVersion}`;
                 } else {
                     contentText = ` Missing: ${missingDependencies.length} packages`;
                 }
@@ -377,7 +379,7 @@ export class DependencyCheckService {
 
                 let contentText = '';
                 if (missingDevDependencies.length === 1) {
-                    contentText = ` Missing: ${missingDevDependencies[0].packageName}@${missingDevDependencies[0].expectedVersion}`;
+                    contentText = ` Missing: ${missingDevDependencies[0].packageName}@${missingDevDependencies[0].requiredVersion}`;
                 } else {
                     contentText = ` Missing: ${missingDevDependencies.length} dev packages`;
                 }
@@ -407,7 +409,7 @@ export class DependencyCheckService {
                     if (result.changeType === 'removal') {
                         contentText = ` Should be removed`;
                     } else {
-                        contentText = ` Expected: ${result.expectedVersion}`;
+                        contentText = ` Required: ${result.requiredVersion}`;
                     }
 
                     const currentRnVersion = extractCurrentRnVersion(content);
@@ -419,7 +421,11 @@ export class DependencyCheckService {
                                 color: new vscode.ThemeColor('errorForeground'),
                             },
                         },
-                        hoverMessage: createHoverMessage(result, this.targetVersion!, currentRnVersion || undefined),
+                        hoverMessage: createRequirementsHoverMessage(
+                            result,
+                            this.targetVersion!,
+                            currentRnVersion || undefined
+                        ),
                     });
                     break;
                 }
@@ -455,15 +461,15 @@ export class DependencyCheckService {
         return -1;
     }
 
-    private createCombinedMissingPackagesHoverMessage(missingPackages: ValidationResult[]): vscode.MarkdownString {
-        let message = `**Dependency Version Check: Missing Packages**\n\n`;
+    private createCombinedMissingPackagesHoverMessage(missingPackages: RequirementResult[]): vscode.MarkdownString {
+        let message = `**Requirements Check: Missing Packages**\n\n`;
         message += `The following packages should be added for React Native ${this.targetVersion}:\n\n`;
 
         for (const pkg of missingPackages) {
-            message += `• **${pkg.packageName}**: \`${pkg.expectedVersion}\`\n`;
+            message += `• **${pkg.packageName}**: \`${pkg.requiredVersion}\`\n`;
         }
 
-        message += `\n[Add All Missing Packages](command:reactNativePackageChecker.performBulkUpdate)`;
+        message += `\n[Add All Missing Packages](command:reactNativePackageChecker.applyRequirements)`;
 
         const currentEditor = vscode.window.activeTextEditor;
         let currentRnVersion: string | null = null;
@@ -487,7 +493,7 @@ export class DependencyCheckService {
         }
     }
 
-    async updateToExpectedVersion(packageName: string, expectedVersion: string): Promise<void> {
+    async updateToRequiredVersion(packageName: string, requiredVersion: string): Promise<void> {
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor || !activeEditor.document.fileName.endsWith('package.json')) {
             vscode.window.showErrorMessage(ERROR_MESSAGES.PACKAGE_JSON_NOT_FOUND);
@@ -501,7 +507,7 @@ export class DependencyCheckService {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (line.includes(`"${packageName}"`) && line.includes(':')) {
-                const updatedLine = line.replace(/"([^"]+)"\s*:\s*"[^"]+"/, `"$1": "${expectedVersion}"`);
+                const updatedLine = line.replace(/"([^"]+)"\s*:\s*"[^"]+"/, `"$1": "${requiredVersion}"`);
                 if (updatedLine !== line) {
                     lines[i] = updatedLine;
                     const updatedContent = lines.join('\n');
@@ -627,8 +633,8 @@ export class DependencyCheckService {
     async initialize(): Promise<void> {
         this.enabled = false;
         this.targetVersion = null;
-        await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.ENABLED, false);
-        await this.context.globalState.update(DEPENDENCY_CHECK_CONFIG.STATE_KEYS.TARGET_VERSION, undefined);
+        await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, false);
+        await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.TARGET_VERSION, undefined);
     }
 
     private scrollToFirstPackageWithIssues(): void {

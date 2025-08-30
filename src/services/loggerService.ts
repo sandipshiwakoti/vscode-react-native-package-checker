@@ -213,8 +213,8 @@ export class LoggerService {
         this.warn(`Missing dependency ${packageName} required by ${requiredBy}`);
     }
 
-    warnVersionMismatch(packageName: string, expected: string, actual: string): void {
-        this.warn(`Version mismatch ${packageName} expected:${expected} actual:${actual}`);
+    warnVersionMismatch(packageName: string, required: string, actual: string): void {
+        this.warn(`Version mismatch ${packageName} required:${required} actual:${actual}`);
     }
 
     warnConfigurationIssue(setting: string, value: any, suggestion: string): void {
@@ -249,8 +249,8 @@ export class LoggerService {
         this.error(`Resource exhaustion ${resource} ${current}/${limit}`);
     }
 
-    errorUnexpectedState(component: string, state: string, expected: string): void {
-        this.error(`Unexpected state ${component} ${state} expected:${expected}`);
+    errorUnexpectedState(component: string, state: string, required: string): void {
+        this.error(`Unexpected state ${component} ${state} required:${required}`);
     }
 
     show(): void {
