@@ -114,6 +114,10 @@ export class RequirementsService {
         return this.targetVersion;
     }
 
+    getOriginalRnVersion(): string | null {
+        return this.originalRnVersion;
+    }
+
     getCurrentResults(): RequirementResult[] {
         return this.currentResults;
     }
@@ -145,6 +149,29 @@ export class RequirementsService {
             // Always use the original React Native version for diff to ensure all packages are checked
             // This prevents issues when RN version is updated but other packages still need updates
             const fromVersion = this.originalRnVersion || currentRnVersion;
+
+            // Validate version compatibility before making API call
+            const versionComparison = compareVersions(this.targetVersion, fromVersion);
+
+            if (versionComparison <= 0) {
+                let errorMessage: string;
+                if (versionComparison === 0) {
+                    errorMessage = `React Native is already at version ${this.targetVersion}. All requirements are fulfilled.`;
+                    // Show success modal and disable requirements
+                    if (!suppressSuccessModal) {
+                        await SuccessModalService.showRequirementsFulfilledModal(this.targetVersion);
+                    }
+                    await this.disable();
+                    return;
+                } else {
+                    errorMessage = `Target version ${this.targetVersion} is older than current version ${fromVersion}. Only upgrades are supported. Please choose a newer version.`;
+                    vscode.window.showErrorMessage(errorMessage);
+                    // Disable requirements since the target version is invalid
+                    await this.disable();
+                    return;
+                }
+            }
+
             const diffData = await this.fetchDiff(fromVersion, this.targetVersion);
             const currentPackages = this.parsePackageJson(content);
             const results = this.generateResults(currentPackages, diffData);

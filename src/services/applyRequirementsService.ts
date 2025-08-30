@@ -4,7 +4,7 @@ import { ERROR_MESSAGES, EXTERNAL_URLS, REQUIREMENTS_CONFIG, STATUS_SYMBOLS } fr
 import { DiffData, RequirementResult } from '../types';
 import { parsePackageJson, removePackageFromJson, updatePackageJsonSection } from '../utils/packageUtils';
 import { extractCurrentRnVersion, parseDiff } from '../utils/requirementsUtils';
-import { promptForTargetVersion } from '../utils/versionUtils';
+import { compareVersions, promptForTargetVersion } from '../utils/versionUtils';
 
 import { CacheManagerService } from './cacheManagerService';
 import { SuccessModalService } from './successModalService';
@@ -54,7 +54,43 @@ export class ApplyRequirementsService {
                 }
             }
 
-            const diffData = await this.fetchDiff(currentRnVersion, targetVersion);
+            // Allow applying requirements even when React Native is at target version
+            // by using the original RN version for diff if available from requirements service
+            let fromVersion = currentRnVersion;
+            let isUsingOriginalVersion = false;
+
+            if (this.requirementsService && this.requirementsService.isEnabled()) {
+                const originalRnVersion = this.requirementsService.getOriginalRnVersion();
+                if (originalRnVersion && originalRnVersion !== currentRnVersion) {
+                    fromVersion = originalRnVersion;
+                    isUsingOriginalVersion = true;
+                    console.log(
+                        `[ApplyRequirements] Using original RN version ${originalRnVersion} instead of current ${currentRnVersion} for diff`
+                    );
+                }
+            }
+
+            const versionComparison = compareVersions(targetVersion, fromVersion);
+
+            if (versionComparison <= 0) {
+                let errorMessage: string;
+                if (versionComparison === 0) {
+                    errorMessage = `Cannot apply requirements: React Native is already at version ${targetVersion}. All requirements should already be fulfilled. Try using "Show Requirements" to verify.`;
+                } else {
+                    errorMessage = `Cannot apply requirements: Target version ${targetVersion} is older than current version ${fromVersion}. Only upgrades are supported. Please choose a newer version.`;
+                }
+
+                vscode.window.showErrorMessage(errorMessage);
+                return;
+            }
+
+            if (currentRnVersion === targetVersion && isUsingOriginalVersion) {
+                vscode.window.showInformationMessage(
+                    `React Native is already at version ${targetVersion}. Checking for remaining package requirements from ${fromVersion}...`
+                );
+            }
+
+            const diffData = await this.fetchDiff(fromVersion, targetVersion);
             const currentPackages = this.parsePackageJson(content);
             const requirementResults = this.generateRequirementResults(currentPackages, diffData);
 
@@ -63,7 +99,11 @@ export class ApplyRequirementsService {
                 return;
             }
 
-            await this.showRequirementsPreview(requirementResults, targetVersion);
+            await this.showRequirementsPreview(
+                requirementResults,
+                targetVersion,
+                isUsingOriginalVersion ? fromVersion : undefined
+            );
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             console.error('Apply requirements error:', error);
@@ -73,10 +113,12 @@ export class ApplyRequirementsService {
 
     private async showRequirementsPreview(
         requirementResults: RequirementResult[],
-        targetVersion: string
+        targetVersion: string,
+        originalVersion?: string
     ): Promise<void> {
         const quickPick = vscode.window.createQuickPick();
-        quickPick.title = `Apply Requirements for React Native ${targetVersion}`;
+        const titleSuffix = originalVersion ? ` (from ${originalVersion})` : '';
+        quickPick.title = `Apply Requirements for React Native ${targetVersion}${titleSuffix}`;
         quickPick.placeholder = 'Select packages to update (uncheck to skip)';
         quickPick.canSelectMany = true;
         quickPick.ignoreFocusOut = true;

@@ -82,6 +82,10 @@ export async function promptForTargetVersion(
                 return `Target version ${value} is older than current version ${currentRnVersion}. Only upgrades are allowed.`;
             }
 
+            if (currentRnVersion && compareVersions(value, currentRnVersion) === 0) {
+                return `Target version ${value} is the same as current version. Requirements are already fulfilled.`;
+            }
+
             return null;
         },
     });
