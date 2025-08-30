@@ -358,6 +358,15 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
     }
 
     private createRequirementsCodeLens(range: vscode.Range, result: RequirementResult): vscode.CodeLens {
+        if (result.changeType === 'removal') {
+            return new vscode.CodeLens(range, {
+                title: `$(trash)\u2009Required`,
+                tooltip: `This package should be removed for React Native ${this.RequirementsService?.getTargetVersion()}. Click to remove.`,
+                command: COMMANDS.REMOVE_PACKAGE,
+                arguments: [result.packageName],
+            });
+        }
+
         return new vscode.CodeLens(range, {
             title: `$(edit)\u2009Required ${result.requiredVersion}`,
             tooltip: `Current: ${result.currentVersion}, Required: ${result.requiredVersion}. Click to update.`,
