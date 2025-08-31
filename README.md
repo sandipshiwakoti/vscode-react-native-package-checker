@@ -6,21 +6,27 @@
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker">
-    <img src="https://img.shields.io/visual-studio-marketplace/v/sandipshiwakoti.vscode-react-native-package-checker?style=flat-square&label=version" alt="Version">
+    <img src="https://img.shields.io/visual-studio-marketplace/v/sandipshiwakoti.vscode-react-native-package-checker?style=flat&color=black" alt="Version">
   </a>
   <a href="https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker">
-    <img src="https://img.shields.io/visual-studio-marketplace/d/sandipshiwakoti.vscode-react-native-package-checker?style=flat-square&color=success&label=vscode%20downloads" alt="VS Code Downloads">
+    <img src="https://img.shields.io/visual-studio-marketplace/i/sandipshiwakoti.vscode-react-native-package-checker?style=flat&color=success&label=installs" alt="VS Code Installs">
+  </a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=sandipshiwakoti.vscode-react-native-package-checker">
+    <img src="https://img.shields.io/visual-studio-marketplace/d/sandipshiwakoti.vscode-react-native-package-checker?style=flat&color=success&label=downloads" alt="VS Code Downloads">
   </a>
   <a href="https://open-vsx.org/extension/sandipshiwakoti/vscode-react-native-package-checker">
-    <img src="https://img.shields.io/open-vsx/dt/sandipshiwakoti/vscode-react-native-package-checker?style=flat-square&color=success&label=openvsx%20downloads" alt="Open VSX Downloads">
+    <img src="https://img.shields.io/open-vsx/dt/sandipshiwakoti/vscode-react-native-package-checker?style=flat&color=success&label=open%20vsx" alt="Open VSX Downloads">
   </a>
   <a href="https://github.com/sandipshiwakoti/vscode-react-native-package-checker/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/sandipshiwakoti/vscode-react-native-package-checker?style=flat-square&color=blue&label=license" alt="MIT License">
+    <img src="https://img.shields.io/github/license/sandipshiwakoti/vscode-react-native-package-checker?style=flat&color=red" alt="MIT License">
   </a>
 </p>
 
 <p align="center">
-  <strong>New Architecture compatibility checks and React Native version upgrade requirements - all in VS Code ⚡️</strong><br>
+  <strong style="font-size: 1.2em;">
+    Check New Architecture compatibility and version requirements for React Native packages - all in VSCode ⚡️
+  </strong><br>
+  <em>CodeLens Integration • Package Filtering • Version Requirements • One-Click Updates</em>
 </p>
 
 ---
@@ -109,12 +115,12 @@ Open your `package.json` to see interactive overlays above each dependency:
 
 Package status decorations appear as icons in the editor gutter next to each dependency line:
 
-| Icon                                                          | Status          | Meaning                                           |
-| ------------------------------------------------------------- | --------------- | ------------------------------------------------- |
-| ![circle-check-big](assets/dark/circle-check-big.svg)         | **Supported**   | Package fully supports New Architecture           |
-| ![circle-x](assets/dark/circle-x.svg)                         | **Unsupported** | Package does not support New Architecture         |
-| ![circle-alert](assets/dark/circle-alert.svg)                 | **Untested**    | Package has not been tested with New Architecture |
-| ![circle-question-mark](assets/dark/circle-question-mark.svg) | **Unlisted**    | Package not found in the React Native directory   |
+| Icon                                                                      | Status          | Meaning                                           |
+| ------------------------------------------------------------------------- | --------------- | ------------------------------------------------- |
+| <img src="assets/images/circle-check.png" width="20" height="20">         | **Supported**   | Package fully supports New Architecture           |
+| <img src="assets/images/circle-x.png" width="20" height="20">             | **Unsupported** | Package does not support New Architecture         |
+| <img src="assets/images/circle-alert.png" width="20" height="20">         | **Untested**    | Package has not been tested with New Architecture |
+| <img src="assets/images/circle-question-mark.png" width="20" height="20"> | **Unlisted**    | Package not found in the React Native directory   |
 
 **Configuration:**
 
@@ -145,7 +151,6 @@ This extension leverages data from trusted sources:
 - **[NPM Registry](https://www.npmjs.com)** - Package version and metadata information
 - **[React Native Upgrade Helper](https://react-native-community.github.io/upgrade-helper)** - Official upgrade guidance for React Native versions
 - **[rn-diff-purge](https://github.com/react-native-community/rn-diff-purge)** - Community-maintained diffs between React Native versions for requirements checking
-- **[Bundlephobia](https://bundlephobia.com)** - Package size analysis and bundle impact information
 
 _Special thanks to the React Native Directory team and rn-diff-purge maintainers for providing the comprehensive data that powers this extension._
 
@@ -177,31 +182,19 @@ Customize the extension in your VS Code settings (`settings.json`):
 2. Type "Preferences: Open Settings (JSON)"
 3. Add the configuration above
 
-## 🔧 Troubleshooting
+## ❓ FAQ
 
-### CodeLens not showing?
+### 1. How accurate are the version requirements?
 
-- Ensure you have a valid `package.json` in your workspace root
-- Verify CodeLens is enabled: `"reactNativePackageChecker.showLatestVersion": true`
-- Try reloading VS Code window (`Ctrl+Shift+P` → "Developer: Reload Window")
+The extension uses the same data source as [React Native Upgrade Helper](https://react-native-community.github.io/upgrade-helper) - specifically the [rn-diff-purge](https://github.com/react-native-community/rn-diff-purge) repository - ensuring the requirements are as reliable as the official upgrade tool. The extension focuses on packages that are part of React Native project templates, providing targeted guidance for the most commonly used dependencies. Packages not included in these templates won't have version requirements available.
 
-### Package data seems outdated?
+### 2. How does the extension get New Architecture and version data?
 
-- Use "Package Checker: Refresh Package Data" command to clear cache
-- This fetches the latest information from all data sources
+The extension fetches New Architecture compatibility status through the [Package Checker website](https://react-native-package-checker.vercel.app/) API, which uses [React Native Directory](https://reactnative.directory) data. This includes support status, maintenance information, and alternative package suggestions. Latest version information comes directly from the [NPM Registry](https://www.npmjs.com) to provide up-to-date package versions. Packages not listed in React Native Directory will show as "Unlisted" status.
 
-### Requirements check not working?
+### 3. What if my React Native version isn't supported for requirements checking?
 
-- Ensure you have a valid `package.json` with React Native as a dependency
-- Verify the target React Native version exists in rn-diff-purge repository
-- Check that your current React Native version is different from the target version
-- Use "Package Checker: Show Logs" to view detailed error messages
-
-### Target React Native version not found?
-
-- The extension uses rn-diff-purge data, which may not have diffs for very new or very old React Native versions
-- Check the [rn-diff-purge repository](https://github.com/react-native-community/rn-diff-purge) for available versions
-- Try a different target version that's known to be available
+Version requirements depend on data availability in the [rn-diff-purge](https://github.com/react-native-community/rn-diff-purge) repository. Very new or very old React Native versions might not have complete diff data available, so try targeting a well-established version that's known to be supported.
 
 ## 🛠️ Development
 

@@ -1,7 +1,7 @@
 {
     "name": "vscode-react-native-package-checker",
     "displayName": "React Native Package Checker",
-    "description": "New Architecture compatibility checks and React Native version upgrade requirements",
+    "description": "Check New Architecture compatibility and version requirements for React Native packages - all in VSCode",
     "icon": "assets/logo.png",
     "version": "0.0.1",
     "publisher": "sandipshiwakoti",
@@ -77,7 +77,7 @@
         "commands": [
             {
                 "command": "reactNativePackageChecker.enableCodeLens",
-                "title": "Enable CodeLens",
+                "title": "Enable Package Checker",
                 "category": "Package Checker",
                 "icon": {
                     "light": "./assets/light/toggle-disabled.svg",
@@ -86,7 +86,7 @@
             },
             {
                 "command": "reactNativePackageChecker.disableCodeLens",
-                "title": "Disable CodeLens",
+                "title": "Disable Package Checker",
                 "category": "Package Checker",
                 "icon": {
                     "light": "./assets/light/toggle-enabled.svg",
