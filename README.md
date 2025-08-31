@@ -23,10 +23,14 @@
 </p>
 
 <p align="center">
-  <strong style="font-size: 1.2em;">
-    Check New Architecture compatibility and version requirements for React Native packages - all in VSCode ⚡️
+  <strong style="font-size: 1.3em; max-width: 600px; display: inline-block;">
+    Check New Architecture compatibility and version requirements for React Native packages - all in VS Code ⚡️
   </strong><br>
   <em>CodeLens Integration • Package Filtering • Version Requirements • One-Click Updates</em>
+</p>
+
+<p align="center">
+  <img src="assets/demo/demo.gif" alt="React Native Package Checker Demo" width="800">
 </p>
 
 ---
