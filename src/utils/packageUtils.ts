@@ -122,6 +122,7 @@ export function isInUnwantedSection(lines: string[], lineIndex: number): boolean
         const line = lines[i].trim();
 
         if (
+            line.includes('"scripts"') ||
             line.includes('"resolutions"') ||
             line.includes('"overrides"') ||
             line.includes('"peerDependencies"') ||
@@ -133,6 +134,43 @@ export function isInUnwantedSection(lines: string[], lineIndex: number): boolean
         }
 
         if (line.includes('"dependencies"') || line.includes('"devDependencies"')) {
+            return false;
+        }
+
+        if (line === '}' || line === '},') {
+            continue;
+        }
+    }
+
+    return false;
+}
+
+export function isInDependencySection(lines: string[], lineIndex: number): boolean {
+    for (let i = lineIndex; i >= 0; i--) {
+        const line = lines[i].trim();
+
+        // If we find a dependency section, we're in a valid section
+        if (line.includes('"dependencies"') || line.includes('"devDependencies"')) {
+            return true;
+        }
+
+        // If we find any other section, we're not in a dependency section
+        if (
+            line.includes('"scripts"') ||
+            line.includes('"resolutions"') ||
+            line.includes('"overrides"') ||
+            line.includes('"peerDependencies"') ||
+            line.includes('"optionalDependencies"') ||
+            line.includes('"bundledDependencies"') ||
+            line.includes('"bundleDependencies"') ||
+            line.includes('"engines"') ||
+            line.includes('"repository"') ||
+            line.includes('"keywords"') ||
+            line.includes('"author"') ||
+            line.includes('"license"') ||
+            line.includes('"bugs"') ||
+            line.includes('"homepage"')
+        ) {
             return false;
         }
 

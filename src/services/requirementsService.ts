@@ -2,7 +2,12 @@ import * as vscode from 'vscode';
 
 import { ERROR_MESSAGES, EXTERNAL_URLS, REQUIREMENTS_CONFIG, SUCCESS_MESSAGES } from '../constants';
 import { DiffData, RequirementResult } from '../types';
-import { parsePackageJson, removePackageFromJson, updatePackageJsonSection } from '../utils/packageUtils';
+import {
+    isInDependencySection,
+    parsePackageJson,
+    removePackageFromJson,
+    updatePackageJsonSection,
+} from '../utils/packageUtils';
 import {
     createRequirementsHoverMessage,
     extractCurrentRnVersion,
@@ -430,31 +435,34 @@ export class RequirementsService {
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.includes(`"${result.packageName}"`) && line.includes(':')) {
-                    const range = new vscode.Range(i, line.length, i, line.length);
-                    let contentText = '';
+                    // Only show decorations for packages in dependency sections (not scripts, etc.)
+                    if (isInDependencySection(lines, i)) {
+                        const range = new vscode.Range(i, line.length, i, line.length);
+                        let contentText = '';
 
-                    if (result.changeType === 'removal') {
-                        contentText = ` Should be removed`;
-                    } else {
-                        contentText = ` Required: ${result.requiredVersion}`;
-                    }
+                        if (result.changeType === 'removal') {
+                            contentText = ` Should be removed`;
+                        } else {
+                            contentText = ` Required: ${result.requiredVersion}`;
+                        }
 
-                    const currentRnVersion = extractCurrentRnVersion(content);
-                    decorationOptions.push({
-                        range,
-                        renderOptions: {
-                            after: {
-                                contentText,
-                                color: new vscode.ThemeColor('errorForeground'),
+                        const currentRnVersion = extractCurrentRnVersion(content);
+                        decorationOptions.push({
+                            range,
+                            renderOptions: {
+                                after: {
+                                    contentText,
+                                    color: new vscode.ThemeColor('errorForeground'),
+                                },
                             },
-                        },
-                        hoverMessage: createRequirementsHoverMessage(
-                            result,
-                            this.targetVersion!,
-                            currentRnVersion || undefined
-                        ),
-                    });
-                    break;
+                            hoverMessage: createRequirementsHoverMessage(
+                                result,
+                                this.targetVersion!,
+                                currentRnVersion || undefined
+                            ),
+                        });
+                        break;
+                    }
                 }
             }
         }
@@ -547,28 +555,31 @@ export class RequirementsService {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (line.includes(`"${packageName}"`) && line.includes(':')) {
-                const updatedLine = line.replace(/"([^"]+)"\s*:\s*"[^"]+"/, `"$1": "${requiredVersion}"`);
-                if (updatedLine !== line) {
-                    lines[i] = updatedLine;
-                    const updatedContent = lines.join('\n');
+                // Only update if we're in a dependency section (not scripts, etc.)
+                if (isInDependencySection(lines, i)) {
+                    const updatedLine = line.replace(/"([^"]+)"\s*:\s*"[^"]+"/, `"$1": "${requiredVersion}"`);
+                    if (updatedLine !== line) {
+                        lines[i] = updatedLine;
+                        const updatedContent = lines.join('\n');
 
-                    const edit = new vscode.WorkspaceEdit();
-                    const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
-                    edit.replace(document.uri, fullRange, updatedContent);
+                        const edit = new vscode.WorkspaceEdit();
+                        const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
+                        edit.replace(document.uri, fullRange, updatedContent);
 
-                    const success = await vscode.workspace.applyEdit(edit);
-                    if (success) {
-                        await document.save();
+                        const success = await vscode.workspace.applyEdit(edit);
+                        if (success) {
+                            await document.save();
 
-                        setTimeout(async () => {
-                            if (this.targetVersion && this.enabled) {
-                                await this.refresh();
-                            }
-                        }, 1000);
-                    } else {
-                        vscode.window.showErrorMessage(`Failed to update ${packageName}`);
+                            setTimeout(async () => {
+                                if (this.targetVersion && this.enabled) {
+                                    await this.refresh();
+                                }
+                            }, 1000);
+                        } else {
+                            vscode.window.showErrorMessage(`Failed to update ${packageName}`);
+                        }
+                        return;
                     }
-                    return;
                 }
             }
         }
@@ -774,12 +785,15 @@ export class RequirementsService {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (line.includes(`"${firstResult.packageName}"`) && line.includes(':')) {
-                const position = new vscode.Position(i, 0);
-                const range = new vscode.Range(position, position.with(undefined, line.length));
+                // Only scroll to packages in dependency sections (not scripts, etc.)
+                if (isInDependencySection(lines, i)) {
+                    const position = new vscode.Position(i, 0);
+                    const range = new vscode.Range(position, position.with(undefined, line.length));
 
-                activeEditor.selection = new vscode.Selection(position, range.end);
-                activeEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-                break;
+                    activeEditor.selection = new vscode.Selection(position, range.end);
+                    activeEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+                    break;
+                }
             }
         }
     }

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 import { COMMANDS } from '../types';
 import { FileExtensions } from '../types';
+import { isInDependencySection } from '../utils/packageUtils';
 import { cleanVersion, escapeRegExp, extractVersionPrefix, hasVersionUpdate } from '../utils/versionUtils';
 
 import { CodeLensProviderService } from './codeLensProviderService';
@@ -69,21 +70,24 @@ export class VersionUpdateService {
             const line = lines[i];
 
             if (line.includes(packagePattern) && line.includes(':')) {
-                const versionMatch = line.match(new RegExp(`"${escapeRegExp(packageName)}"\\s*:\\s*"([^"]+)"`));
+                // Only update if we're in a dependency section (not scripts, etc.)
+                if (isInDependencySection(lines, i)) {
+                    const versionMatch = line.match(new RegExp(`"${escapeRegExp(packageName)}"\\s*:\\s*"([^"]+)"`));
 
-                if (versionMatch) {
-                    const currentVersionString = versionMatch[1];
-                    const versionPrefix = extractVersionPrefix(currentVersionString);
-                    const newVersionString = `${versionPrefix}${newVersion}`;
+                    if (versionMatch) {
+                        const currentVersionString = versionMatch[1];
+                        const versionPrefix = extractVersionPrefix(currentVersionString);
+                        const newVersionString = `${versionPrefix}${newVersion}`;
 
-                    const updatedLine = line.replace(
-                        new RegExp(`("${escapeRegExp(packageName)}"\\s*:\\s*)"[^"]+"`),
-                        `$1"${newVersionString}"`
-                    );
+                        const updatedLine = line.replace(
+                            new RegExp(`("${escapeRegExp(packageName)}"\\s*:\\s*)"[^"]+"`),
+                            `$1"${newVersionString}"`
+                        );
 
-                    lines[i] = updatedLine;
-                    wasUpdated = true;
-                    break;
+                        lines[i] = updatedLine;
+                        wasUpdated = true;
+                        break;
+                    }
                 }
             }
         }
