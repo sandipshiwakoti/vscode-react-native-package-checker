@@ -65,6 +65,7 @@ export const STATUS_SYMBOLS = {
 
 export const REQUIREMENTS_CONFIG = {
     RN_DIFF_BASE_URL: 'https://raw.githubusercontent.com/react-native-community/rn-diff-purge/diffs/diffs',
+    BASELINE_VERSION: '0.65.0',
     VERSION_FORMAT_REGEX: /^\d+\.\d+\.\d+$/,
     REQUEST_TIMEOUT: 10000,
     STATE_KEYS: {
@@ -141,10 +142,10 @@ export const SUCCESS_MESSAGES = {
         `Added ${packageName}@${version} to ${section}`,
     PACKAGE_REMOVED: (packageName: string) => `Removed ${packageName} from dependencies`,
     PACKAGE_UPDATED: (packageName: string, version: string) => `Updated ${packageName} to ${version}`,
-    REQUIREMENTS_ENABLED: (version: string, currentVersion?: string) => {
+    REQUIREMENTS_ENABLED: (version: string, sourceVersion?: string) => {
         const baseMessage = `Requirements displayed for React Native ${version}. Mismatched versions will be highlighted with update suggestions.`;
-        if (currentVersion && currentVersion !== version) {
-            const upgradeUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentVersion}&to=${version}#RnDiffApp-package.json`;
+        if (sourceVersion && sourceVersion !== version) {
+            const upgradeUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${sourceVersion}&to=${version}#RnDiffApp-package.json`;
             return `${baseMessage} [View upgrade guide](${upgradeUrl})`;
         }
         return baseMessage;

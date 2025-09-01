@@ -4,7 +4,7 @@ import { ERROR_MESSAGES, EXTERNAL_URLS, REQUIREMENTS_CONFIG, STATUS_SYMBOLS } fr
 import { DiffData, RequirementResult } from '../types';
 import { parsePackageJson, removePackageFromJson, updatePackageJsonSection } from '../utils/packageUtils';
 import { extractCurrentRnVersion, parseDiff } from '../utils/requirementsUtils';
-import { compareVersions, promptForTargetVersion } from '../utils/versionUtils';
+import { compareVersions, promptForVersionOperation } from '../utils/versionUtils';
 
 import { CacheManagerService } from './cacheManagerService';
 import { SuccessModalService } from './successModalService';
@@ -39,47 +39,33 @@ export class ApplyRequirementsService {
                 return;
             }
 
-            const cachedLatestRnVersion = this.cacheManager.getLatestVersion('react-native');
-
-            // Check if requirements are already enabled and use the same target version
+            // Check if requirements are already enabled and use the same versions
             let targetVersion: string | undefined;
+            let sourceVersion: string | undefined;
+
             if (this.requirementsService && this.requirementsService.isEnabled()) {
                 targetVersion = this.requirementsService.getTargetVersion();
+                sourceVersion = this.requirementsService.getOriginalRnVersion();
             }
 
             if (!targetVersion) {
-                targetVersion = await promptForTargetVersion(currentRnVersion, cachedLatestRnVersion || undefined);
-                if (!targetVersion) {
+                const versionOperation = await promptForVersionOperation(currentRnVersion, this.cacheManager);
+                if (!versionOperation) {
                     return;
                 }
+                targetVersion = versionOperation.targetVersion;
+                sourceVersion = versionOperation.sourceVersion;
             }
 
-            // Allow applying requirements even when React Native is at target version
-            // by using the original RN version for diff if available from requirements service
-            let fromVersion = currentRnVersion;
-            let isUsingOriginalVersion = false;
-
-            if (this.requirementsService && this.requirementsService.isEnabled()) {
-                const originalRnVersion = this.requirementsService.getOriginalRnVersion();
-                if (originalRnVersion && originalRnVersion !== currentRnVersion) {
-                    fromVersion = originalRnVersion;
-                    isUsingOriginalVersion = true;
-                    console.log(
-                        `[ApplyRequirements] Using original RN version ${originalRnVersion} instead of current ${currentRnVersion} for diff`
-                    );
-                }
-            }
+            // Use the source version from the operation or fall back to current version
+            let fromVersion = sourceVersion || currentRnVersion;
+            let isUsingOriginalVersion = sourceVersion && sourceVersion !== currentRnVersion;
 
             const versionComparison = compareVersions(targetVersion, fromVersion);
 
-            if (versionComparison <= 0) {
-                let errorMessage: string;
-                if (versionComparison === 0) {
-                    errorMessage = `Cannot apply requirements: React Native is already at version ${targetVersion}. All requirements should already be fulfilled. Try using "Show Requirements" to verify.`;
-                } else {
-                    errorMessage = `Cannot apply requirements: Target version ${targetVersion} is older than current version ${fromVersion}. Only upgrades are supported. Please choose a newer version.`;
-                }
-
+            if (versionComparison < 0) {
+                // Only prevent downgrades, allow same version processing
+                const errorMessage = `Cannot apply requirements: Target version ${targetVersion} is older than current version ${fromVersion}. Only upgrades are supported. Please choose a newer version.`;
                 vscode.window.showErrorMessage(errorMessage);
                 return;
             }
@@ -90,7 +76,14 @@ export class ApplyRequirementsService {
                 );
             }
 
-            const diffData = await this.fetchDiff(fromVersion, targetVersion);
+            // Use baseline version for same-version scenarios to ensure proper diff generation
+            let diffData: DiffData;
+            if (versionComparison === 0) {
+                const baselineVersion = REQUIREMENTS_CONFIG.BASELINE_VERSION;
+                diffData = await this.fetchDiff(baselineVersion, targetVersion);
+            } else {
+                diffData = await this.fetchDiff(fromVersion, targetVersion);
+            }
             const currentPackages = this.parsePackageJson(content);
             const requirementResults = this.generateRequirementResults(currentPackages, diffData);
 
@@ -99,11 +92,8 @@ export class ApplyRequirementsService {
                 return;
             }
 
-            await this.showRequirementsPreview(
-                requirementResults,
-                targetVersion,
-                isUsingOriginalVersion ? fromVersion : undefined
-            );
+            // Always pass the source version for proper display and link generation
+            await this.showRequirementsPreview(requirementResults, targetVersion, fromVersion);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             console.error('Apply requirements error:', error);
@@ -114,24 +104,21 @@ export class ApplyRequirementsService {
     private async showRequirementsPreview(
         requirementResults: RequirementResult[],
         targetVersion: string,
-        originalVersion?: string
+        sourceVersion: string
     ): Promise<void> {
         const quickPick = vscode.window.createQuickPick();
-        const titleSuffix = originalVersion ? ` (from ${originalVersion})` : '';
-        quickPick.title = `Apply Requirements for React Native ${targetVersion}${titleSuffix}`;
+        quickPick.title = `Apply Requirements for React Native ${targetVersion} (from ${sourceVersion})`;
         quickPick.placeholder = 'Select packages to update (uncheck to skip)';
         quickPick.canSelectMany = true;
         quickPick.ignoreFocusOut = true;
 
-        const currentRnVersion = this.getCurrentRnVersion();
-        const diffUrl = currentRnVersion
-            ? `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentRnVersion}&to=${targetVersion}#RnDiffApp-package.json`
-            : `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?to=${targetVersion}#RnDiffApp-package.json`;
+        // Always include the source version in the upgrade helper link
+        const diffUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${sourceVersion}&to=${targetVersion}#RnDiffApp-package.json`;
 
         quickPick.buttons = [
             {
                 iconPath: new vscode.ThemeIcon('link-external'),
-                tooltip: `View React Native ${targetVersion} upgrade guide and package.json reference`,
+                tooltip: `View React Native ${sourceVersion} → ${targetVersion} upgrade guide and package.json reference`,
             },
         ];
 

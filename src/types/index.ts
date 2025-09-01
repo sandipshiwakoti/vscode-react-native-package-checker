@@ -235,3 +235,9 @@ export interface StatusPackageMap {
     unlisted: PackageInfoMap;
     unmaintained: PackageInfoMap;
 }
+
+export interface VersionOperationQuickPickItem extends vscode.QuickPickItem {
+    sourceVersion: string;
+    targetVersion: string;
+    operationType: 'upgrade' | 'audit' | 'custom';
+}

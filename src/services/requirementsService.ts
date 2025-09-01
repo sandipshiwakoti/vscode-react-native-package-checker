@@ -14,7 +14,7 @@ import {
     hasRequirementMismatch,
     parseDiff,
 } from '../utils/requirementsUtils';
-import { promptForTargetVersion } from '../utils/versionUtils';
+import { promptForVersionOperation } from '../utils/versionUtils';
 import { cleanVersion, compareVersions } from '../utils/versionUtils';
 
 import { CacheManagerService } from './cacheManagerService';
@@ -59,26 +59,27 @@ export class RequirementsService {
                 currentRnVersion = extractCurrentRnVersion(content);
             }
 
-            const cachedLatestRnVersion = this.cacheManager.getLatestVersion('react-native');
-
-            const version = await promptForTargetVersion(
-                currentRnVersion || undefined,
-                cachedLatestRnVersion || undefined
-            );
-            if (!version) {
+            const versionOperation = await promptForVersionOperation(currentRnVersion || undefined, this.cacheManager);
+            if (!versionOperation) {
                 return;
             }
 
-            this.targetVersion = version;
-            this.originalRnVersion = currentRnVersion;
+            this.targetVersion = versionOperation.targetVersion;
+            this.originalRnVersion = versionOperation.sourceVersion;
             this.enabled = true;
 
             await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.ENABLED, true);
-            await this.context.globalState.update(REQUIREMENTS_CONFIG.STATE_KEYS.TARGET_VERSION, version);
-            await this.context.globalState.update('requirementsOriginalRnVersion', currentRnVersion);
+            await this.context.globalState.update(
+                REQUIREMENTS_CONFIG.STATE_KEYS.TARGET_VERSION,
+                versionOperation.targetVersion
+            );
+            await this.context.globalState.update('requirementsOriginalRnVersion', versionOperation.sourceVersion);
 
             vscode.window.showInformationMessage(
-                SUCCESS_MESSAGES.REQUIREMENTS_ENABLED(version, currentRnVersion || undefined)
+                SUCCESS_MESSAGES.REQUIREMENTS_ENABLED(
+                    versionOperation.targetVersion,
+                    versionOperation.sourceVersion || undefined
+                )
             );
             await this.refresh(suppressSuccessModal);
 
@@ -168,17 +169,13 @@ export class RequirementsService {
             }
 
             // If versions are the same, we still need to check other packages
-            // Don't return early, let the normal flow handle it
+            // Use baseline version to generate meaningful diff for same-version scenarios
             let diffData: DiffData;
 
             if (versionComparison === 0) {
-                // When versions are the same, create empty diff data to avoid API call
-                diffData = {
-                    fromVersion,
-                    toVersion: this.targetVersion,
-                    packageChanges: [],
-                    rawDiff: '',
-                };
+                // When versions are the same, use static baseline version to generate diff
+                const baselineVersion = REQUIREMENTS_CONFIG.BASELINE_VERSION;
+                diffData = await this.fetchDiff(baselineVersion, this.targetVersion);
             } else {
                 diffData = await this.fetchDiff(fromVersion, this.targetVersion);
             }
@@ -446,7 +443,6 @@ export class RequirementsService {
                             contentText = ` Required: ${result.requiredVersion}`;
                         }
 
-                        const currentRnVersion = extractCurrentRnVersion(content);
                         decorationOptions.push({
                             range,
                             renderOptions: {
@@ -458,7 +454,7 @@ export class RequirementsService {
                             hoverMessage: createRequirementsHoverMessage(
                                 result,
                                 this.targetVersion!,
-                                currentRnVersion || undefined
+                                this.originalRnVersion || undefined
                             ),
                         });
                         break;
@@ -516,15 +512,9 @@ export class RequirementsService {
 
         message += `\n[Add All Missing ${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}](command:${commandName})`;
 
-        const currentEditor = vscode.window.activeTextEditor;
-        let currentRnVersion: string | null = null;
-        if (currentEditor && currentEditor.document.fileName.endsWith('package.json')) {
-            const content = currentEditor.document.getText();
-            currentRnVersion = extractCurrentRnVersion(content);
-        }
-
-        if (currentRnVersion && currentRnVersion !== this.targetVersion) {
-            const diffUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentRnVersion}&to=${this.targetVersion}#RnDiffApp-package.json`;
+        // Use the original RN version (source version) for upgrade helper link
+        if (this.originalRnVersion && this.originalRnVersion !== this.targetVersion) {
+            const diffUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${this.originalRnVersion}&to=${this.targetVersion}#RnDiffApp-package.json`;
             message += `\n\n---\n\n[View React Native ${this.targetVersion} upgrade guide](${diffUrl})`;
         }
 

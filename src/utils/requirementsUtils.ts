@@ -151,7 +151,7 @@ function parsePackageLine(line: string): { name: string; version: string } | nul
 export function createRequirementsHoverMessage(
     result: RequirementResult,
     targetVersion: string,
-    currentRnVersion?: string
+    sourceVersion?: string
 ): vscode.MarkdownString {
     let message = `**Requirements Check: ${result.packageName}**\n\n`;
 
@@ -169,8 +169,9 @@ export function createRequirementsHoverMessage(
         message += `[Update to Required Version](command:reactNativePackageChecker.updateToRequiredVersion?${encodeURIComponent(JSON.stringify([result.packageName, result.requiredVersion]))})`;
     }
 
-    if (currentRnVersion && currentRnVersion !== targetVersion) {
-        const diffUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${currentRnVersion}&to=${targetVersion}#RnDiffApp-package.json`;
+    // Use the selected source version instead of current RN version for upgrade helper link
+    if (sourceVersion && sourceVersion !== targetVersion) {
+        const diffUrl = `${EXTERNAL_URLS.UPGRADE_HELPER_BASE}/?from=${sourceVersion}&to=${targetVersion}#RnDiffApp-package.json`;
         message += `\n\n---\n\n[View React Native ${targetVersion} upgrade guide](${diffUrl})`;
     }
 
