@@ -3,7 +3,7 @@
     "displayName": "React Native Package Checker",
     "description": "Check New Architecture compatibility and version requirements for React Native packages - all in VS Code ⚡️",
     "icon": "assets/logo.png",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "publisher": "sandipshiwakoti",
     "repository": {
         "type": "git",
