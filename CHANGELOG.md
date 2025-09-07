@@ -4,6 +4,12 @@ All notable changes to the "vscode-react-native-package-checker" extension will 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.1.1] - 2025-09-07
+
+### Added
+
+- Native Code badge in package details panel to indicate packages with native code in their source
+
 ## [1.1.0] - 2025-09-07
 
 ### Added
