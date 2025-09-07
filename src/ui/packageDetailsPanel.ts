@@ -555,6 +555,11 @@ function createPlatformBadge(platform: string): string {
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>';
             variant = 'amber';
             break;
+        case 'native code':
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-code-icon lucide-file-code"><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/></svg>';
+            variant = 'purple';
+            break;
         default:
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11c0 2.5-2.5 5-5 5s-5-2.5-5-5 2.5-5 5-5 5 2.5 5 5Z"></path><path d="m15.2 13.9 3 3 3-3"></path><path d="m2.8 10.1-3-3 3-3"></path><path d="m20.7 7-3 3 3 3"></path><path d="m6.3 17 3-3-3-3"></path></svg>';
@@ -598,6 +603,9 @@ function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | nul
         }
         if (packageInfo.support.dev) {
             badges.push(createPlatformBadge('Development Only'));
+        }
+        if (packageInfo.support.hasNativeCode) {
+            badges.push(createPlatformBadge('Native Code'));
         }
         // License is shown in Quick Links section instead
     }

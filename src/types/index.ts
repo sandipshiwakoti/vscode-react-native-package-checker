@@ -119,6 +119,7 @@ export interface PackageSupport {
     licenseUrl?: string;
     expoGo?: boolean;
     dev?: boolean;
+    hasNativeCode?: boolean;
 }
 
 export interface GitHubInfo {
