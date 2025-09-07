@@ -87,6 +87,7 @@ export enum COMMANDS {
     SHOW_REQUIREMENTS = 'reactNativePackageChecker.showRequirements',
     HIDE_REQUIREMENTS = 'reactNativePackageChecker.hideRequirements',
     APPLY_REQUIREMENTS = 'reactNativePackageChecker.applyRequirements',
+    BUMP_LATEST_VERSIONS = 'reactNativePackageChecker.bumpLatestVersions',
 }
 
 export enum GITHUB_PATHS {

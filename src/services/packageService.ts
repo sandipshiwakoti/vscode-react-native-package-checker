@@ -499,6 +499,25 @@ export class PackageService {
         }
     }
 
+    public updateMultiplePackageVersionsInCache(packageUpdates: Record<string, string>): void {
+        const updatedPackages: string[] = [];
+
+        Object.entries(packageUpdates).forEach(([packageName, newVersion]) => {
+            const updated = this.cacheManager.updatePackageInfo(packageName, {
+                currentVersion: newVersion,
+                hasUpdate: false,
+            });
+
+            if (updated) {
+                updatedPackages.push(packageName);
+            }
+        });
+
+        if (updatedPackages.length > 0) {
+            this.logger.logCacheUpdate('version updated', updatedPackages);
+        }
+    }
+
     public clearCache(): void {
         this.cacheManager.clearAllCache();
     }

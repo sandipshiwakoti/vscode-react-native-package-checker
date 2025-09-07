@@ -75,6 +75,12 @@ export async function showQuickActionsCommand(
     });
 
     items.push({
+        label: '$(arrow-up) Bump Packages to Latest Versions',
+        description: 'Update packages to their latest versions',
+        detail: 'Select and update packages to the latest available versions',
+    });
+
+    items.push({
         label: '$(refresh) Refresh Package Data',
         description: 'Refresh all package information from the registry',
         detail: 'Update package status and version information',
@@ -107,6 +113,8 @@ export async function showQuickActionsCommand(
                 await vscode.commands.executeCommand('reactNativePackageChecker.showRequirements');
             } else if (selectedItem.label.includes('Apply Requirements')) {
                 await vscode.commands.executeCommand(COMMANDS.APPLY_REQUIREMENTS);
+            } else if (selectedItem.label.includes('Bump Packages to Latest Versions')) {
+                await vscode.commands.executeCommand(COMMANDS.BUMP_LATEST_VERSIONS);
             } else if (selectedItem.label.includes('Refresh Package Data')) {
                 await vscode.commands.executeCommand(COMMANDS.REFRESH_PACKAGES);
             } else if (selectedItem.label.includes('Open Package Checker Website')) {
