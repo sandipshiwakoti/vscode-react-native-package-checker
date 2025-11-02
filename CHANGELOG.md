@@ -4,6 +4,14 @@ All notable changes to the "vscode-react-native-package-checker" extension will 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.1.2] - 2025-11-02
+
+### Added
+
+- Meta Horizon OS badge in package details panel to indicate Meta Horizon OS platform support
+- Vega OS badge in package details panel to indicate Vega OS platform support
+- Config Plugin badge in package details panel to indicate Expo config plugin support
+
 ## [1.1.1] - 2025-09-07
 
 ### Added
