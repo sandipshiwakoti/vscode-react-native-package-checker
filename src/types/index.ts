@@ -111,6 +111,8 @@ export interface PlatformSupport {
     windows: boolean;
     macos: boolean;
     fireos: boolean;
+    horizon: boolean;
+    vegaos: boolean | string;
 }
 
 export interface PackageSupport {
@@ -120,6 +122,7 @@ export interface PackageSupport {
     expoGo?: boolean;
     dev?: boolean;
     hasNativeCode?: boolean;
+    configPlugin?: boolean;
 }
 
 export interface GitHubInfo {

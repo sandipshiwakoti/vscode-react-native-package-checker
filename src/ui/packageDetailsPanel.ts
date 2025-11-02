@@ -505,7 +505,7 @@ function createMaintenanceBadge(unmaintained?: boolean): string {
     }
 }
 
-function createPlatformBadge(platform: string): string {
+function createPlatformBadge(platform: string, url?: string): string {
     let iconSvg = '';
     let variant = 'slate';
 
@@ -540,6 +540,16 @@ function createPlatformBadge(platform: string): string {
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"></path></svg>';
             variant = 'yellow';
             break;
+        case 'meta horizon os':
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 12c0-8.5-6.5-8.5-6.5-8.5S4 3.5 4 12s6.5 8.5 6.5 8.5S17 20.5 17 12z"/><path d="M7 12c0-8.5 6.5-8.5 6.5-8.5S20 3.5 20 12s-6.5 8.5-6.5 8.5S7 20.5 7 12z"/></svg>';
+            variant = 'blue';
+            break;
+        case 'vega os':
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M8 7v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7"/></svg>';
+            variant = 'green';
+            break;
         case 'typescript':
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path></svg>';
@@ -560,6 +570,11 @@ function createPlatformBadge(platform: string): string {
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-code-icon lucide-file-code"><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/></svg>';
             variant = 'purple';
             break;
+        case 'config plugin':
+            iconSvg =
+                '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>';
+            variant = 'slate';
+            break;
         default:
             iconSvg =
                 '<svg class="tag-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11c0 2.5-2.5 5-5 5s-5-2.5-5-5 2.5-5 5-5 5 2.5 5 5Z"></path><path d="m15.2 13.9 3 3 3-3"></path><path d="m2.8 10.1-3-3 3-3"></path><path d="m20.7 7-3 3 3 3"></path><path d="m6.3 17 3-3-3-3"></path></svg>';
@@ -567,6 +582,9 @@ function createPlatformBadge(platform: string): string {
             break;
     }
 
+    if (url) {
+        return `<span class="tag tag-${variant}"><a class="tag-link" href="${url}" target="_blank" rel="noopener noreferrer">${iconSvg}${platform}</a></span>`;
+    }
     return `<span class="tag tag-${variant}">${iconSvg}${platform}</span>`;
 }
 
@@ -592,6 +610,16 @@ function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | nul
         if (packageInfo.platforms.fireos) {
             badges.push(createPlatformBadge('Fire OS'));
         }
+        if (packageInfo.platforms.horizon) {
+            badges.push(createPlatformBadge('Meta Horizon OS'));
+        }
+        if (packageInfo.platforms.vegaos) {
+            const vegaosUrl =
+                typeof packageInfo.platforms.vegaos === 'string'
+                    ? `https://www.npmjs.com/package/${packageInfo.platforms.vegaos}`
+                    : undefined;
+            badges.push(createPlatformBadge('Vega OS', vegaosUrl));
+        }
     }
 
     if (packageInfo.support) {
@@ -606,6 +634,9 @@ function buildPlatformsAndSupportSection(packageInfo: PackageInfo): string | nul
         }
         if (packageInfo.support.hasNativeCode) {
             badges.push(createPlatformBadge('Native Code'));
+        }
+        if (packageInfo.support.configPlugin) {
+            badges.push(createPlatformBadge('Config Plugin'));
         }
         // License is shown in Quick Links section instead
     }
