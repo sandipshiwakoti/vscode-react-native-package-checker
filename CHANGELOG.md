@@ -4,6 +4,18 @@ All notable changes to the "vscode-react-native-package-checker" extension will 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.0] - 2025-11-03
+
+### Added
+
+- Details codelens for enhanced package information
+- Directory link in the package detail panel for easy navigation
+
+### Changed
+
+- Opening upgrade helper with version input and validation
+- Package browsing with clickable details panel integration
+
 ## [1.1.2] - 2025-11-02
 
 ### Added
