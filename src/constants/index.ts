@@ -4,6 +4,7 @@ export const API_BASE_URL = `${BASE_URL}/api`;
 export const EXTERNAL_URLS = {
     BUNDLEPHOBIA_BASE: 'https://bundlephobia.com/package',
     UPGRADE_HELPER_BASE: 'https://react-native-community.github.io/upgrade-helper',
+    REACT_NATIVE_DIRECTORY_BASE: 'https://reactnative.directory',
 } as const;
 
 export const EXTENSION_CONFIG = {
