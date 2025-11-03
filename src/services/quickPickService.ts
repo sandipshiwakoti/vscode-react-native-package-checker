@@ -198,6 +198,12 @@ export class QuickPickService {
         if (isPackageJsonOpen) {
             this.navigateToPackageInJson(item.packageName);
         }
+
+        vscode.commands.executeCommand(
+            'reactNativePackageChecker.showPackageDetails',
+            item.packageName,
+            item.packageInfo
+        );
     }
 
     private async showQuickPick(
