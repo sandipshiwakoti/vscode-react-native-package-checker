@@ -120,7 +120,7 @@ export async function showQuickActionsCommand(
             } else if (selectedItem.label.includes('Open Package Checker Website')) {
                 await vscode.commands.executeCommand(COMMANDS.OPEN_PACKAGE_CHECKER_WEBSITE);
             } else if (selectedItem.label.includes('Open Upgrade Helper Website')) {
-                await vscode.commands.executeCommand(COMMANDS.OPEN_UPGRADE_HELPER);
+                await vscode.commands.executeCommand(COMMANDS.OPEN_UPGRADE_HELPER, undefined, undefined, true, true);
             }
         }
     });

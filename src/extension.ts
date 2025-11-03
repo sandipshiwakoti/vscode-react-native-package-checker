@@ -109,9 +109,18 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const openUpgradeHelperCommand = vscode.commands.registerCommand(
         COMMANDS.OPEN_UPGRADE_HELPER,
-        (fromRNVersion?: string, toRnVersion?: string) => {
-            const readFromPackageJson = !fromRNVersion;
-            return openUpgradeHelper(browserService, fromRNVersion, toRnVersion, readFromPackageJson);
+        (fromRNVersion?: string, toRnVersion?: string, readFromPackageJson?: boolean, showVersionInput?: boolean) => {
+            const shouldReadFromPackageJson = readFromPackageJson !== undefined ? readFromPackageJson : !fromRNVersion;
+            const shouldShowVersionInput =
+                showVersionInput !== undefined ? showVersionInput : !fromRNVersion && !readFromPackageJson;
+            return openUpgradeHelper(
+                browserService,
+                cacheManager,
+                fromRNVersion,
+                toRnVersion,
+                shouldReadFromPackageJson,
+                shouldShowVersionInput
+            );
         }
     );
 
