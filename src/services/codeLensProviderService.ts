@@ -274,6 +274,9 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
                         const newArchCodeLens = this.createNewArchCodeLens(range, packageName, packageInfo);
                         codeLenses.push(newArchCodeLens);
 
+                        const detailsCodeLens = this.createDetailsCodeLens(range, packageName, packageInfo);
+                        codeLenses.push(detailsCodeLens);
+
                         if (packageInfo.unmaintained) {
                             const unmaintainedCodeLens = this.createUnmaintainedCodeLens(range);
                             codeLenses.push(unmaintainedCodeLens);
@@ -326,6 +329,14 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
         return new vscode.CodeLens(range, {
             title: displayText,
             tooltip: this.getNewArchTooltip(packageInfo, packageName),
+            command: '',
+        });
+    }
+
+    private createDetailsCodeLens(range: vscode.Range, packageName: string, packageInfo: PackageInfo): vscode.CodeLens {
+        return new vscode.CodeLens(range, {
+            title: `${STATUS_SYMBOLS.INFO}\u2009Details`,
+            tooltip: 'Click to view detailed package information',
             command: COMMANDS.SHOW_PACKAGE_DETAILS,
             arguments: [packageName, packageInfo],
         });

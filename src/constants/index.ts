@@ -62,6 +62,7 @@ export const STATUS_SYMBOLS = {
     DEPENDENCY_UPDATE: '$(tools)',
     ADD: '$(add)',
     REMOVE: '$(remove)',
+    INFO: '$(info)',
 } as const;
 
 export const REQUIREMENTS_CONFIG = {
