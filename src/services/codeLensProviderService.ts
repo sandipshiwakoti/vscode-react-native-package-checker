@@ -668,7 +668,6 @@ export class CodeLensProviderService implements vscode.CodeLensProvider {
             parts.push(packageInfo.newArchitectureNote);
         }
 
-        parts.push('Click for more details');
         return parts.join(EXTENSION_CONFIG.TOOLTIP_SEPARATOR);
     }
 
